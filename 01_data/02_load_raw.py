@@ -3,7 +3,7 @@
 # MAGIC # Stage 2 — Load Raw
 # MAGIC
 # MAGIC Loads every file the schema gate accepted into a **Raw** Delta table, one table per source
-# MAGIC (`raw.projects`, `raw.monitoring`).
+# MAGIC (`raw_projects`, `raw_monitoring`).
 # MAGIC
 # MAGIC **Raw means "as received":**
 # MAGIC - Every value is kept exactly as text. No types, no cleaning, no filtering. That happens in Stage 3.
@@ -39,15 +39,46 @@ import csv
 import fnmatch
 import hashlib
 import json
-import os
 import shutil
 import uuid
 from datetime import datetime, timezone
+
+# ---- Find the repo root and import the shared helpers (same cell in every pipeline notebook) ----------
+import os
+import sys
 from pathlib import Path
 
-import yaml
 
-CONFIG_PATH = os.environ.get("IFC_PIPELINE_CONFIG", "/Volumes/ifc_cfo/landing/files/config/pipeline_config.yml")
+def _repo_root():
+    """Folder holding config/ and 00_setup/. Tries this file, the working directory, then the notebook path."""
+    starts = []
+    if "__file__" in globals():
+        starts.append(Path(__file__).resolve().parent)
+    starts.append(Path(os.getcwd()))
+    try:
+        nb = dbutils.notebook.entry_point.getDbutils().notebook().getContext().notebookPath().get()  # noqa: F821
+        starts.append(Path(nb if nb.startswith("/Workspace") else "/Workspace" + nb).parent)
+    except Exception:
+        pass
+    for start in starts:
+        for folder in [start, *start.parents]:
+            if (folder / "00_setup" / "ifc_common.py").is_file():
+                return folder
+    raise FileNotFoundError("Could not find the repo root (the folder that holds 00_setup/ifc_common.py). "
+                            f"Tried: {[str(s) for s in starts]}")
+
+
+REPO_ROOT = _repo_root()
+if str(REPO_ROOT / "00_setup") not in sys.path:
+    sys.path.insert(0, str(REPO_ROOT / "00_setup"))
+from ifc_common import T, load_config, load_contracts, load_order, resolve_config_path  # noqa: E402
+
+try:
+    dbutils.widgets.text("config_path", "", "Config path (blank = repo config)")  # noqa: F821
+    _widget = dbutils.widgets.get("config_path")  # noqa: F821
+except NameError:
+    _widget = None
+CONFIG_PATH = resolve_config_path(_widget, REPO_ROOT)
 
 try:
     spark  # noqa: F821
@@ -62,44 +93,6 @@ AUDIT_COLUMNS = ["_load_id", "_loaded_at", "_source_file", "_file_sha256", "_con
 # MAGIC %md ## Helpers
 
 # COMMAND ----------
-
-
-def load_config(config_path: str) -> dict:
-    config_path = Path(config_path).resolve()
-    with open(config_path) as f:
-        cfg = yaml.safe_load(f)
-    contracts_dir = Path(cfg["environment"]["contracts_dir"])
-    if not contracts_dir.is_absolute():
-        contracts_dir = (config_path.parent / contracts_dir).resolve()
-    cfg["_contracts_dir"] = contracts_dir
-    return cfg
-
-
-def load_contracts(contracts_dir: Path) -> dict:
-    contracts = {}
-    for path in sorted(contracts_dir.glob("*.yml")):
-        with open(path) as f:
-            c = yaml.safe_load(f)
-        contracts[c["contract"]["name"]] = c
-    return contracts
-
-
-def load_order(contracts: dict) -> list:
-    """Sources a contract depends on are loaded first (e.g. projects before monitoring)."""
-    ordered, seen = [], set()
-
-    def visit(name):
-        if name in seen:
-            return
-        seen.add(name)
-        dep = contracts[name]["contract"].get("depends_on")
-        if dep and dep in contracts:
-            visit(dep)
-        ordered.append(name)
-
-    for name in sorted(contracts):
-        visit(name)
-    return ordered
 
 
 def file_sha256(path: Path) -> str:
@@ -130,10 +123,6 @@ def count_and_header(path: Path):
                 f"Most likely an opening quote that is never closed. Parser said: {e}. Nothing was written."
             ) from None
     return header, n
-
-
-def full_table_name(cfg: dict, short_name: str) -> str:
-    return f"{cfg['environment']['catalog']}.{short_name}"
 
 
 # COMMAND ----------
@@ -248,8 +237,7 @@ def write_load_log(cfg: dict, records: list):
 
         schema = StructType([StructField(f, IntegerType() if f == "rows_loaded" else StringType())
                              for f in LOG_FIELDS])
-        env = cfg["environment"]
-        table = f"{env['catalog']}.{env['ops_schema']}.raw_load_log"
+        table = T(cfg, "ops_raw_load_log")
         spark.createDataFrame([[r[f] for f in LOG_FIELDS] for r in records], schema) \
             .write.mode("append").saveAsTable(table)  # noqa: F821
     else:
@@ -275,7 +263,7 @@ def run_load_raw(config_path: str = CONFIG_PATH) -> list:
 
     for source in load_order(contracts):
         contract = contracts[source]
-        table = full_table_name(cfg, contract["targets"]["raw"])
+        table = T(cfg, contract["targets"]["raw"])
         src_dir = root / lz["accepted"] / source
         if not src_dir.exists():
             continue
@@ -337,5 +325,5 @@ if __name__ == "__main__" or ON_DATABRICKS:
     print_summary(results)
     failed = [r for r in results if r["status"] == "FAILED"]
     if failed:
-        raise RuntimeError(f"Raw load failed for {len(failed)} file(s). See ops.raw_load_log. "
+        raise RuntimeError(f"Raw load failed for {len(failed)} file(s). See ops_raw_load_log. "
                            "Failed files were left in accepted/ for retry.")

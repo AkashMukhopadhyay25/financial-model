@@ -4,7 +4,7 @@
 
 contract:
   name: projects
-  version: 1.1.0
+  version: 1.2.0
   owner: IFC project records team
   description: One row per IFC project, from public disclosure through disbursement.
   file_pattern: "synthetic_ifc_projects_*.csv"
@@ -14,12 +14,14 @@ contract:
     - "1.1.0  Rules made executable (SQL). Allocation check split into under/over. Added outdated-record,
               Board-date-passed and status/date conflict flags. Country-code conflict changed from quarantine
               to high-severity flag (which row is wrong cannot be determined automatically)."
+    - "1.2.0  Moved to one schema ({catalog}.{schema} from config). Targets are bare table names with layer
+              prefixes (raw_, validated_). No rule changes."
 
-targets:
-  raw: raw.projects
-  validated: validated.projects
-  quarantine: validated.projects_quarantine
-  issues: validated.projects_dq_issues
+targets:   # table names inside {catalog}.{schema} from pipeline_config.yml
+  raw: raw_projects
+  validated: validated_projects
+  quarantine: validated_projects_quarantine
+  issues: validated_projects_dq_issues
 
 # ---------------------------------------------------------------------------
 # SCHEMA

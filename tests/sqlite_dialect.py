@@ -6,7 +6,7 @@ Only a handful of things differ from Spark and are translated here:
   x RLIKE 'p'                    -> x REGEXP 'p'
   CAST(x AS STRING)              -> CAST(x AS TEXT)
   current_timestamp()            -> CURRENT_TIMESTAMP
-  catalog.schema.table           -> schema.table (attached SQLite databases)
+  catalog.schema.table           -> table (one SQLite database; names keep their layer prefix)
 Everything else (CTEs, CASE, CONCAT_WS, window functions, subqueries) is the same SQL.
 """
 import re
@@ -40,13 +40,10 @@ class SqliteDialect:
     name = "sqlite"
     CAST_FUNCS = {"date": "try_date", "integer": "try_int", "double": "try_double"}
 
-    def __init__(self, db_dir, catalog="ifc_cfo"):
-        self.catalog = catalog
+    def __init__(self, db_dir):
         db_dir = Path(db_dir)
         db_dir.mkdir(parents=True, exist_ok=True)
         self.conn = sqlite3.connect(db_dir / "main.db")
-        for schema in ["raw", "validated", "ops"]:
-            self.conn.execute(f"ATTACH DATABASE '{db_dir / (schema + '.db')}' AS {schema}")
         self.conn.create_function("try_date", 1, _try_date, deterministic=True)
         self.conn.create_function("try_int", 1, _try_int, deterministic=True)
         self.conn.create_function("try_double", 1, _try_double, deterministic=True)
@@ -75,9 +72,8 @@ class SqliteDialect:
         return [dict(zip(cols, row)) for row in cur.fetchall()]
 
     def table_exists(self, name):
-        schema, tbl = name.split(".") if "." in name else ("main", name)
         return bool(self.conn.execute(
-            f"SELECT 1 FROM {schema}.sqlite_master WHERE name = ?", (tbl,)).fetchone())
+            "SELECT 1 FROM sqlite_master WHERE name = ?", (name,)).fetchone())
 
     def create_or_replace_table(self, name, select_sql):
         self.conn.execute(f"DROP TABLE IF EXISTS {name}")
@@ -101,7 +97,7 @@ class SqliteDialect:
         import pandas as pd
 
         df = pd.read_csv(csv_path, dtype=str, keep_default_na=False, na_values=[""])
-        schema, tbl = short_name.split(".")
+        tbl = short_name
         cols = list(df.columns)
         self.conn.execute(f"DROP TABLE IF EXISTS {short_name}")
         self.conn.execute(f"CREATE TABLE {short_name} (" + ", ".join(f'"{c}" TEXT' for c in cols) + ")")

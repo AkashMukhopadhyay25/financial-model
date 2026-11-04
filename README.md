@@ -13,9 +13,10 @@ This repository is mid-merge. Two rules:
 |---|---|
 | `CLAUDE.md` | Project context and every decision made so far (read first) |
 | `MERGE_PLAN.md` | Step-by-step plan for merging the two codebases (phases 1–10) |
-| `config/pipeline_config.yml` | All settings and thresholds |
+| `config/pipeline_config.yml` | All settings: location (`ifc_challenge.portfolio`), thresholds, AI, serving IDs, business parameters |
 | `contracts/` | Data contracts: expected columns, quarantine rules, flag rules |
-| `00_setup/00_config.py` | Creates the catalog, schemas and landing volume |
+| `00_setup/00_config.py` | Loads the config; creates the schema, the `landing` volume and its folders; defines `T()`, `answer()`, `persist_answers()` |
+| `00_setup/ifc_common.py` | Shared helpers every notebook imports: finds and loads the config, `T(cfg, name)`, contract loading |
 | `01_data/01_schema_gate.py` | Stage 1: blocks files whose columns don't match the contract |
 | `01_data/02_load_raw.py` | Stage 2: loads accepted files into Raw tables, keeping history |
 | `01_data/03_validate.py` | Stage 3: types, standardizes, quarantines and flags rows |

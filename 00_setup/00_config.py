@@ -1,27 +1,222 @@
 # Databricks notebook source
 # MAGIC %md
-# MAGIC # Setup — run once
-# MAGIC Creates the Unity Catalog objects the pipeline expects. Names must match `config/pipeline_config.yml`.
-# MAGIC If your workspace doesn't let you create a catalog, change `catalog` in the config to one you can use
-# MAGIC and skip the first statement.
+# MAGIC # 00_config — shared configuration and setup
+# MAGIC
+# MAGIC **Run it once on its own** to create the schema, the landing volume and its folders. Every other notebook
+# MAGIC either starts with `%run ../00_setup/00_config` (or `../../00_setup/00_config` from `04_answers/wsN`) or
+# MAGIC imports `00_setup/ifc_common.py`.
+# MAGIC
+# MAGIC All values come from **`config/pipeline_config.yml`**. Nothing here or anywhere else hard-codes a catalog,
+# MAGIC schema, threshold, endpoint or ID. To change a setting, edit the YAML and re-run.
+# MAGIC
+# MAGIC | Python name | From config | Purpose |
+# MAGIC |---|---|---|
+# MAGIC | `CATALOG`, `SCHEMA` | `environment` | Unity Catalog location of every table, view and function |
+# MAGIC | `VOLUME`, `LANDING_ROOT` | `environment` | Landing volume `/Volumes/{catalog}/{schema}/{volume}` with `incoming/ accepted/ held/ loaded/` |
+# MAGIC | `LLM_ENDPOINT`, `RUN_LLM_EXTRACTION`, `LLM_*` | `ai` | Model endpoint and text-extraction settings |
+# MAGIC | `SQL_WAREHOUSE_ID`, `GENIE_SPACE_ID`, `UC_MODEL_NAME` | `serving` | Used by the agent and the app |
+# MAGIC | `ECL_LOSS_RATE`, `Q28_ALLOCATION_THRESHOLD_MUSD`, `CLIENT_BANDS`, `HEALTH_WEIGHTS` | `business` | Business parameters (also in `ref_assumptions`) |
+# MAGIC | `T("name")` | — | Fully-qualified name `{catalog}.{schema}.name` |
+# MAGIC
+# MAGIC The config file is found in this order: environment variable `IFC_PIPELINE_CONFIG` → the `config_path`
+# MAGIC widget at the top of the notebook → `config/pipeline_config.yml` in the same repo folder as this notebook.
+# MAGIC
+# MAGIC PyYAML ships with Databricks runtimes. If you see `No module named 'yaml'`, run `%pip install pyyaml` first.
 
 # COMMAND ----------
 
-# MAGIC %sql
-# MAGIC CREATE CATALOG IF NOT EXISTS ifc_cfo;
-# MAGIC CREATE SCHEMA IF NOT EXISTS ifc_cfo.landing   COMMENT 'Landing zone for incoming source files';
-# MAGIC CREATE SCHEMA IF NOT EXISTS ifc_cfo.ops       COMMENT 'Pipeline operations: schema gate and data-quality logs';
-# MAGIC CREATE SCHEMA IF NOT EXISTS ifc_cfo.raw       COMMENT 'Raw: source files loaded as-is';
-# MAGIC CREATE SCHEMA IF NOT EXISTS ifc_cfo.validated COMMENT 'Validated: typed, standardized, flagged; quarantine tables';
-# MAGIC CREATE SCHEMA IF NOT EXISTS ifc_cfo.enriched  COMMENT 'Enriched: structured fields extracted from project descriptions';
-# MAGIC CREATE SCHEMA IF NOT EXISTS ifc_cfo.defined  COMMENT 'Defined: business-ready tables and views used by Genie and the app';
-# MAGIC CREATE VOLUME IF NOT EXISTS ifc_cfo.landing.files COMMENT 'incoming/, accepted/, held/ folders';
-
-# COMMAND ----------
-
+# ---- Find the repo root and import the shared helpers (same cell in every pipeline notebook) ----------
 import os
+import sys
+from pathlib import Path
 
-for folder in ["incoming", "accepted", "held", "loaded", "config", "contracts"]:
-    os.makedirs(f"/Volumes/ifc_cfo/landing/files/{folder}", exist_ok=True)
 
-print("Ready. Now upload:\n  pipeline_config.yml -> /Volumes/ifc_cfo/landing/files/config/\n  both contract .yml files -> /Volumes/ifc_cfo/landing/files/contracts/\n  both CSVs -> /Volumes/ifc_cfo/landing/files/incoming/")
+def _repo_root():
+    """Folder holding config/ and 00_setup/. Tries this file, the working directory, then the notebook path."""
+    starts = []
+    if "__file__" in globals():
+        starts.append(Path(__file__).resolve().parent)
+    starts.append(Path(os.getcwd()))
+    try:
+        nb = dbutils.notebook.entry_point.getDbutils().notebook().getContext().notebookPath().get()  # noqa: F821
+        starts.append(Path(nb if nb.startswith("/Workspace") else "/Workspace" + nb).parent)
+    except Exception:
+        pass
+    for start in starts:
+        for folder in [start, *start.parents]:
+            if (folder / "00_setup" / "ifc_common.py").is_file():
+                return folder
+    raise FileNotFoundError("Could not find the repo root (the folder that holds 00_setup/ifc_common.py). "
+                            f"Tried: {[str(s) for s in starts]}")
+
+
+REPO_ROOT = _repo_root()
+if str(REPO_ROOT / "00_setup") not in sys.path:
+    sys.path.insert(0, str(REPO_ROOT / "00_setup"))
+from ifc_common import T as _T, load_config, resolve_config_path  # noqa: E402
+
+try:
+    dbutils.widgets.text("config_path", "", "Config path (blank = repo config)")  # noqa: F821
+    _widget = dbutils.widgets.get("config_path")  # noqa: F821
+except NameError:
+    _widget = None
+CONFIG_PATH = resolve_config_path(_widget, REPO_ROOT)
+CFG = load_config(CONFIG_PATH)
+
+# COMMAND ----------
+
+# ---- Values from config/pipeline_config.yml -------------------------------------------------------------
+_env, _ai, _srv, _biz = CFG["environment"], CFG["ai"], CFG["serving"], CFG["business"]
+
+CATALOG = _env["catalog"]
+SCHEMA = _env["schema"]
+VOLUME = _env["volume"]
+LANDING_ROOT = _env["landing_root"]
+LANDING_FOLDERS = [CFG["landing_zone"][k] for k in ("incoming", "accepted", "held", "loaded")]
+
+LLM_ENDPOINT = _ai["llm_endpoint"]
+RUN_LLM_EXTRACTION = bool(_ai["run_llm_extraction"])
+LLM_EXTRACTION_LIMIT = _ai.get("llm_extraction_limit")   # None = every new or changed description
+LLM_BATCH_SIZE = int(_ai["llm_batch_size"])
+LLM_PARALLELISM = int(_ai["llm_parallelism"])
+
+SQL_WAREHOUSE_ID = _srv.get("sql_warehouse_id") or ""
+GENIE_SPACE_ID = _srv.get("genie_space_id") or ""
+UC_MODEL_NAME = _T(CFG, _srv["uc_model_name"])
+
+ECL_LOSS_RATE = float(_biz["ecl_loss_rate"])
+Q28_ALLOCATION_THRESHOLD_MUSD = float(_biz["q28_allocation_threshold_musd"])
+ALLOCATION_TOLERANCE_MUSD = float(CFG["thresholds"]["amount_reconciliation_tolerance_musd"])  # row flags
+CLIENT_BANDS = dict(_biz["client_bands"])
+HEALTH_WEIGHTS = dict(_biz["health_score_weights"])
+
+
+def T(name: str) -> str:
+    """Fully-qualified Unity Catalog name for an object in this solution."""
+    return _T(CFG, name)
+
+
+# COMMAND ----------
+
+# ---- Create the containers if they do not exist yet ------------------------------------------------------
+# In a shared workspace the catalog usually exists already and you may lack CREATE CATALOG; that is fine.
+try:
+    spark.sql(f"CREATE CATALOG IF NOT EXISTS {CATALOG}")
+except Exception as e:
+    print(f"Skipping CREATE CATALOG ({type(e).__name__}); using existing catalog {CATALOG}")
+
+spark.sql(f"CREATE SCHEMA IF NOT EXISTS {CATALOG}.{SCHEMA} "
+          "COMMENT 'IFC CFO Office portfolio intelligence. Layers are name prefixes: raw_, validated_, enriched_, defined_, plus ref_ and ops_.'")
+spark.sql(f"CREATE VOLUME IF NOT EXISTS {CATALOG}.{SCHEMA}.{VOLUME} "
+          "COMMENT 'Landing zone for source files: incoming/, accepted/, held/, loaded/'")
+for _folder in LANDING_FOLDERS:
+    os.makedirs(f"{LANDING_ROOT}/{_folder}", exist_ok=True)
+
+spark.sql(f"USE CATALOG {CATALOG}")
+spark.sql(f"USE SCHEMA {SCHEMA}")
+
+# Session variable so %sql cells use the same loss rate as Python (referenced as ecl_loss_rate).
+# Needs serverless or DBR 14.1+. If it fails, write the config value directly into the SQL instead.
+try:
+    spark.sql(f"DECLARE OR REPLACE VARIABLE ecl_loss_rate DOUBLE DEFAULT {ECL_LOSS_RATE}")
+except Exception as e:
+    print(f"Could not declare SQL variable ecl_loss_rate ({type(e).__name__}): {e}")
+
+# COMMAND ----------
+
+# ---- Answer register ---------------------------------------------------------------------------------------
+# Every WS1/WS2 answer is produced through `answer(...)`, which runs the SQL, displays the result and records
+# the question, SQL, assumptions and a result preview. `persist_answers(...)` writes them to `answers_register`,
+# so each figure stays traceable to its exact query (a requirement in the case brief).
+#
+# Sensitivity note (assumption A03): a question that names no status includes every status, Dropped included.
+# For the questions this affects, pass `sensitivity_sql` (the same query excluding Dropped) and
+# `sensitivity_label` (e.g. "Excluding Dropped"); both figures are stored side by side.
+import json
+from datetime import datetime, timezone
+
+_ANSWERS = []
+
+ANSWERS_REGISTER_COLUMNS = [
+    ("workstream", "STRING"), ("question_id", "STRING"), ("question", "STRING"), ("sql_text", "STRING"),
+    ("assumptions", "STRING"), ("assumption_ids", "STRING"), ("row_count", "BIGINT"),
+    ("result_preview_json", "STRING"), ("sensitivity_label", "STRING"), ("sensitivity_sql", "STRING"),
+    ("sensitivity_preview_json", "STRING"), ("computed_at", "STRING"),
+]
+
+
+def answer(question_id: str, question: str, sql: str, assumptions: str = "", show: bool = True,
+           assumption_ids: str = "", sensitivity_sql: str = None, sensitivity_label: str = None):
+    """Run one answer query, record it for the register, and display it.
+
+    assumption_ids     comma list of ref_assumptions IDs, e.g. "A02,A03"
+    sensitivity_sql    optional alternative query (e.g. the same query excluding Dropped)
+    sensitivity_label  short label for it, e.g. "Excluding Dropped"
+    """
+    df = spark.sql(sql)
+    pdf = df.limit(500).toPandas()
+    sens_json = None
+    if sensitivity_sql:
+        sens_df = spark.sql(sensitivity_sql)
+        sens_json = sens_df.limit(500).toPandas().to_json(orient="records", date_format="iso")
+    _ANSWERS.append({
+        "question_id": question_id,
+        "question": question,
+        "sql_text": sql.strip(),
+        "assumptions": assumptions.strip(),
+        "assumption_ids": ",".join(a.strip() for a in assumption_ids.split(",") if a.strip()),
+        "row_count": int(df.count()),
+        "result_preview_json": pdf.to_json(orient="records", date_format="iso"),
+        "sensitivity_label": (sensitivity_label or ("Sensitivity" if sensitivity_sql else None)),
+        "sensitivity_sql": sensitivity_sql.strip() if sensitivity_sql else None,
+        "sensitivity_preview_json": sens_json,
+        "computed_at": datetime.now(timezone.utc).isoformat(),
+    })
+    if show:
+        print(f"{question_id}: {question}")
+        if assumptions:
+            print(f"  Assumptions: {assumptions}")
+        if assumption_ids:
+            print(f"  Assumption IDs: {assumption_ids}")
+        display(df)  # noqa: F821
+        if sensitivity_sql:
+            print(f"  Sensitivity: {sensitivity_label or 'Sensitivity'}")
+            display(spark.sql(sensitivity_sql))  # noqa: F821
+    return df
+
+
+def _ensure_answers_register():
+    """Create answers_register, or add any new columns to an existing one (existing rows are kept)."""
+    table = T("answers_register")
+    if not spark.catalog.tableExists(table):
+        cols = ", ".join(f"{c} {t}" for c, t in ANSWERS_REGISTER_COLUMNS)
+        spark.sql(f"CREATE TABLE {table} ({cols}) "
+                  "COMMENT 'Every answer submitted for WS1/WS2/WS3 with the SQL, assumptions and sensitivity figures used to produce it'")
+        return
+    existing = {f.name.lower() for f in spark.table(table).schema.fields}
+    missing = [(c, t) for c, t in ANSWERS_REGISTER_COLUMNS if c not in existing]
+    if missing:
+        spark.sql(f"ALTER TABLE {table} ADD COLUMNS (" + ", ".join(f"{c} {t}" for c, t in missing) + ")")
+        print(f"answers_register: added columns {[c for c, _ in missing]}")
+
+
+def persist_answers(workstream: str):
+    """Replace this workstream's rows in answers_register with the answers recorded in this run."""
+    if not _ANSWERS:
+        print("No answers recorded")
+        return
+    from pyspark.sql.types import LongType, StringType, StructField, StructType
+
+    _ensure_answers_register()
+    schema = StructType([StructField(c, LongType() if t == "BIGINT" else StringType())
+                         for c, t in ANSWERS_REGISTER_COLUMNS])
+    rows = [[dict(a, workstream=workstream).get(c) for c, _ in ANSWERS_REGISTER_COLUMNS] for a in _ANSWERS]
+    sdf = spark.createDataFrame(rows, schema)
+    spark.sql(f"DELETE FROM {T('answers_register')} WHERE workstream = '{workstream}'")
+    sdf.write.mode("append").saveAsTable(T("answers_register"))
+    print(f"Saved {len(rows)} answers for {workstream} to {T('answers_register')}")
+    _ANSWERS.clear()
+
+
+print(f"Config loaded from {CONFIG_PATH}")
+print(f"  location {CATALOG}.{SCHEMA} | landing {LANDING_ROOT} | LLM {LLM_ENDPOINT}")

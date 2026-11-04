@@ -1,12 +1,19 @@
-# Pipeline configuration: business and operational settings that can be tuned
-# without touching code. Data shape rules live in contracts/, not here.
+# Pipeline configuration: the ONE place for settings. No notebook hard-codes a catalog, schema,
+# threshold, endpoint or ID. Data shape rules live in contracts/, not here.
+#
+# Notebooks find this file in this order (see 00_setup/ifc_common.py):
+#   1. environment variable IFC_PIPELINE_CONFIG (used for local tests)
+#   2. notebook widget `config_path`
+#   3. <repo root>/config/pipeline_config.yml, next to the notebooks in the workspace / Git folder
 
 environment:
-  catalog: ifc_cfo                 # Unity Catalog catalog
-  ops_schema: ops                  # schema for pipeline logs
-  # Unity Catalog Volume that holds the landing zone
-  landing_root: /Volumes/ifc_cfo/landing/files
-  contracts_dir: ../contracts      # relative to this config file
+  catalog: ifc_challenge            # Unity Catalog catalog
+  schema: portfolio                 # every table, view, function and volume lives in this one schema
+  volume: landing                   # Unity Catalog volume that holds the landing zone (data files only)
+  # landing_root is derived as /Volumes/{catalog}/{schema}/{volume}.
+  # Set it only to override, e.g. a local folder for tests.
+  landing_root:
+  contracts_dir: ../contracts       # relative to this config file
 
 landing_zone:
   incoming: incoming   # analysts / upstream teams drop files here
@@ -45,3 +52,41 @@ thresholds:
 reporting:
   reference_date: latest_as_of_date   # anchor for "last N years" questions
   year_basis: calendar                # calendar | fiscal (IFC FY = Jul-Jun)
+
+# --- AI components ---------------------------------------------------------------------------------
+ai:
+  # Any chat model under Serving works; check the exact name in your workspace.
+  llm_endpoint: databricks-meta-llama-3-3-70b-instruct
+  run_llm_extraction: true          # false = rule-based text features only (no model calls)
+  # Rows sent to the model per run. Keep 5 for smoke tests. Set to empty (null) for the full run
+  # ONLY with explicit approval: the full run takes ~60 min on a pay-per-token endpoint.
+  llm_extraction_limit: 5
+  llm_batch_size: 250               # rows per committed batch (progress is saved after each batch)
+  llm_parallelism: 32               # parallel model calls
+
+# --- Serving IDs (workspace-specific) --------------------------------------------------------------
+serving:
+  # SQL Warehouses -> warehouse -> Connection details. Used by the agent and the app.
+  # b015ec4996eb0dd9 = "Serverless Starter Warehouse" in the team workspace (checked 2026-11-04).
+  sql_warehouse_id: b015ec4996eb0dd9
+  # From the Genie space URL: .../genie/rooms/<id>. Left empty on purpose: the space is rebuilt on the
+  # merged tables in phase 8, then its ID goes here.
+  genie_space_id:
+  # Unity Catalog model name (created in {catalog}.{schema}) for the CFO Decision Advisor agent.
+  uc_model_name: cfo_decision_advisor
+
+# --- Business parameters (also recorded in ref_assumptions) ---------------------------------------
+business:
+  ecl_loss_rate: 0.60                     # A11: Past Due = default, 60% of disbursed is lost
+  q28_allocation_threshold_musd: 1.0      # Q28 reports |alloc_gap_musd| > this (146 projects)
+  client_bands:                           # A15
+    band_reduce_past_due: 2               # REDUCE_OR_REVIEW if Past Due projects >= this
+    band_reduce_distress_share: 0.25      # ... or Past Due + Watchlist share of current exposure >= this
+    band_reduce_rating: 4.5               # ... or exposure-weighted risk rating >= this
+    band_continue_max_rating: 3           # CONTINUE needs every Active rating <= this
+    band_continue_max_closed_loss: 0.05   # ... and closed-at-a-loss share <= this
+    band_continue_min_active: 3           # ... and at least this many Active projects
+  health_score_weights:                   # sums to 1
+    risk_rating: 0.4
+    distress: 0.4
+    closed_loss: 0.2

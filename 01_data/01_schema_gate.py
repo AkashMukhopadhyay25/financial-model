@@ -13,7 +13,7 @@
 # MAGIC | **SKIPPED** | Exact same file content was already processed. |
 # MAGIC
 # MAGIC Downstream tables are never touched by a held file, so Genie and the app keep serving the last good data.
-# MAGIC Every decision is written to the `ops.schema_gate_log` table.
+# MAGIC Every decision is written to the `ops_schema_gate_log` table.
 # MAGIC
 # MAGIC **To fix a held file:** either correct the file and drop it back into `incoming/`,
 # MAGIC or (if the change is intended) update the contract, bump its `version`, and re-run.
@@ -29,53 +29,52 @@ import difflib
 import fnmatch
 import hashlib
 import json
-import os
 import shutil
 import uuid
 from datetime import datetime, timezone
+
+# ---- Find the repo root and import the shared helpers (same cell in every pipeline notebook) ----------
+import os
+import sys
 from pathlib import Path
 
-import yaml
 
-# Path to the pipeline config. On Databricks the config and contracts live in the
-# landing Volume (uploaded during setup). If you changed the catalog name, change it here too.
-CONFIG_PATH = os.environ.get("IFC_PIPELINE_CONFIG", "/Volumes/ifc_cfo/landing/files/config/pipeline_config.yml")
+def _repo_root():
+    """Folder holding config/ and 00_setup/. Tries this file, the working directory, then the notebook path."""
+    starts = []
+    if "__file__" in globals():
+        starts.append(Path(__file__).resolve().parent)
+    starts.append(Path(os.getcwd()))
+    try:
+        nb = dbutils.notebook.entry_point.getDbutils().notebook().getContext().notebookPath().get()  # noqa: F821
+        starts.append(Path(nb if nb.startswith("/Workspace") else "/Workspace" + nb).parent)
+    except Exception:
+        pass
+    for start in starts:
+        for folder in [start, *start.parents]:
+            if (folder / "00_setup" / "ifc_common.py").is_file():
+                return folder
+    raise FileNotFoundError("Could not find the repo root (the folder that holds 00_setup/ifc_common.py). "
+                            f"Tried: {[str(s) for s in starts]}")
+
+
+REPO_ROOT = _repo_root()
+if str(REPO_ROOT / "00_setup") not in sys.path:
+    sys.path.insert(0, str(REPO_ROOT / "00_setup"))
+from ifc_common import T, load_config, load_contracts, load_order, resolve_config_path  # noqa: E402
+
+try:
+    dbutils.widgets.text("config_path", "", "Config path (blank = repo config)")  # noqa: F821
+    _widget = dbutils.widgets.get("config_path")  # noqa: F821
+except NameError:
+    _widget = None
+CONFIG_PATH = resolve_config_path(_widget, REPO_ROOT)
 
 try:  # running on Databricks
     spark  # noqa: F821  (provided by the Databricks runtime)
     ON_DATABRICKS = True
 except NameError:
     ON_DATABRICKS = False
-
-# COMMAND ----------
-
-# MAGIC %md ## Load config and contracts
-
-# COMMAND ----------
-
-
-def load_config(config_path: str) -> dict:
-    config_path = Path(config_path).resolve()
-    with open(config_path) as f:
-        cfg = yaml.safe_load(f)
-    contracts_dir = Path(cfg["environment"]["contracts_dir"])
-    if not contracts_dir.is_absolute():
-        contracts_dir = (config_path.parent / contracts_dir).resolve()
-    cfg["_contracts_dir"] = contracts_dir
-    return cfg
-
-
-def load_contracts(contracts_dir: Path) -> list:
-    contracts = []
-    for path in sorted(contracts_dir.glob("*.yml")):
-        with open(path) as f:
-            c = yaml.safe_load(f)
-        c["_path"] = str(path)
-        contracts.append(c)
-    if not contracts:
-        raise RuntimeError(f"No contracts found in {contracts_dir}")
-    return contracts
-
 
 # COMMAND ----------
 
@@ -184,8 +183,7 @@ LOG_COLUMNS = [
 
 
 def log_table_name(cfg) -> str:
-    env = cfg["environment"]
-    return f"{env['catalog']}.{env['ops_schema']}.schema_gate_log"
+    return T(cfg, "ops_schema_gate_log")
 
 
 def local_log_path(cfg) -> Path:
@@ -230,8 +228,6 @@ def write_log(cfg, records: list):
             StructField("probable_renames", ArrayType(StringType())),
             StructField("messages", ArrayType(StringType())), StructField("moved_to", StringType()),
         ])
-        env = cfg["environment"]
-        spark.sql(f"CREATE SCHEMA IF NOT EXISTS {env['catalog']}.{env['ops_schema']}")  # noqa: F821
         df = spark.createDataFrame([[r[c] for c in LOG_COLUMNS] for r in records], schema)  # noqa: F821
         df.write.mode("append").saveAsTable(log_table_name(cfg))
     else:
@@ -257,7 +253,7 @@ def move_file(src: Path, dest_dir: Path, run_ts: str) -> Path:
 
 def run_schema_gate(config_path: str = CONFIG_PATH) -> list:
     cfg = load_config(config_path)
-    contracts = load_contracts(cfg["_contracts_dir"])
+    contracts = list(load_contracts(cfg["_contracts_dir"]).values())
     gate_cfg = cfg.get("schema_gate", {})
     lz = cfg["landing_zone"]
     root = Path(cfg["environment"]["landing_root"])
@@ -349,5 +345,5 @@ if __name__ == "__main__" or ON_DATABRICKS:
         # All files were still processed and logged before this point.
         raise RuntimeError(
             f"Schema gate held {len(held)} file(s): {[r['file_name'] for r in held]}. "
-            "See ops.schema_gate_log for details. Downstream tables were not changed."
+            "See ops_schema_gate_log for details. Downstream tables were not changed."
         )

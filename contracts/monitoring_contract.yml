@@ -4,27 +4,29 @@
 
 contract:
   name: monitoring
-  version: 1.1.0
+  version: 1.2.0
   owner: Portfolio monitoring team
   description: One row per monitored project (all non-Dropped projects).
   file_pattern: "synthetic_project_monitoring*.csv"
   primary_key: project_url
-  depends_on: projects   # validated.projects must be built first (cross-table checks)
+  depends_on: projects   # validated_projects must be built first (cross-table checks)
   changelog:
     - "1.0.0  Initial contract from profiling."
     - "1.1.0  Rules made executable (SQL). Review-overdue made risk-tiered and Active-only via config.
               Client identity conflict changed from quarantine to high-severity flag."
+    - "1.2.0  Moved to one schema ({catalog}.{schema} from config). Targets are bare table names with layer
+              prefixes (raw_, validated_). No rule changes."
 
-targets:
-  raw: raw.monitoring
-  validated: validated.monitoring
-  quarantine: validated.monitoring_quarantine
-  issues: validated.monitoring_dq_issues
+targets:   # table names inside {catalog}.{schema} from pipeline_config.yml
+  raw: raw_monitoring
+  validated: validated_monitoring
+  quarantine: validated_monitoring_quarantine
+  issues: validated_monitoring_dq_issues
 
-# Columns from validated.projects made available to rules as p_<column>.
-# Joined on project_url. They are used for checks only and are NOT copied into validated.monitoring.
+# Columns from validated_projects made available to rules as p_<column>.
+# Joined on project_url. They are used for checks only and are NOT copied into validated_monitoring.
 lookup:
-  table: validated.projects
+  table: validated_projects
   key: project_url
   columns: [project_number, status, total_approved_musd, invested_date]
 

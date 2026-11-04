@@ -7,7 +7,9 @@ This repo combines **two codebases** that are being merged. **Rule: everything o
 - **Real code today (ours):** contract-driven pipeline (schema gate → Raw → Validated): `00_setup/`, `01_data/01–03`, `contracts/`, `config/`, `tests/`, `test_files/`. Stages 1–2 ran on Databricks under the old catalog `ifc_cfo`; Stage 3 was tested locally and may not yet have run on Databricks.
 - **Teammate's (reference only):** end-to-end solution (WS1–WS3 answers, text enrichment, defined tables, UC-function tools, CFO Decision Advisor agent, Streamlit app, evaluation, docs). During each merge phase, copy the relevant file from `reference/teammate_original/` into its real path (see the table in `README.md`), then update it. Never edit `reference/`.
 
-**The merge has not started.** Follow `MERGE_PLAN.md` phase by phase; the user tests each phase on Databricks before the next. Source data for local tests is in `data/` (git-ignored).
+**Phase 1 (config and setup) is coded and passes the local test; waiting for the user's Databricks test.** Follow `MERGE_PLAN.md` phase by phase; the user tests each phase on Databricks before the next. Source data for local tests is in `data/` (git-ignored).
+
+**Workspaces:** the target is the team workspace `dbc-83823297-5832` (catalog `ifc_challenge` already exists there, owned by Ritvik Kohli, who must grant access). The old `ifc_cfo` catalog is in a different workspace, so Stages 1–2 run fresh here. Ritvik's live copy of his code is at `/Workspace/Users/ritvik.kohli@rotman.utoronto.ca/ifc-cfo-copilot`. It is newer than `reference/` in `cfo_agent.py`, `03_build_agent.py` and `04_app.py`; pick those changes up in phases 8–9.
 
 ## The case
 - Competition: Accenture/BTA "Forward Deployed: Agentic Innovation Challenge". Client: IFC CFO Office. Platform: **Databricks** (Unity Catalog, Genie, Databricks Apps). Submission deadline Sun Nov 15, 11:59 p.m. EST (see `IMPLEMENTATION_STRATEGY.md`).
@@ -91,11 +93,11 @@ What our stages do (already built):
 - The user is new to Databricks: give exact click paths, explain plainly, keep changes small and testable.
 - **The user validates each phase on Databricks before the next.** Don't jump ahead.
 - Never drop or overwrite `ref_text_feature_overrides`, `enriched_llm_extractions` (or his `llm_text_extractions`), `answers_register`, `agent_audit_log` or `raw_*` without asking. **No full LLM extraction without explicit approval**; test with 5 rows first.
-- Notebooks work on Databricks and locally (`IFC_PIPELINE_CONFIG` env var). `tests/sqlite_dialect.py` runs Stage 3's generated SQL on SQLite against `data/`.
+- Notebooks work on Databricks and locally. The config is found as: env var `IFC_PIPELINE_CONFIG` → widget `config_path` → `<repo root>/config/pipeline_config.yml`. Config and contracts deploy with the code, not to the volume; the volume holds data files only. Shared helpers live in `00_setup/ifc_common.py` (`T(cfg, name)`); `00_config` exposes `T(name)`. `tests/sqlite_dialect.py` runs Stage 3's generated SQL on SQLite against `data/`.
 - Keep Python 3.11-compatible (no nested same-quote f-strings).
 - Bump a contract's `version` and changelog on any rule change.
 - Settings live in `config/pipeline_config.yml` only; nothing else hard-codes a catalog, threshold, endpoint or ID.
 - When a decision changes, update this file and `MERGE_PLAN.md` §0.
 
 ## Next step
-MERGE_PLAN phase 1 (configuration and setup), then phase 2. Before deploying, set up the Databricks CLI and Asset Bundles with the user.
+User tests phase 1 on Databricks (see the commit message for steps), then phase 2. `serving.sql_warehouse_id` is set to the team workspace's Serverless Starter Warehouse (`b015ec4996eb0dd9`, verified); `genie_space_id` stays empty until phase 8. `ai.llm_extraction_limit` defaults to 5 (smoke-test size). Before deploying, set up the Databricks CLI and Asset Bundles with the user.

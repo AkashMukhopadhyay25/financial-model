@@ -2,16 +2,16 @@
 # MAGIC %md
 # MAGIC # Stage 3 — Validate
 # MAGIC
-# MAGIC Turns the latest Raw load (`raw.<source>_current`) into a **Validated** table: typed, standardized and
+# MAGIC Turns the latest Raw load (`raw_<source>_current`) into a **Validated** table: typed, standardized and
 # MAGIC flagged. Everything this stage does is defined in the data contracts and `pipeline_config.yml`;
 # MAGIC this notebook only turns those definitions into SQL and runs it.
 # MAGIC
 # MAGIC | Output | What it holds |
 # MAGIC |---|---|
-# MAGIC | `validated.<source>` | Rows that passed. Proper types (dates, numbers), standardized values, one `flag_<name>` column per flag rule, plus roll-ups: `needs_review`, `dq_max_severity`, `review_owners`, `dq_messages`. |
-# MAGIC | `validated.<source>_quarantine` | Rows that are unusable (missing key, unparseable value, invalid category, duplicate key, negative amount), kept as raw text with `quarantine_reasons`. |
-# MAGIC | `validated.<source>_dq_issues` | One row per flag hit: record, rule, severity, owner, message. This is what the app shows when a user clicks "Needs review". |
-# MAGIC | `ops.dq_run_summary` | One row per rule per run: how many rows it hit, compared with the count found when profiling. |
+# MAGIC | `validated_<source>` | Rows that passed. Proper types (dates, numbers), standardized values, one `flag_<name>` column per flag rule, plus roll-ups: `needs_review`, `dq_max_severity`, `review_owners`, `dq_messages`. |
+# MAGIC | `validated_<source>_quarantine` | Rows that are unusable (missing key, unparseable value, invalid category, duplicate key, negative amount), kept as raw text with `quarantine_reasons`. |
+# MAGIC | `validated_<source>_dq_issues` | One row per flag hit: record, rule, severity, owner, message. This is what the app shows when a user clicks "Needs review". |
+# MAGIC | `ops_dq_run_summary` | One row per rule per run: how many rows it hit, compared with the count found when profiling. |
 # MAGIC
 # MAGIC **Two levels of problem:**
 # MAGIC - **Quarantine** = the row can't be used. It's removed from the validated table and parked with its reasons.
@@ -33,15 +33,46 @@
 # COMMAND ----------
 
 import json
-import os
 import re
 import uuid
 from datetime import datetime, timezone
+
+# ---- Find the repo root and import the shared helpers (same cell in every pipeline notebook) ----------
+import os
+import sys
 from pathlib import Path
 
-import yaml
 
-CONFIG_PATH = os.environ.get("IFC_PIPELINE_CONFIG", "/Volumes/ifc_cfo/landing/files/config/pipeline_config.yml")
+def _repo_root():
+    """Folder holding config/ and 00_setup/. Tries this file, the working directory, then the notebook path."""
+    starts = []
+    if "__file__" in globals():
+        starts.append(Path(__file__).resolve().parent)
+    starts.append(Path(os.getcwd()))
+    try:
+        nb = dbutils.notebook.entry_point.getDbutils().notebook().getContext().notebookPath().get()  # noqa: F821
+        starts.append(Path(nb if nb.startswith("/Workspace") else "/Workspace" + nb).parent)
+    except Exception:
+        pass
+    for start in starts:
+        for folder in [start, *start.parents]:
+            if (folder / "00_setup" / "ifc_common.py").is_file():
+                return folder
+    raise FileNotFoundError("Could not find the repo root (the folder that holds 00_setup/ifc_common.py). "
+                            f"Tried: {[str(s) for s in starts]}")
+
+
+REPO_ROOT = _repo_root()
+if str(REPO_ROOT / "00_setup") not in sys.path:
+    sys.path.insert(0, str(REPO_ROOT / "00_setup"))
+from ifc_common import T, load_config, load_contracts, load_order, resolve_config_path  # noqa: E402
+
+try:
+    dbutils.widgets.text("config_path", "", "Config path (blank = repo config)")  # noqa: F821
+    _widget = dbutils.widgets.get("config_path")  # noqa: F821
+except NameError:
+    _widget = None
+CONFIG_PATH = resolve_config_path(_widget, REPO_ROOT)
 SHOW_SQL = False   # set True to print every generated SQL statement
 
 try:
@@ -60,43 +91,6 @@ SEVERITY_ORDER = ["high", "warning", "info"]
 # COMMAND ----------
 
 
-def load_config(config_path: str) -> dict:
-    config_path = Path(config_path).resolve()
-    with open(config_path) as f:
-        cfg = yaml.safe_load(f)
-    contracts_dir = Path(cfg["environment"]["contracts_dir"])
-    if not contracts_dir.is_absolute():
-        contracts_dir = (config_path.parent / contracts_dir).resolve()
-    cfg["_contracts_dir"] = contracts_dir
-    return cfg
-
-
-def load_contracts(contracts_dir: Path) -> dict:
-    out = {}
-    for path in sorted(contracts_dir.glob("*.yml")):
-        with open(path) as f:
-            c = yaml.safe_load(f)
-        out[c["contract"]["name"]] = c
-    return out
-
-
-def load_order(contracts: dict) -> list:
-    ordered, seen = [], set()
-
-    def visit(name):
-        if name in seen:
-            return
-        seen.add(name)
-        dep = contracts[name]["contract"].get("depends_on")
-        if dep and dep in contracts:
-            visit(dep)
-        ordered.append(name)
-
-    for name in sorted(contracts):
-        visit(name)
-    return ordered
-
-
 class SparkDialect:
     """Runs the generated SQL on Databricks (Spark SQL + Delta tables in Unity Catalog)."""
 
@@ -104,10 +98,10 @@ class SparkDialect:
     CAST_TYPES = {"date": "DATE", "integer": "INT", "double": "DOUBLE"}
 
     def __init__(self, cfg):
-        self.catalog = cfg["environment"]["catalog"]
+        self.cfg = cfg
 
     def table(self, short_name):
-        return f"{self.catalog}.{short_name}"
+        return T(self.cfg, short_name)
 
     def cast(self, expr, typ):
         return f"TRY_CAST({expr} AS {self.CAST_TYPES[typ]})"
@@ -409,12 +403,10 @@ def run_validate(config_path: str = CONFIG_PATH, dialect=None) -> list:
     contracts = load_contracts(cfg["_contracts_dir"])
     d = dialect or SparkDialect(cfg)
     run_id, run_at = str(uuid.uuid4()), datetime.now(timezone.utc).isoformat()
-    env = cfg["environment"]
     summary = []
     for src in load_order(contracts):
         summary += validate_source(contracts[src], cfg, d, run_id, run_at)  # stops the run if a source fails
-    d.append_rows(f"{env['catalog']}.{env['ops_schema']}.dq_run_summary" if d.name == "spark"
-                  else "ops.dq_run_summary", SUMMARY_COLS, summary)
+    d.append_rows(d.table("ops_dq_run_summary"), SUMMARY_COLS, summary)
     return summary
 
 
