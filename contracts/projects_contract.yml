@@ -1,0 +1,222 @@
+# Data contract: Project Portfolio
+# Source: synthetic_ifc_projects_5000.csv (maintained by IFC project records)
+# Bump `version` on any change and note why in the changelog.
+
+contract:
+  name: projects
+  version: 1.1.0
+  owner: IFC project records team
+  description: One row per IFC project, from public disclosure through disbursement.
+  file_pattern: "synthetic_ifc_projects_*.csv"
+  primary_key: project_url
+  changelog:
+    - "1.0.0  Initial contract from profiling."
+    - "1.1.0  Rules made executable (SQL). Allocation check split into under/over. Added outdated-record,
+              Board-date-passed and status/date conflict flags. Country-code conflict changed from quarantine
+              to high-severity flag (which row is wrong cannot be determined automatically)."
+
+targets:
+  raw: raw.projects
+  validated: validated.projects
+  quarantine: validated.projects_quarantine
+  issues: validated.projects_dq_issues
+
+# ---------------------------------------------------------------------------
+# SCHEMA
+# Stage 1 checks the header against `source`. Stage 2 renames to `target`.
+# Stage 3 converts each value to `type` and applies `required`, `allowed`, `pattern`.
+# Any of those failing sends the row to QUARANTINE.
+# (Patterns avoid backslashes so they work the same in every SQL engine.)
+# ---------------------------------------------------------------------------
+schema:
+  - {source: "Date Disclosed",        target: date_disclosed,        type: date,    required: true}
+  - {source: "Project Name",          target: project_name,          type: string,  required: true}
+  - {source: "Document Type",         target: document_type,         type: string,  required: true,
+     allowed: ["Summary of Proposed Investment", "Environmental & Social Review Summary"]}
+  - {source: "Project Number",        target: project_number,        type: integer, required: true,
+     note: "NOT unique: 3,559 distinct values across 5,000 rows. Never use as a key."}
+  - {source: "Project Url",           target: project_url,           type: string,  required: true,
+     pattern: "^https://ifc[.]example[.]org/project/[0-9]+$",
+     note: "Unique per row. True primary key and join key to monitoring."}
+  - {source: "Product Line",          target: product_line,          type: string,  required: true,
+     allowed: ["Loan", "Equity", "Guarantee", "Risk Management"]}
+  - {source: "Region",                target: region,                type: string,  required: true,
+     allowed: ["East Asia & Pacific", "Europe & Central Asia", "Latin America", "Middle East",
+               "North America", "South Asia", "Sub-Saharan Africa"],
+     standardize: {"Latin America & Caribbean": "Latin America",
+                   "Middle East & North Africa": "Middle East"}}
+  - {source: "Country",               target: country,               type: string,  required: true}
+  - {source: "Project Description",   target: project_description,   type: string,  required: false}
+  - {source: "Industry",              target: industry,              type: string,  required: true,
+     allowed: ["Agribusiness", "Energy", "Finance", "Manufacturing", "Telecom"]}
+  - {source: "Environmental Category", target: environmental_category, type: string, required: true,
+     allowed: ["A", "B", "C"]}
+  - {source: "Department",            target: department,            type: string,  required: true,
+     allowed: ["CBA", "CFG", "FIG", "INF", "MAS"]}
+  - {source: "Status",                target: status,                type: string,  required: true,
+     allowed: ["Active", "Pending", "Closed", "Dropped"]}
+  - {source: "Projected Board Date",  target: projected_board_date,  type: date,    required: false}
+  - {source: "IFC Approval Date",     target: approval_date,         type: date,    required: false}
+  - {source: "IFC Signed Date",       target: signed_date,           type: date,    required: false}
+  - {source: "IFC Invested Date",     target: invested_date,         type: date,    required: false}
+  - {source: "IFC investment for Risk Management(Million - USD)", target: amt_risk_mgmt_musd, type: double, required: true}
+  - {source: "IFC investment for Guarantee(Million - USD)",       target: amt_guarantee_musd, type: double, required: true}
+  - {source: "IFC investment for Loan(Million - USD)",            target: amt_loan_musd,      type: double, required: true}
+  - {source: "IFC investment for Equity(Million - USD)",          target: amt_equity_musd,    type: double, required: true}
+  - {source: "Total IFC investment as approved by Board(Million - USD)", target: total_approved_musd, type: double, required: true}
+  - {source: "WB Country Code",       target: wb_country_code,       type: string,  required: true,
+     pattern: "^[A-Z][A-Z]$"}
+  - {source: "As of Date",            target: as_of_date,            type: date,    required: true}
+
+# ---------------------------------------------------------------------------
+# QUARANTINE RULES (in addition to the automatic required/type/allowed/pattern/duplicate-key checks)
+# A row that fails is moved to the quarantine table. Reserve this for rows that are unusable.
+# ---------------------------------------------------------------------------
+quarantine_rules:
+  - id: P-Q05
+    description: Negative amount, or Board total not positive
+    when: >-
+      amt_risk_mgmt_musd < 0 OR amt_guarantee_musd < 0 OR amt_loan_musd < 0
+      OR amt_equity_musd < 0 OR total_approved_musd <= 0
+
+# ---------------------------------------------------------------------------
+# FLAG RULES
+# The row is kept. Each rule becomes a flag_<name> column, and every hit is listed in the issues table.
+#   severity: info (FYI) | warning (needs review) | high (needs review before relying on the figure)
+#   owner:    who should act on it
+#   when:     Spark SQL condition over validated columns. {valid} = all validated rows of this table.
+#   message:  Spark SQL expression producing the text shown to users
+#   ${...}    values from pipeline_config.yml (thresholds)
+# `expected_initial` = count found when profiling the first delivery. A run that differs is reported.
+# ---------------------------------------------------------------------------
+flag_rules:
+  - id: P-F01
+    name: region_standardized
+    severity: info
+    owner: Data team
+    description: Region name was written in a non-standard form and was standardized
+    when: region__original <> region
+    message: "CONCAT('Region standardized from ''', region__original, ''' to ''', region, '''.')"
+    expected_initial: 43
+
+  - id: P-F02
+    name: under_allocated
+    severity: warning
+    owner: Investment operations
+    description: Product allocations add up to LESS than the Board-approved total
+    when: >-
+      total_approved_musd - (amt_loan_musd + amt_equity_musd + amt_guarantee_musd + amt_risk_mgmt_musd)
+      > ${amount_reconciliation_tolerance_musd}
+    message: >-
+      CONCAT('Under-allocated: products total ',
+             CAST(ROUND(amt_loan_musd + amt_equity_musd + amt_guarantee_musd + amt_risk_mgmt_musd, 1) AS STRING),
+             'M vs Board-approved ', CAST(ROUND(total_approved_musd, 1) AS STRING), 'M.')
+    expected_initial: 72
+
+  - id: P-F03
+    name: over_allocated
+    severity: high
+    owner: Investment operations
+    description: Product allocations add up to MORE than the Board-approved total
+    when: >-
+      (amt_loan_musd + amt_equity_musd + amt_guarantee_musd + amt_risk_mgmt_musd) - total_approved_musd
+      > ${amount_reconciliation_tolerance_musd}
+    message: >-
+      CONCAT('Over-allocated: products total ',
+             CAST(ROUND(amt_loan_musd + amt_equity_musd + amt_guarantee_musd + amt_risk_mgmt_musd, 1) AS STRING),
+             'M vs Board-approved ', CAST(ROUND(total_approved_musd, 1) AS STRING), 'M. Review before relying on totals.')
+    expected_initial: 78
+
+  - id: P-F04
+    name: signed_before_approval
+    severity: warning
+    owner: Investment department
+    description: Legal agreements dated before Board approval
+    when: signed_date < approval_date
+    message: "CONCAT('Signed ', CAST(signed_date AS STRING), ' before Board approval on ', CAST(approval_date AS STRING), '.')"
+    expected_initial: 37
+
+  - id: P-F05
+    name: invested_without_signing
+    severity: warning
+    owner: Investment department
+    description: First disbursement recorded but no signing date
+    when: invested_date IS NOT NULL AND signed_date IS NULL
+    message: "CONCAT('Invested on ', CAST(invested_date AS STRING), ' but no signing date is recorded.')"
+    expected_initial: 16
+
+  - id: P-F06
+    name: outdated_record
+    severity: warning
+    owner: Data team
+    description: Record was not refreshed in the latest data cycle, so its status may be out of date
+    when: as_of_date < (SELECT MAX(as_of_date) FROM {valid})
+    message: >-
+      CONCAT('Outdated record, needs review: last updated ', CAST(as_of_date AS STRING),
+             '; latest data cycle is ', CAST((SELECT MAX(as_of_date) FROM {valid}) AS STRING), '.')
+    expected_initial: 607
+
+  - id: P-F07
+    name: board_date_passed
+    severity: warning
+    owner: Investment department
+    description: Pending project whose projected Board date has passed without approval
+    when: status = 'Pending' AND approval_date IS NULL AND projected_board_date < as_of_date
+    message: >-
+      CONCAT('Board date passed, awaiting approval: projected for ', CAST(projected_board_date AS STRING),
+             ', not approved as of ', CAST(as_of_date AS STRING), '.')
+    expected_initial: 237
+
+  - id: P-F08
+    name: pending_without_board_date
+    severity: info
+    owner: Investment department
+    description: Pending, not approved, and no projected Board date recorded
+    when: status = 'Pending' AND approval_date IS NULL AND projected_board_date IS NULL
+    message: "'Pending with no projected Board date recorded.'"
+    expected_initial: 14
+
+  - id: P-F09
+    name: status_date_conflict
+    severity: high
+    owner: Data team
+    description: Status contradicts the lifecycle dates
+    when: >-
+      (status IN ('Active', 'Closed') AND (approval_date IS NULL OR invested_date IS NULL))
+      OR (status IN ('Pending', 'Dropped') AND invested_date IS NOT NULL)
+    message: "CONCAT('Status ', status, ' is inconsistent with the approval/investment dates.')"
+    expected_initial: 0
+
+  - id: P-F10
+    name: country_code_conflict
+    severity: high
+    owner: Data team
+    description: The same World Bank country code is used for more than one country
+    when: >-
+      wb_country_code IN (SELECT wb_country_code FROM {valid}
+                          GROUP BY wb_country_code HAVING COUNT(DISTINCT country) > 1)
+    message: "CONCAT('Country code ', wb_country_code, ' is used for more than one country.')"
+    expected_initial: 0
+
+  - id: P-F11
+    name: description_missing
+    severity: info
+    owner: Data team
+    description: Project description is blank
+    when: project_description IS NULL
+    message: "'Project description is blank; text-based analysis cannot classify this project.'"
+    expected_initial: 31
+
+  - id: P-F12
+    name: outside_emerging_markets
+    severity: info
+    owner: Investment department
+    description: Project located in North America, outside IFC's usual emerging-market focus
+    when: region = 'North America'
+    message: "CONCAT('Located in ', country, ' (North America).')"
+    expected_initial: 5
+
+notes:
+  - "projected_board_date may be in the future (319 rows after as_of_date). Expected, not an error."
+  - "project_name repeats across projects (189 names reused). Names are labels, not identifiers."
+  - "Dropped projects can have an approval_date (738 rows): dropped after approval."

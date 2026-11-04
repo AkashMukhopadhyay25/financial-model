@@ -1,0 +1,170 @@
+# Data contract: Project Monitoring
+# Source: synthetic_project_monitoring.csv (maintained by the portfolio monitoring team)
+# Bump `version` on any change and note why in the changelog.
+
+contract:
+  name: monitoring
+  version: 1.1.0
+  owner: Portfolio monitoring team
+  description: One row per monitored project (all non-Dropped projects).
+  file_pattern: "synthetic_project_monitoring*.csv"
+  primary_key: project_url
+  depends_on: projects   # validated.projects must be built first (cross-table checks)
+  changelog:
+    - "1.0.0  Initial contract from profiling."
+    - "1.1.0  Rules made executable (SQL). Review-overdue made risk-tiered and Active-only via config.
+              Client identity conflict changed from quarantine to high-severity flag."
+
+targets:
+  raw: raw.monitoring
+  validated: validated.monitoring
+  quarantine: validated.monitoring_quarantine
+  issues: validated.monitoring_dq_issues
+
+# Columns from validated.projects made available to rules as p_<column>.
+# Joined on project_url. They are used for checks only and are NOT copied into validated.monitoring.
+lookup:
+  table: validated.projects
+  key: project_url
+  columns: [project_number, status, total_approved_musd, invested_date]
+
+schema:
+  - {source: "Project Url",           target: project_url,           type: string,  required: true,
+     pattern: "^https://ifc[.]example[.]org/project/[0-9]+$"}
+  - {source: "Project Number",        target: project_number,        type: integer, required: true,
+     note: "NOT unique. Joining on this inflates 3,768 rows to 6,477. Join on project_url."}
+  - {source: "Client ID",             target: client_id,             type: string,  required: true,
+     pattern: "^CL-[0-9][0-9][0-9][0-9]$"}
+  - {source: "Client Name",           target: client_name,           type: string,  required: true}
+  - {source: "Internal Risk Rating",  target: internal_risk_rating,  type: integer, required: true,
+     allowed: [1, 2, 3, 4, 5, 6]}
+  - {source: "Currency",              target: currency,              type: string,  required: true,
+     pattern: "^[A-Z][A-Z][A-Z]$"}
+  - {source: "Climate Flag",          target: climate_flag,          type: string,  required: true,
+     allowed: ["Yes", "No"]}
+  - {source: "IFC Disbursed Amount(Million - USD)", target: disbursed_musd, type: double, required: false}
+  - {source: "Performance Status",    target: performance_status,    type: string,  required: false,
+     allowed: ["Performing", "Watchlist", "Past Due", "Completed", "Exited at a loss"]}
+  - {source: "Days Since Last Review", target: days_since_last_review, type: integer, required: false}
+
+quarantine_rules:
+  - id: M-Q05
+    description: Negative disbursed amount or negative days since review
+    when: disbursed_musd < 0 OR days_since_last_review < 0
+
+  - id: M-Q07
+    description: Project not found in validated projects (unknown, or quarantined there)
+    when: p_project_url IS NULL
+
+flag_rules:
+  - id: M-F01
+    name: project_number_mismatch
+    severity: high
+    owner: Data team
+    description: Project number differs from the projects table for the same project
+    when: project_number <> p_project_number
+    message: >-
+      CONCAT('Project number ', CAST(project_number AS STRING), ' differs from ',
+             CAST(p_project_number AS STRING), ' in the projects table.')
+    expected_initial: 0
+
+  - id: M-F02
+    name: dropped_but_monitored
+    severity: high
+    owner: Data team
+    description: Project is Dropped in the projects table but still monitored
+    when: p_status = 'Dropped'
+    message: "'Project is Dropped in the projects table but still has a monitoring record.'"
+    expected_initial: 0
+
+  - id: M-F03
+    name: over_disbursed
+    severity: high
+    owner: Investment operations
+    description: More has been disbursed than the Board approved
+    when: disbursed_musd - p_total_approved_musd > ${amount_reconciliation_tolerance_musd}
+    message: >-
+      CONCAT('Over-disbursed: ', CAST(ROUND(disbursed_musd, 1) AS STRING), 'M paid out vs ',
+             CAST(ROUND(p_total_approved_musd, 1) AS STRING), 'M approved. Review required.')
+    expected_initial: 0
+
+  - id: M-F04
+    name: performance_status_conflict
+    severity: high
+    owner: Portfolio monitoring team
+    description: Performance status does not fit the project status
+    when: >-
+      NOT ((p_status = 'Active'  AND COALESCE(performance_status, '-') IN ('Performing', 'Watchlist', 'Past Due'))
+        OR (p_status = 'Closed'  AND COALESCE(performance_status, '-') IN ('Completed', 'Exited at a loss'))
+        OR (p_status = 'Pending' AND performance_status IS NULL))
+    message: >-
+      CONCAT('Performance status ''', COALESCE(performance_status, 'blank'),
+             ''' does not fit project status ', COALESCE(p_status, 'unknown'), '.')
+    expected_initial: 0
+
+  - id: M-F05
+    name: disbursement_date_conflict
+    severity: high
+    owner: Data team
+    description: A disbursed amount without a first-investment date, or the reverse
+    when: (disbursed_musd IS NOT NULL) <> (p_invested_date IS NOT NULL)
+    message: "'Disbursed amount and first-investment date disagree: one is recorded, the other is blank.'"
+    expected_initial: 0
+
+  - id: M-F06
+    name: disbursement_status_conflict
+    severity: high
+    owner: Data team
+    description: Pending project with a disbursed amount, or Active/Closed without one
+    when: >-
+      (p_status = 'Pending' AND disbursed_musd IS NOT NULL)
+      OR (p_status IN ('Active', 'Closed') AND disbursed_musd IS NULL)
+    message: "CONCAT('Disbursed amount is inconsistent with project status ', p_status, '.')"
+    expected_initial: 0
+
+  - id: M-F07
+    name: review_days_conflict
+    severity: warning
+    owner: Portfolio monitoring team
+    description: Closed project with days-since-review, or an open project without it
+    when: >-
+      (p_status = 'Closed' AND days_since_last_review IS NOT NULL)
+      OR (p_status <> 'Closed' AND days_since_last_review IS NULL)
+    message: "CONCAT('Days since last review is inconsistent with project status ', p_status, '.')"
+    expected_initial: 0
+
+  - id: M-F08
+    name: review_overdue
+    severity: warning
+    owner: Portfolio monitoring team
+    description: Active project not reviewed within the limit for its risk rating
+    when: >-
+      p_status = 'Active'
+      AND project_url NOT IN (${review_exemptions})
+      AND days_since_last_review >
+          CASE WHEN internal_risk_rating >= 5 THEN ${review_overdue_days.rating_5_6}
+               WHEN internal_risk_rating >= 3 THEN ${review_overdue_days.rating_3_4}
+               ELSE ${review_overdue_days.rating_1_2} END
+    message: >-
+      CONCAT('Review overdue: ', CAST(days_since_last_review AS STRING), ' days since last review; limit for risk rating ',
+             CAST(internal_risk_rating AS STRING), ' is ',
+             CAST(CASE WHEN internal_risk_rating >= 5 THEN ${review_overdue_days.rating_5_6}
+                       WHEN internal_risk_rating >= 3 THEN ${review_overdue_days.rating_3_4}
+                       ELSE ${review_overdue_days.rating_1_2} END AS STRING), ' days.')
+    expected_initial: 324
+
+  - id: M-F09
+    name: client_identity_conflict
+    severity: high
+    owner: Data team
+    description: A client ID maps to more than one name, or a name to more than one ID
+    when: >-
+      client_id IN (SELECT client_id FROM {valid} GROUP BY client_id HAVING COUNT(DISTINCT client_name) > 1)
+      OR client_name IN (SELECT client_name FROM {valid} GROUP BY client_name HAVING COUNT(DISTINCT client_id) > 1)
+    message: "CONCAT('Client ', client_id, ' / ', client_name, ' has an inconsistent ID-to-name mapping.')"
+    expected_initial: 0
+
+notes:
+  - "Coverage: monitoring = every non-Dropped project (1,233 Active + 1,233 Pending + 1,302 Closed = 3,768)."
+  - "399 clients; projects per client ranges 2 to 109. Concentration matters for WS3."
+  - "Currency is the denomination; all amounts are already in USD millions."

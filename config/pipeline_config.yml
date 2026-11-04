@@ -1,0 +1,47 @@
+# Pipeline configuration: business and operational settings that can be tuned
+# without touching code. Data shape rules live in contracts/, not here.
+
+environment:
+  catalog: ifc_cfo                 # Unity Catalog catalog
+  ops_schema: ops                  # schema for pipeline logs
+  # Unity Catalog Volume that holds the landing zone
+  landing_root: /Volumes/ifc_cfo/landing/files
+  contracts_dir: ../contracts      # relative to this config file
+
+landing_zone:
+  incoming: incoming   # analysts / upstream teams drop files here
+  accepted: accepted   # files that passed the schema gate (input to the Raw stage)
+  held: held           # files that failed the gate; waiting for a developer
+  loaded: loaded       # files successfully loaded into Raw tables (archive)
+
+schema_gate:
+  # Column order changes are harmless when reading by column name.
+  # true  = allow, record a warning
+  # false = treat as a hard stop like any other schema change
+  allow_column_reorder: true
+  # Similarity (0-1) above which a missing + unexpected column pair is
+  # reported as a probable rename, to help the developer diagnose quickly.
+  rename_similarity_threshold: 0.6
+  # Skip files whose exact content has already been processed.
+  skip_already_processed: true
+
+validation:
+  # If more than this share of a file's rows would be quarantined, Stage 3 stops WITHOUT replacing the
+  # validated tables, so Genie keeps serving the last good data. A high rate usually means a systemic
+  # problem (wrong date format, shifted columns) rather than a few bad rows.
+  max_quarantine_share: 0.05
+  # Save the SQL that Stage 3 generates to <landing_root>/_generated_sql/ for traceability.
+  save_generated_sql: true
+
+# --- Business thresholds used in flag rules (referenced as ${...} in the contracts) ---------------
+thresholds:
+  amount_reconciliation_tolerance_musd: 0.01
+  review_overdue_days:            # Active projects only
+    rating_5_6: 30
+    rating_3_4: 90
+    rating_1_2: 180
+  review_exemptions: []           # project_url values exempt from periodic review
+
+reporting:
+  reference_date: latest_as_of_date   # anchor for "last N years" questions
+  year_basis: calendar                # calendar | fiscal (IFC FY = Jul-Jun)

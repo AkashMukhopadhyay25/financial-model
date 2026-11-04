@@ -1,0 +1,6 @@
+streamlit>=1.38
+pandas
+mlflow>=3.1
+databricks-sdk>=0.60
+openai
+httpx
