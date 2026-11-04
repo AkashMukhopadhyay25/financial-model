@@ -4,4 +4,3 @@ __pycache__/
 .venv/
 .DS_Store
 # source data stays out of git (synthetic, but large); keep it locally in data/
-data/
