@@ -17,6 +17,7 @@ This repository is mid-merge. Two rules:
 | `contracts/` | Data contracts: expected columns, quarantine rules, flag rules |
 | `00_setup/00_config.py` | Loads the config; creates the schema, the `landing` volume and its folders; defines `T()`, `answer()`, `persist_answers()` |
 | `00_setup/ifc_common.py` | Shared helpers every notebook imports: finds and loads the config, `T(cfg, name)`, contract loading |
+| `01_data/00_reference.py` | Reference tables: assumptions A01–A21 (values from config and the data), region mapping from the contract, product vocabulary, reviewer overrides (never replaced) |
 | `01_data/01_schema_gate.py` | Stage 1: blocks files whose columns don't match the contract |
 | `01_data/02_load_raw.py` | Stage 2: loads accepted files into Raw tables, keeping history |
 | `01_data/03_validate.py` | Stage 3: types, standardizes, quarantines and flags rows |
