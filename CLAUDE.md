@@ -7,7 +7,7 @@ This repo combines **two codebases** that are being merged. **Rule: everything o
 - **Real code today (ours):** contract-driven pipeline (schema gate → Raw → Validated): `00_setup/`, `01_data/01–03`, `contracts/`, `config/`, `tests/`, `test_files/`. Stages 1–2 ran on Databricks under the old catalog `ifc_cfo`; Stage 3 was tested locally and may not yet have run on Databricks.
 - **Teammate's (reference only):** end-to-end solution (WS1–WS3 answers, text enrichment, defined tables, UC-function tools, CFO Decision Advisor agent, Streamlit app, evaluation, docs). During each merge phase, copy the relevant file from `reference/teammate_original/` into its real path (see the table in `README.md`), then update it. Never edit `reference/`.
 
-**Phase 1 (config and setup) is coded and passes the local test; waiting for the user's Databricks test.** Follow `MERGE_PLAN.md` phase by phase; the user tests each phase on Databricks before the next. Source data for local tests is in `data/` (git-ignored).
+**Phase 1 passed on Databricks (2026-11-04) and is merged to `master`. Phase 2 is coded and passes the local test; Databricks run in progress.** Follow `MERGE_PLAN.md` phase by phase; the user tests each phase on Databricks before the next. Source data for local tests is in `data/` (git-ignored).
 
 **Workspaces:** the target is the team workspace `dbc-83823297-5832` (catalog `ifc_challenge` already exists there, owned by Ritvik Kohli, who must grant access). The old `ifc_cfo` catalog is in a different workspace, so Stages 1–2 run fresh here. Ritvik's live copy of his code is at `/Workspace/Users/ritvik.kohli@rotman.utoronto.ca/ifc-cfo-copilot`. It is newer than `reference/` in `cfo_agent.py`, `03_build_agent.py` and `04_app.py`; pick those changes up in phases 8–9.
 
@@ -65,6 +65,7 @@ What our stages do (already built):
   | pending without Board date | 14 |
   | description missing | 31 |
   | North America | 5 |
+  | invested before signed | 0 |
   | review overdue | 324 |
 
   0 quarantined.
@@ -100,4 +101,4 @@ What our stages do (already built):
 - When a decision changes, update this file and `MERGE_PLAN.md` §0.
 
 ## Next step
-User tests phase 1 on Databricks (see the commit message for steps), then phase 2. `serving.sql_warehouse_id` is set to the team workspace's Serverless Starter Warehouse (`b015ec4996eb0dd9`, verified); `genie_space_id` stays empty until phase 8. `ai.llm_extraction_limit` defaults to 5 (smoke-test size). Before deploying, set up the Databricks CLI and Asset Bundles with the user.
+Finish the phase 2 Databricks check (Stages 1–3 on `ifc_challenge.portfolio`), then phase 3. Contracts are v1.3.0: they support `keep_original_as` (column option) and `derived_columns`. `serving.sql_warehouse_id` is set to the team workspace's Serverless Starter Warehouse (`b015ec4996eb0dd9`, verified); `genie_space_id` stays empty until phase 8. `ai.llm_extraction_limit` defaults to 5 (smoke-test size). Before deploying, set up the Databricks CLI and Asset Bundles with the user.

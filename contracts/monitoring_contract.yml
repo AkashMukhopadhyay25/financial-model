@@ -4,7 +4,7 @@
 
 contract:
   name: monitoring
-  version: 1.2.0
+  version: 1.3.0
   owner: Portfolio monitoring team
   description: One row per monitored project (all non-Dropped projects).
   file_pattern: "synthetic_project_monitoring*.csv"
@@ -16,6 +16,7 @@ contract:
               Client identity conflict changed from quarantine to high-severity flag."
     - "1.2.0  Moved to one schema ({catalog}.{schema} from config). Targets are bare table names with layer
               prefixes (raw_, validated_). No rule changes."
+    - "1.3.0  Added derived column is_climate_related (climate_flag = 'Yes') to the validated table."
 
 targets:   # table names inside {catalog}.{schema} from pipeline_config.yml
   raw: raw_monitoring
@@ -48,6 +49,15 @@ schema:
   - {source: "Performance Status",    target: performance_status,    type: string,  required: false,
      allowed: ["Performing", "Watchlist", "Past Due", "Completed", "Exited at a loss"]}
   - {source: "Days Since Last Review", target: days_since_last_review, type: integer, required: false}
+
+# ---------------------------------------------------------------------------
+# DERIVED COLUMNS: added to the validated table, computed from validated columns (Spark SQL).
+# ---------------------------------------------------------------------------
+derived_columns:
+  - name: is_climate_related
+    type: boolean
+    description: True when the monitoring team marks the project as climate-related (climate_flag = 'Yes')
+    sql: climate_flag = 'Yes'
 
 quarantine_rules:
   - id: M-Q05

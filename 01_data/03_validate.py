@@ -8,7 +8,7 @@
 # MAGIC
 # MAGIC | Output | What it holds |
 # MAGIC |---|---|
-# MAGIC | `validated_<source>` | Rows that passed. Proper types (dates, numbers), standardized values, one `flag_<name>` column per flag rule, plus roll-ups: `needs_review`, `dq_max_severity`, `review_owners`, `dq_messages`. |
+# MAGIC | `validated_<source>` | Rows that passed. Proper types (dates, numbers), standardized values (with the value as received kept where the contract says `keep_original_as`, e.g. `region_as_reported`), the contract's `derived_columns` (e.g. `is_climate_related`), one `flag_<name>` column per flag rule, plus roll-ups: `needs_review`, `dq_max_severity`, `review_owners`, `dq_messages`. |
 # MAGIC | `validated_<source>_quarantine` | Rows that are unusable (missing key, unparseable value, invalid category, duplicate key, negative amount), kept as raw text with `quarantine_reasons`. |
 # MAGIC | `validated_<source>_dq_issues` | One row per flag hit: record, rule, severity, owner, message. This is what the app shows when a user clicks "Needs review". |
 # MAGIC | `ops_dq_run_summary` | One row per rule per run: how many rows it hit, compared with the count found when profiling. |
@@ -285,7 +285,13 @@ def build_statements(contract: dict, cfg: dict, d, run_id: str) -> dict:
     run_cols = (f"{q(version)} AS _contract_version, {q(run_id)} AS _validation_run_id, "
                 "current_timestamp() AS _validated_at")
 
-    out_validated = ("SELECT " + ", ".join(col["target"] for col in schema)
+    # Value as received, kept next to a standardized column (e.g. region_as_reported).
+    originals = [f"{col['target']}__original AS {col['keep_original_as']}"
+                 for col in schema if col.get("keep_original_as") and col.get("standardize")]
+    # Simple columns computed from validated columns (e.g. is_climate_related).
+    derived = [f"({render(dc['sql'], params, v_valid)}) AS {dc['name']}" for dc in contract.get("derived_columns", [])]
+
+    out_validated = ("SELECT " + ", ".join([col["target"] for col in schema] + originals + derived)
                      + "".join(f", flag_{r['name']}" for r in rules)
                      + ", dq_flag_ids, dq_flag_count, dq_max_severity, needs_review, review_owners, dq_messages, "
                      + ", ".join(AUDIT_COLS) + ", " + run_cols + f" FROM {v_final}")

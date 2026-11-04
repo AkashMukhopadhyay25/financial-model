@@ -4,7 +4,7 @@
 
 contract:
   name: projects
-  version: 1.2.0
+  version: 1.3.0
   owner: IFC project records team
   description: One row per IFC project, from public disclosure through disbursement.
   file_pattern: "synthetic_ifc_projects_*.csv"
@@ -16,6 +16,8 @@ contract:
               to high-severity flag (which row is wrong cannot be determined automatically)."
     - "1.2.0  Moved to one schema ({catalog}.{schema} from config). Targets are bare table names with layer
               prefixes (raw_, validated_). No rule changes."
+    - "1.3.0  Added flag P-F13 invested_before_signed (from the teammate's checks). The region as received
+              is kept in the validated table as region_as_reported."
 
 targets:   # table names inside {catalog}.{schema} from pipeline_config.yml
   raw: raw_projects
@@ -27,6 +29,7 @@ targets:   # table names inside {catalog}.{schema} from pipeline_config.yml
 # SCHEMA
 # Stage 1 checks the header against `source`. Stage 2 renames to `target`.
 # Stage 3 converts each value to `type` and applies `required`, `allowed`, `pattern`.
+# `standardize` maps variant spellings to one value; `keep_original_as` also keeps the value as received.
 # Any of those failing sends the row to QUARANTINE.
 # (Patterns avoid backslashes so they work the same in every SQL engine.)
 # ---------------------------------------------------------------------------
@@ -46,7 +49,8 @@ schema:
      allowed: ["East Asia & Pacific", "Europe & Central Asia", "Latin America", "Middle East",
                "North America", "South Asia", "Sub-Saharan Africa"],
      standardize: {"Latin America & Caribbean": "Latin America",
-                   "Middle East & North Africa": "Middle East"}}
+                   "Middle East & North Africa": "Middle East"},
+     keep_original_as: region_as_reported}
   - {source: "Country",               target: country,               type: string,  required: true}
   - {source: "Project Description",   target: project_description,   type: string,  required: false}
   - {source: "Industry",              target: industry,              type: string,  required: true,
@@ -217,6 +221,15 @@ flag_rules:
     when: region = 'North America'
     message: "CONCAT('Located in ', country, ' (North America).')"
     expected_initial: 5
+
+  - id: P-F13
+    name: invested_before_signed
+    severity: warning
+    owner: Data team
+    description: First disbursement dated before the legal agreements were signed
+    when: invested_date < signed_date
+    message: "CONCAT('Invested on ', CAST(invested_date AS STRING), ' before signing on ', CAST(signed_date AS STRING), '.')"
+    expected_initial: 0
 
 notes:
   - "projected_board_date may be in the future (319 rows after as_of_date). Expected, not an error."
