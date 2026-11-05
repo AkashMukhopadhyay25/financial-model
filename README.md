@@ -23,6 +23,7 @@ This repository is mid-merge. Two rules:
 | `01_data/03_validate.py` | Stage 3: types, standardizes, quarantines and flags rows |
 | `01_data/04_enrich.py` | Text features from descriptions: rules + cached LLM + reviewer overrides → `enriched_rule_features`, `enriched_llm_extractions`, `enriched_project_text_features` |
 | `01_data/05_certify.py` | Builds `certified_investment_portfolio`: one row per project with monitoring, text attributes and every data-quality flag; column comments for Genie; layer tags |
+| `01_data/06_dq_checks.py` | Portfolio-level checks (reconciliation raw → validated → certified, keys, structure, allowed values; blocking ones stop the job) → `ops_dq_checks`; reviewers' work list view `ops_dq_issues` |
 | `tests/` | Runs Stage 3's SQL locally on SQLite |
 | `test_files/` | Deliberately broken files for testing and the demo |
 | `data/` | Source CSVs and case files (not in git; copy them in yourself) |

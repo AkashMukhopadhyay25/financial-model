@@ -93,3 +93,22 @@ business:
     risk_rating: 0.4
     distress: 0.4
     closed_loss: 0.2
+
+# --- Portfolio-level checks (01_data/06_dq_checks.py) ---------------------------------------------------------
+dq_checks:
+  control_total_tolerance_musd: 0.05    # allowed difference when dollar totals are reconciled across layers
+
+# First delivery (Oct 2026), computed independently from the source CSVs. Used ONLY by info checks (F*, D90, K07,
+# T02) to show how a new delivery compares; nothing blocks on these numbers.
+reference_figures:
+  projects_rows: 5000
+  monitoring_rows: 3768
+  total_approved_musd: 742558.66
+  amt_loan_musd: 177612.77
+  amt_equity_musd: 185967.90
+  amt_guarantee_musd: 195285.29
+  amt_risk_mgmt_musd: 184150.79
+  disbursed_musd: 296667.53
+  distinct_project_numbers: 3559
+  q28_gap_projects: 146
+  rule_new_renewable_projects: 277
