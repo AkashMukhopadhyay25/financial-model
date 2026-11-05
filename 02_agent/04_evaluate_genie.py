@@ -142,7 +142,10 @@ def caveat(genie_sql: str) -> dict:
         simple = (tables == {CERT.lower()} and not tree.find(exp.Join) and not tree.find(exp.With)
                   and not tree.find(exp.Union) and len(list(tree.find_all(exp.Select))) == 1)
         if not simple:
-            return {"caveat_status": "not analysable (joins, CTEs or subqueries)"}
+            return {"caveat_status": "not analysable (joins, CTEs, unions or subqueries)"}
+        # HAVING or LIMIT narrows the projects after the WHERE clause, so the WHERE alone would overstate the scope.
+        if tree.args.get("having") or tree.args.get("limit") or tree.args.get("qualify"):
+            return {"caveat_status": "not analysable (HAVING or LIMIT narrows the scope)"}
         where = tree.args.get("where")
         cond = where.this.sql(dialect="databricks") if where else "TRUE"
         r = spark.sql(f"""SELECT count(*) AS n, count_if(needs_review) AS review, count_if(dq_max_severity = 'high') AS high,
