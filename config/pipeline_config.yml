@@ -72,9 +72,9 @@ serving:
   # SQL Warehouses -> warehouse -> Connection details. Used by the agent and the app.
   # b015ec4996eb0dd9 = "Serverless Starter Warehouse" in the team workspace (checked 2026-11-04).
   sql_warehouse_id: b015ec4996eb0dd9
-  # From the Genie space URL: .../genie/rooms/<id>. Left empty on purpose: the space is rebuilt on the
-  # merged tables in phase 8, then its ID goes here.
-  genie_space_id:
+  # From the Genie space URL: .../genie/rooms/<id>. "IFC Certified Investment Portfolio", created by
+  # 02_agent/01_genie_space.py on 2026-11-05; re-running that notebook updates this space.
+  genie_space_id: 01f1d96289961f958e85f7ef41b3f2db
   # Unity Catalog model name (created in {catalog}.{schema}) for the CFO Decision Advisor agent.
   uc_model_name: cfo_decision_advisor
 
