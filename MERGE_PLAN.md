@@ -19,7 +19,8 @@ Databricks before the next starts.**
 | Topic | Decision |
 |---|---|
 | Location | Catalog `ifc_challenge`, schema `portfolio` (one schema). Layers are **name prefixes**. |
-| Layer names | `raw_*` → `validated_*` → `enriched_*` → `defined_*`. Never bronze/silver/gold, in code, comments or docs. |
+| Layer names | `raw_*` → `validated_*` → `enriched_*` → `certified_*`. Never bronze/silver/gold, in code, comments or docs. (The final layer was first called `defined_*`; renamed to `certified_*` by the user on 2026-11-05. The main table is `certified_investment_portfolio`.) |
+| Scope (2026-11-05) | **WS1 first, end to end:** phases 5 (portfolio table only), 6, 7 (WS1 only) and a slim 8 (Genie space + paraphrase evaluation + flag counts per answer, no agent). WS2, WS3, the client scorecard, the agent, the app and packaging are **postponed**, not dropped; decide after WS1 works. |
 | Column names | **Ours** from the contracts. His `loan_musd, equity_musd, guarantee_musd, risk_mgmt_musd` become `amt_loan_musd, amt_equity_musd, amt_guarantee_musd, amt_risk_mgmt_musd` **everywhere**, including SQL strings, UC functions, the app, Genie instructions, column comments, README and answers. All other source column names already match. |
 | Allocation flags | Tolerance **$0.01M** (config `amount_reconciliation_tolerance_musd`). Under-allocated = warning (72), over-allocated = high (78). |
 | Q28 | Uses its own threshold: `abs(alloc_gap_musd) > 1` → **146** projects. Never filter Q28 on the flag. |
@@ -41,8 +42,8 @@ Databricks before the next starts.**
 | `rule_text_features` | `enriched_rule_features` |
 | `llm_text_extractions` | `enriched_llm_extractions` (**keep its rows if the table exists: the LLM run cost ~60 min**) |
 | `gold_project_text_features` | `enriched_project_text_features` |
-| `gold_portfolio` | `defined_portfolio` |
-| `gold_client_scorecard` | `defined_client_scorecard` |
+| `gold_portfolio` | `certified_investment_portfolio` |
+| `gold_client_scorecard` | `certified_client_scorecard` (postponed with WS3) |
 | `dq_results` | `ops_dq_checks` (portfolio-level assertions) and `ops_dq_run_summary` (per-rule counts from Stage 3) |
 | `ops.schema_gate_log`, `ops.raw_load_log` | `ops_schema_gate_log`, `ops_raw_load_log` |
 | `ref_assumptions`, `ref_region_mapping`, `ref_product_vocabulary`, `ref_text_feature_overrides` | unchanged names |
@@ -75,7 +76,7 @@ ifc-cfo-copilot/
     02_load_raw.py                    # ours
     03_validate.py                    # ours
     04_enrich.py                      # his §4 (rules + LLM + overrides), reading validated_projects
-    05_define.py                      # his §5–6 (defined_portfolio, defined_client_scorecard, comments, tags) + our flags
+    05_certify.py                     # his §5–6 (certified_investment_portfolio, [certified_client_scorecard], comments, tags) + our flags
     06_dq_checks.py                   # his §7–8 checks, made data-driven; writes ops_dq_checks; blocks on failure
   02_agent/ 02_agent_capabilities.py  03_build_agent.py  cfo_agent.py  04_evaluate_genie.py (new)
   03_demo/04_app.py
@@ -136,20 +137,20 @@ ifc-cfo-copilot/
 
 **Accept:** the T02 rule count is 277; disagreements land in `enriched_project_text_features.needs_review`.
 
-## Phase 5: Define (`01_data/05_define.py`)
+## Phase 5: Certify (`01_data/05_certify.py`)
 
-1. Port his `gold_portfolio` → `defined_portfolio`, built from `validated_projects` LEFT JOIN `validated_monitoring` (on `project_url`) LEFT JOIN `enriched_project_text_features`. Use `amt_*` names.
+1. Port his `gold_portfolio` → `certified_investment_portfolio`, built from `validated_projects` LEFT JOIN `validated_monitoring` (on `project_url`) LEFT JOIN `enriched_project_text_features`. Use `amt_*` names.
 2. Derived columns computed here (were in his silver): `product_alloc_sum_musd`, `alloc_gap_musd`, `product_count`, `is_multi_product`, `is_board_approved`, `is_signed`, `is_invested`, `is_committed`, exposure columns (A09–A11), `risk_flag`, lifecycle day columns (A07), `reporting_date`, plus calendar and fiscal years (`approval_year`, `approval_fy`, … for approval, signing, investment, disclosure; IFC FY = Jul–Jun, labelled by the June year).
-3. **Carry our flags** into `defined_portfolio`:
+3. **Carry our flags** into `certified_investment_portfolio`:
    - every `flag_*` from `validated_projects`;
    - monitoring flags prefixed `mon_` (e.g. `mon_flag_review_overdue`, `mon_flag_over_disbursed`);
    - combined roll-ups: `needs_review` (project OR monitoring), `dq_max_severity` (worst of both), `review_owners` (union), `dq_messages` (concatenated);
    - `text_attributes_need_review` as his;
    - **drop** his `dq_*` columns.
-4. Port `gold_client_scorecard` → `defined_client_scorecard`, with band thresholds and weights read from config. Add `n_review_overdue_active` and `n_high_severity_flags` per client.
-5. Column comments: port his dictionary; rename keys to `amt_*`; add comments for every `flag_*`, `mon_flag_*` and roll-up column (take the text from the contract's `description`). Tags: `layer` = `raw|validated|enriched|defined`.
+4. Port `gold_client_scorecard` → `certified_client_scorecard`, with band thresholds and weights read from config. Add `n_review_overdue_active` and `n_high_severity_flags` per client.
+5. Column comments: port his dictionary; rename keys to `amt_*`; add comments for every `flag_*`, `mon_flag_*` and roll-up column (take the text from the contract's `description`). Tags: `layer` = `raw|validated|enriched|certified`.
 
-**Accept:** `defined_portfolio` has 5,000 rows; `count_if(mon_flag_review_overdue)` = 324; `count_if(flag_board_date_passed)` = 237; the his-vs-merged sanity view (his §8) shows Closed 1302 / Active 1233 / Pending 1233 / Dropped 1232.
+**Accept:** `certified_investment_portfolio` has 5,000 rows; `count_if(mon_flag_review_overdue)` = 324; `count_if(flag_board_date_passed)` = 237; the his-vs-merged sanity view (his §8) shows Closed 1302 / Active 1233 / Pending 1233 / Dropped 1232.
 
 ## Phase 6: Portfolio checks (`01_data/06_dq_checks.py`)
 
@@ -187,12 +188,12 @@ Port his CHECKS framework into `ops_dq_checks`, made **data-driven**:
    - `data_quality_summary()` reads `ops_dq_checks` + `ops_dq_run_summary`.
    - Add an 8th function **`get_project_flags(project STRING)`**: flags, severity, owners and messages for one project (`project_url` or name).
    - Genie instructions: rename; add "include `needs_review`/`dq_max_severity` counts when aggregating amounts", "use `mon_flag_review_overdue` for overdue reviews", and the A03 sensitivity rule.
-   - Genie data list: `defined_portfolio`, `defined_client_scorecard`, `ref_assumptions`, `ops_dq_issues`.
+   - Genie data list: `certified_investment_portfolio`, `certified_client_scorecard`, `ref_assumptions`, `ops_dq_issues`.
    - Update grants.
 2. **`cfo_agent.py`:** rename. Add `get_project_flags` to `TOOLS`/`SQL_TOOLS`.
-3. **Deterministic caveat check (our idea, missing in his).** After Genie returns SQL, the trust layer computes how many `defined_portfolio` rows in scope carry flags:
+3. **Deterministic caveat check (our idea, missing in his).** After Genie returns SQL, the trust layer computes how many `certified_investment_portfolio` rows in scope carry flags:
    - parse the SQL with `sqlglot` (Databricks dialect);
-   - if it reads only `defined_portfolio`, run `SELECT count(*), count_if(needs_review), count_if(dq_max_severity = 'high'), count_if(text_attributes_need_review) FROM defined_portfolio WHERE <Genie's WHERE clause>`;
+   - if it reads only `certified_investment_portfolio`, run `SELECT count(*), count_if(needs_review), count_if(dq_max_severity = 'high'), count_if(text_attributes_need_review) FROM certified_investment_portfolio WHERE <Genie's WHERE clause>`;
    - attach "N of M projects in this answer have open data-quality issues (K high)" to the footer;
    - if the SQL can't be analyzed (joins, CTEs, subqueries), say so and keep REVIEW_RECOMMENDED;
    - any high-severity hit makes the status at least REVIEW_RECOMMENDED;
@@ -228,7 +229,7 @@ Port his CHECKS framework into `ops_dq_checks`, made **data-driven**:
 
 1. **`databricks.yml` (Asset Bundle):**
    - workspace root `/Workspace/Teams/ifc-cfo-copilot` (or per-user in dev target).
-   - Job **`ifc_data_pipeline`**: tasks `00_config` → `00_reference` → `01_schema_gate` → `02_load_raw` → `03_validate` → `04_enrich` → `05_define` → `06_dq_checks`, serverless, email on failure (user's address as a variable).
+   - Job **`ifc_data_pipeline`**: tasks `00_config` → `00_reference` → `01_schema_gate` → `02_load_raw` → `03_validate` → `04_enrich` → `05_certify` → `06_dq_checks`, serverless, email on failure (user's address as a variable).
    - Job **`ifc_answers`**: `ws1` → `ws2` → `ws3`.
    - The app resource (`03_demo/04_app.py`).
    - Exclude `reference/` and `tests/` from sync.
@@ -250,7 +251,7 @@ Port his CHECKS framework into `ops_dq_checks`, made **data-driven**:
 **Accept:**
 - `databricks bundle validate` passes;
 - `databricks bundle deploy` + `databricks bundle run ifc_data_pipeline` succeeds end to end;
-- a re-run with `test_files/` dropped into `incoming/` holds them and leaves the defined tables unchanged.
+- a re-run with `test_files/` dropped into `incoming/` holds them and leaves the certified tables unchanged.
 
 ---
 

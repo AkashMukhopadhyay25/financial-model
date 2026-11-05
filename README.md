@@ -22,6 +22,7 @@ This repository is mid-merge. Two rules:
 | `01_data/02_load_raw.py` | Stage 2: loads accepted files into Raw tables, keeping history |
 | `01_data/03_validate.py` | Stage 3: types, standardizes, quarantines and flags rows |
 | `01_data/04_enrich.py` | Text features from descriptions: rules + cached LLM + reviewer overrides → `enriched_rule_features`, `enriched_llm_extractions`, `enriched_project_text_features` |
+| `01_data/05_certify.py` | Builds `certified_investment_portfolio`: one row per project with monitoring, text attributes and every data-quality flag; column comments for Genie; layer tags |
 | `tests/` | Runs Stage 3's SQL locally on SQLite |
 | `test_files/` | Deliberately broken files for testing and the demo |
 | `data/` | Source CSVs and case files (not in git; copy them in yourself) |
@@ -33,7 +34,7 @@ This repository is mid-merge. Two rules:
 | `00_setup/00_config.py` | merged into our `00_setup/00_config.py` | 1 |
 | `01_data/01_load_and_prepare.py` §2 | `01_data/00_reference.py` | 3 |
 | §4 | `01_data/04_enrich.py` | 4 |
-| §5–6 | `01_data/05_define.py` | 5 |
+| §5–6 | `01_data/05_certify.py` | 5 |
 | §7–8 | `01_data/06_dq_checks.py` | 6 |
 | §1, §3 | **not used**: replaced by our stages 1–3 | — |
 | `04_answers/ws1, ws2, ws3` | `04_answers/...` | 7 |

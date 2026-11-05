@@ -106,7 +106,7 @@ except Exception as e:
     print(f"Skipping CREATE CATALOG ({type(e).__name__}); using existing catalog {CATALOG}")
 
 spark.sql(f"CREATE SCHEMA IF NOT EXISTS {CATALOG}.{SCHEMA} "
-          "COMMENT 'IFC CFO Office portfolio intelligence. Layers are name prefixes: raw_, validated_, enriched_, defined_, plus ref_ and ops_.'")
+          "COMMENT 'IFC CFO Office portfolio intelligence. Layers are name prefixes: raw_, validated_, enriched_, certified_, plus ref_ and ops_.'")
 spark.sql(f"CREATE VOLUME IF NOT EXISTS {CATALOG}.{SCHEMA}.{VOLUME} "
           "COMMENT 'Landing zone for source files: incoming/, accepted/, held/, loaded/'")
 for _folder in LANDING_FOLDERS:

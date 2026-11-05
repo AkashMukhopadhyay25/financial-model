@@ -223,7 +223,7 @@ display(spark.sql(f"""
 
 # MAGIC %md ## 3. Reconcile → `enriched_project_text_features`
 # MAGIC Reviewer override > LLM > rule. `needs_review` = the two methods disagree, or the LLM result is missing, and no
-# MAGIC reviewer has decided yet. These rows feed `text_attributes_need_review` in `defined_portfolio`.
+# MAGIC reviewer has decided yet. These rows feed `text_attributes_need_review` in `certified_investment_portfolio`.
 
 # COMMAND ----------
 
