@@ -10,9 +10,10 @@
 # MAGIC 2. Re-run the SQL Genie wrote, ourselves, on the certified table.
 # MAGIC 3. Compare with the certified answer in `answers_register`: every key figure must appear in Genie's result (within
 # MAGIC    0.5%); for lists, the row count must match too.
-# MAGIC 4. Deterministic caveat: if Genie's SQL reads only `certified_investment_portfolio` with a simple WHERE, count how many
-# MAGIC    projects in that scope have open data-quality issues (the same counts the certified answers carry). If the SQL is
-# MAGIC    too complex to analyse, say so.
+# MAGIC 4. Deterministic caveat: work out which projects Genie's answer covers (`02_agent/scope_analyzer.py`: the project
+# MAGIC    list if the result has one, otherwise the filters of every branch that reads the certified table, narrowed to the
+# MAGIC    groups returned when HAVING or LIMIT is used) and count how many carry open data-quality issues. The model is
+# MAGIC    asked to report these counts too, but this check does not depend on it remembering to.
 # MAGIC
 # MAGIC | Score | Meaning |
 # MAGIC |---|---|
@@ -35,6 +36,7 @@
 
 import json
 import math
+import sys
 import time
 import uuid
 from datetime import datetime, timezone
@@ -130,27 +132,20 @@ for q in PARA:
 
 # COMMAND ----------
 
-import sqlglot  # noqa: E402
-from sqlglot import exp  # noqa: E402
+if str(REPO_ROOT / "02_agent") not in sys.path:
+    sys.path.insert(0, str(REPO_ROOT / "02_agent"))
+from scope_analyzer import scope_condition  # noqa: E402
 
 
-def caveat(genie_sql: str) -> dict:
-    """Flag counts for the projects Genie's query covers, when its scope can be read off the SQL."""
+def caveat(genie_sql: str, columns: list, rows: list) -> dict:
+    """Flag counts for the projects Genie's answer covers (see 02_agent/scope_analyzer.py)."""
     try:
-        tree = sqlglot.parse_one(genie_sql, read="databricks")
-        tables = {t.sql(dialect="databricks").split(" AS ")[0].replace("`", "").lower() for t in tree.find_all(exp.Table)}
-        simple = (tables == {CERT.lower()} and not tree.find(exp.Join) and not tree.find(exp.With)
-                  and not tree.find(exp.Union) and len(list(tree.find_all(exp.Select))) == 1)
-        if not simple:
-            return {"caveat_status": "not analysable (joins, CTEs, unions or subqueries)"}
-        # HAVING or LIMIT narrows the projects after the WHERE clause, so the WHERE alone would overstate the scope.
-        if tree.args.get("having") or tree.args.get("limit") or tree.args.get("qualify"):
-            return {"caveat_status": "not analysable (HAVING or LIMIT narrows the scope)"}
-        where = tree.args.get("where")
-        cond = where.this.sql(dialect="databricks") if where else "TRUE"
+        cond, method = scope_condition(genie_sql, columns, rows, CERT)
+        if cond is None:
+            return {"caveat_status": method}
         r = spark.sql(f"""SELECT count(*) AS n, count_if(needs_review) AS review, count_if(dq_max_severity = 'high') AS high,
                                  count_if(text_attributes_need_review) AS text FROM {CERT} WHERE {cond}""").first()
-        return {"caveat_status": "computed", "rows_in_scope": r["n"], "rows_needing_review": r["review"],
+        return {"caveat_status": method, "rows_in_scope": r["n"], "rows_needing_review": r["review"],
                 "rows_high_severity": r["high"], "rows_text_review": r["text"]}
     except Exception as e:  # never let the caveat break the evaluation
         return {"caveat_status": f"not analysable ({type(e).__name__})"}
@@ -202,10 +197,11 @@ for q in PARA:
         row = {"run_id": RUN_ID, "run_at": RUN_AT, "question_id": q["id"], "paraphrase_no": no, "text": text, **g}
         if g["genie_sql"]:
             try:
-                genie_rows = rows_of(g["genie_sql"])
+                genie_df = spark.sql(g["genie_sql"])
+                genie_rows = [r.asDict() for r in genie_df.collect()]
                 cmp = compare(q, truth[q["id"]], genie_rows)
                 row.update(genie_rows=len(genie_rows), **{k: v for k, v in cmp.items() if k != "signature"},
-                           signature=json.dumps(cmp["signature"]), **caveat(g["genie_sql"]))
+                           signature=json.dumps(cmp["signature"]), **caveat(g["genie_sql"], genie_df.columns, genie_rows))
             except Exception as e:
                 row.update(accurate=False, error=f"Genie SQL failed when re-run: {type(e).__name__}: {e}"[:500])
         else:

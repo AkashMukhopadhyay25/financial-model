@@ -28,6 +28,7 @@ This repository is mid-merge. Two rules:
 | `02_agent/01_genie_space.py` | Creates/updates the Genie space from code: certified table + `ref_assumptions` + `ops_dq_issues`, instructions, the certified WS1 SQL as examples and benchmarks |
 | `02_agent/genie_paraphrases.yml` | 4 reviewed paraphrases per WS1 question and how to compare Genie's result with the certified answer |
 | `02_agent/04_evaluate_genie.py` | Asks Genie every phrasing, re-runs its SQL, scores accuracy and consistency, adds flag counts per answer → `genie_eval_results`, `genie_eval_summary`, MLflow |
+| `02_agent/scope_analyzer.py` | Works out which projects a generated SQL answer covers (project list, filters across CTEs/UNIONs, groups returned under HAVING/LIMIT) so the data-quality caveat is computed, not left to the model; tested in `tests/test_scope_analyzer.py` |
 | `tests/` | Runs Stage 3's SQL locally on SQLite |
 | `test_files/` | Deliberately broken files for testing and the demo |
 | `data/` | Source CSVs and case files (not in git; copy them in yourself) |
