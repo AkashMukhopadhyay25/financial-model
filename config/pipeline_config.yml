@@ -116,7 +116,7 @@ reference_figures:
 # --- Genie evaluation (02_agent/04_evaluate_genie.py) ---------------------------------------------------------
 evaluation:
   paraphrases_file: 02_agent/genie_paraphrases.yml
-  questions: [Q06, Q07, Q08, Q09, Q10]   # `all`, or a list for a partial run. Batches of 5, original wording only
+  questions: [Q26, Q27, Q28, Q29, Q30]   # `all`, or a list for a partial run. Batches of 5, original wording only
                                           # (Q01-Q05 done 2026-11-05: 5/5 accurate)
   include_original: true      # ask the original wording (paraphrase_no 0)
   include_paraphrases: false  # ask the 4 paraphrases too (after the team has reviewed them)
