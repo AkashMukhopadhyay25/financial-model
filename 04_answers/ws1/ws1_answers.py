@@ -429,12 +429,17 @@ GROUP BY msme_target_group ORDER BY projects DESC
 """, "Target group extracted from the description (A12).", "A12,A14", "status <> 'Dropped' AND is_msme_financing")
 
 ws1("Q26a", "[Challenge] Which projects' descriptions describe a different financing product than the one recorded in Product Line? Count by recorded Product Line.", """
-SELECT product_line AS recorded_product_line, described_product, count(*) AS projects
+SELECT product_line AS recorded_product_line, count(*) AS projects,
+       count_if(described_product = 'Loan')            AS described_as_loan,
+       count_if(described_product = 'Equity')          AS described_as_equity,
+       count_if(described_product = 'Guarantee')       AS described_as_guarantee,
+       count_if(described_product = 'Risk Management') AS described_as_risk_management
 FROM {P}
 WHERE described_product IS NOT NULL AND described_product <> product_line
-GROUP BY ALL ORDER BY recorded_product_line, projects DESC
-""", "Described product = principal instrument named in the text (e.g. 'interest rate swap' = Risk Management; 'X alongside "
-     "a smaller Y' = X). Projects whose description names no instrument are excluded (A12).",
+GROUP BY product_line ORDER BY recorded_product_line
+""", "One row per recorded Product Line, as the question asks, with the described product broken out in columns. "
+     "Described product = principal instrument named in the text (e.g. 'interest rate swap' = Risk Management; 'X alongside "
+     "a smaller Y' = X). Projects whose description names no instrument are excluded (A12). Project list in Q26b.",
     "A12", "described_product IS NOT NULL AND described_product <> product_line")
 
 ws1("Q26b", "[Challenge] Q26 project list", """
