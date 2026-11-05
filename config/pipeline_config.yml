@@ -116,8 +116,9 @@ reference_figures:
 # --- Genie evaluation (02_agent/04_evaluate_genie.py) ---------------------------------------------------------
 evaluation:
   paraphrases_file: 02_agent/genie_paraphrases.yml
-  questions: all              # or a list for a partial run, e.g. [Q01, Q12, Q28]
-  include_original: true      # also ask the original wording (paraphrase_no 0)
+  questions: [Q01, Q02, Q03, Q04, Q05]   # `all`, or a list for a partial run. Step 1: first 5, original wording only
+  include_original: true      # ask the original wording (paraphrase_no 0)
+  include_paraphrases: false  # ask the 4 paraphrases too (after the team has reviewed them)
   delay_seconds: 10           # pause between Genie calls (the Conversation API is rate-limited)
   relative_tolerance: 0.005   # a figure matches when within 0.5%
   mlflow_experiment: ifc_genie_evaluation

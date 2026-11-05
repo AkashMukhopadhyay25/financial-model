@@ -47,6 +47,7 @@ TOL = float(EVAL.get("relative_tolerance", 0.005))
 DELAY = float(EVAL.get("delay_seconds", 10))
 SELECTED = EVAL.get("questions", "all")
 INCLUDE_ORIGINAL = bool(EVAL.get("include_original", True))
+INCLUDE_PARAPHRASES = bool(EVAL.get("include_paraphrases", True))
 CERT = T("certified_investment_portfolio")
 
 assert GENIE_SPACE_ID, "Set serving.genie_space_id in config (run 02_agent/01_genie_space first)."
@@ -56,7 +57,8 @@ with open(REPO_ROOT / EVAL.get("paraphrases_file", "02_agent/genie_paraphrases.y
     PARA = yaml.safe_load(f)["questions"]
 if SELECTED != "all":
     PARA = [q for q in PARA if q["id"] in set(SELECTED)]
-print(f"{len(PARA)} questions; delay {DELAY}s between Genie calls; tolerance {TOL:.1%}")
+print(f"{len(PARA)} questions; original wording {INCLUDE_ORIGINAL}, paraphrases {INCLUDE_PARAPHRASES}; "
+      f"delay {DELAY}s between Genie calls; tolerance {TOL:.1%}")
 
 # The paraphrase set as a table, so it is visible next to the results.
 spark.createDataFrame(
@@ -179,7 +181,8 @@ RUN_ID = str(uuid.uuid4())
 RUN_AT = datetime.now(timezone.utc).isoformat()
 results = []
 for q in PARA:
-    phrasings = ([(0, q["original"])] if INCLUDE_ORIGINAL else []) + list(enumerate(q["paraphrases"], 1))
+    phrasings = (([(0, q["original"])] if INCLUDE_ORIGINAL else [])
+                 + (list(enumerate(q["paraphrases"], 1)) if INCLUDE_PARAPHRASES else []))
     for no, text in phrasings:
         g = ask_genie(text)
         row = {"run_id": RUN_ID, "run_at": RUN_AT, "question_id": q["id"], "paraphrase_no": no, "text": text, **g}
