@@ -82,7 +82,8 @@ ORDER BY total_approved_musd DESC
 LIMIT 10
 """, "Only Board-approved projects (approval date present); for unapproved projects the column is a proposal (A04). "
      "All statuses (A03); sensitivity excludes Dropped.",
-    "A03,A04,A08", "project_url IN (SELECT project_url FROM {P} WHERE is_board_approved ORDER BY total_approved_musd DESC LIMIT 10)",
+    "A03,A04,A08", "project_url IN (SELECT project_url FROM (SELECT project_url, total_approved_musd AS t FROM {P} WHERE is_board_approved "
+                   "ORDER BY t DESC LIMIT 10))",
     sensitivity=True)
 
 ws1("Q03", "Compare Equity vs Loan investment across industries, excluding Dropped projects.", """
@@ -105,8 +106,8 @@ GROUP BY country
 HAVING sum(amt_loan_musd) > 1000
 ORDER BY loan_investment_musd DESC
 """, "Loan allocation column (A08); threshold is strictly greater than 1,000 USD M.",
-    "A08", "status IN ('Active', 'Closed') AND country IN (SELECT country FROM {P} WHERE status IN ('Active', 'Closed') "
-           "GROUP BY country HAVING sum(amt_loan_musd) > 1000)")
+    "A08", "status IN ('Active', 'Closed') AND country IN (SELECT country FROM (SELECT country, sum(amt_loan_musd) AS loan "
+           "FROM {P} WHERE status IN ('Active', 'Closed') GROUP BY country) WHERE loan > 1000)")
 
 ws1("Q05", "Show the trend of IFC approved investment year-over-year.", """
 WITH y AS (
@@ -148,8 +149,8 @@ GROUP BY country
 ORDER BY active_projects DESC, country
 LIMIT 10
 """, "Projects counted by project_url (A01). Ties at rank 10 are broken alphabetically.",
-    "A01", "status = 'Active' AND country IN (SELECT country FROM {P} WHERE status = 'Active' GROUP BY country "
-           "ORDER BY count(*) DESC, country LIMIT 10)")
+    "A01", "status = 'Active' AND country IN (SELECT country FROM (SELECT country, count(*) AS n FROM {P} "
+           "WHERE status = 'Active' GROUP BY country ORDER BY n DESC, country LIMIT 10))")
 
 ws1("Q08", "Show the IFC investment split (Loan / Equity / Guarantee / Risk Management) for East Asia & Pacific, excluding Dropped projects.", """
 SELECT product, round(amount_musd, 2) AS amount_musd,
@@ -178,9 +179,10 @@ ORDER BY avg_days_approval_to_signing DESC
 LIMIT 10
 """, "Signed projects with both dates in valid order; projects signed before approval are excluded from the average and "
      "from the count of 10 (A07). All statuses (A03); sensitivity excludes Dropped.",
-    "A03,A07", "days_approval_to_signing IS NOT NULL AND wb_country_code IN (SELECT wb_country_code FROM {P} "
-               "WHERE days_approval_to_signing IS NOT NULL GROUP BY wb_country_code HAVING count(*) >= 10 "
-               "ORDER BY avg(days_approval_to_signing) DESC LIMIT 10)", sensitivity=True)
+    "A03,A07", "days_approval_to_signing IS NOT NULL AND wb_country_code IN (SELECT wb_country_code FROM ("
+               "SELECT wb_country_code, count(*) AS n, avg(days_approval_to_signing) AS avg_days FROM {P} "
+               "WHERE days_approval_to_signing IS NOT NULL GROUP BY wb_country_code) WHERE n >= 10 "
+               "ORDER BY avg_days DESC LIMIT 10)", sensitivity=True)
 
 # COMMAND ----------
 
@@ -459,8 +461,8 @@ SELECT country, round(sum(amt_loan_musd), 2) AS loan_musd, round(sum(amt_equity_
 FROM {P} WHERE status <> 'Dropped'
 GROUP BY country ORDER BY total_approved_musd DESC LIMIT 15
 """, "Size = Board total; x and y = allocation columns (A08). Dropped excluded as the question states.",
-    "A08", "status <> 'Dropped' AND country IN (SELECT country FROM {P} WHERE status <> 'Dropped' GROUP BY country "
-           "ORDER BY sum(total_approved_musd) DESC LIMIT 15)")
+    "A08", "status <> 'Dropped' AND country IN (SELECT country FROM (SELECT country, sum(total_approved_musd) AS total "
+           "FROM {P} WHERE status <> 'Dropped' GROUP BY country ORDER BY total DESC LIMIT 15))")
 
 try:
     import plotly.express as px
