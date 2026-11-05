@@ -160,18 +160,29 @@ def caveat(genie_sql: str) -> dict:
 # COMMAND ----------
 
 
-def ask_genie(text: str) -> dict:
+def ask_genie(text: str, timeout_s: int = 300) -> dict:
+    """Ask Genie one question through the Conversation REST API (works with any databricks-sdk version)."""
     t0 = time.time()
+    base = f"/api/2.0/genie/spaces/{GENIE_SPACE_ID}"
     try:
-        msg = w.genie.start_conversation_and_wait(GENIE_SPACE_ID, text)
+        start = w.api_client.do("POST", f"{base}/start-conversation", body={"content": text})
+        cid, mid = start["conversation_id"], start["message_id"]
+        while True:
+            msg = w.api_client.do("GET", f"{base}/conversations/{cid}/messages/{mid}")
+            if msg.get("status") in ("COMPLETED", "FAILED", "CANCELLED", "QUERY_RESULT_EXPIRED"):
+                break
+            if time.time() - t0 > timeout_s:
+                raise TimeoutError(f"Genie did not finish within {timeout_s}s (status {msg.get('status')})")
+            time.sleep(3)
         sql, answer_text = None, None
-        for a in msg.attachments or []:
-            if getattr(a, "query", None) and a.query.query:
-                sql = a.query.query
-            if getattr(a, "text", None) and a.text.content:
-                answer_text = a.text.content
-        return {"status": str(msg.status.value if msg.status else ""), "genie_sql": sql, "genie_text": answer_text,
-                "conversation_id": msg.conversation_id, "latency_s": round(time.time() - t0, 1), "error": None}
+        for a in msg.get("attachments") or []:
+            if (a.get("query") or {}).get("query"):
+                sql = a["query"]["query"]
+            if (a.get("text") or {}).get("content"):
+                answer_text = a["text"]["content"]
+        err = (msg.get("error") or {}).get("error") if msg.get("status") != "COMPLETED" else None
+        return {"status": msg.get("status"), "genie_sql": sql, "genie_text": answer_text, "conversation_id": cid,
+                "latency_s": round(time.time() - t0, 1), "error": err}
     except Exception as e:
         return {"status": "ERROR", "genie_sql": None, "genie_text": None, "conversation_id": None,
                 "latency_s": round(time.time() - t0, 1), "error": f"{type(e).__name__}: {e}"[:500]}
