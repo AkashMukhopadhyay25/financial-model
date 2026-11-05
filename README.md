@@ -21,6 +21,7 @@ This repository is mid-merge. Two rules:
 | `01_data/01_schema_gate.py` | Stage 1: blocks files whose columns don't match the contract |
 | `01_data/02_load_raw.py` | Stage 2: loads accepted files into Raw tables, keeping history |
 | `01_data/03_validate.py` | Stage 3: types, standardizes, quarantines and flags rows |
+| `01_data/04_enrich.py` | Text features from descriptions: rules + cached LLM + reviewer overrides → `enriched_rule_features`, `enriched_llm_extractions`, `enriched_project_text_features` |
 | `tests/` | Runs Stage 3's SQL locally on SQLite |
 | `test_files/` | Deliberately broken files for testing and the demo |
 | `data/` | Source CSVs and case files (not in git; copy them in yourself) |
