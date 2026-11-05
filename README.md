@@ -25,6 +25,9 @@ This repository is mid-merge. Two rules:
 | `01_data/05_certify.py` | Builds `certified_investment_portfolio`: one row per project with monitoring, text attributes and every data-quality flag; column comments for Genie; layer tags |
 | `01_data/06_dq_checks.py` | Portfolio-level checks (reconciliation raw → validated → certified, keys, structure, allowed values; blocking ones stop the job) → `ops_dq_checks`; reviewers' work list view `ops_dq_issues` |
 | `04_answers/ws1/ws1_answers.py` | WS1: certified answers to the 30 questions (+ detail lists) from `certified_investment_portfolio`, with SQL, assumption IDs, excluding-Dropped sensitivity figures, per-answer data-quality counts and 14 reconciliation checks → `answers_register` |
+| `02_agent/01_genie_space.py` | Creates/updates the Genie space from code: certified table + `ref_assumptions` + `ops_dq_issues`, instructions, the certified WS1 SQL as examples and benchmarks |
+| `02_agent/genie_paraphrases.yml` | 4 reviewed paraphrases per WS1 question and how to compare Genie's result with the certified answer |
+| `02_agent/04_evaluate_genie.py` | Asks Genie every phrasing, re-runs its SQL, scores accuracy and consistency, adds flag counts per answer → `genie_eval_results`, `genie_eval_summary`, MLflow |
 | `tests/` | Runs Stage 3's SQL locally on SQLite |
 | `test_files/` | Deliberately broken files for testing and the demo |
 | `data/` | Source CSVs and case files (not in git; copy them in yourself) |

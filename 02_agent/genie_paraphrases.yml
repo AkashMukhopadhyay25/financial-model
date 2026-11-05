@@ -1,0 +1,323 @@
+# Paraphrase set for the Genie consistency evaluation (02_agent/04_evaluate_genie.py).
+#
+# For every WS1 question: the original wording, 4 rephrasings that must mean EXACTLY the same thing (same filters,
+# same time window, same thresholds), and how to compare Genie's result with the certified answer.
+#
+#   certified:    question_id of the certified answer in answers_register (ground truth)
+#   key_columns:  columns of the certified result whose values must all appear in Genie's result
+#                 (any column name, any order; numbers match within 0.5%)
+#   check_rows:   true = Genie's result must also have the same number of rows (lists)
+#   ignore_total: true = the certified result's 'TOTAL' row is not required (Genie rarely adds one)
+#
+# STATUS: drafted by Claude Code; to be reviewed by the team before the evaluation runs.
+
+questions:
+  - id: Q01
+    certified: Q01
+    original: Show the total IFC loan investment by region for projects approved in the last 5 years.
+    paraphrases:
+      - How much has IFC put into loans in each region for projects approved over the past five years?
+      - Break down loan investment by region for everything the Board approved in the last five years.
+      - Regional totals of loan allocations, projects approved within the most recent 5 years.
+      - For the last 5 years of approvals, what is the loan amount per region?
+    key_columns: [loan_investment_musd]
+
+  - id: Q02
+    certified: Q02
+    original: List the top 10 projects by Total IFC investment as approved by the Board.
+    paraphrases:
+      - Which 10 Board-approved projects have the largest total IFC investment?
+      - Give me the ten biggest projects by Board-approved total investment.
+      - Top ten approved projects ranked by total IFC investment.
+      - What are the 10 largest projects in terms of the total amount approved by the Board?
+    key_columns: [total_approved_musd]
+    check_rows: true
+
+  - id: Q03
+    certified: Q03
+    original: Compare Equity vs Loan investment across industries, excluding Dropped projects.
+    paraphrases:
+      - For each industry, how does equity investment compare with loan investment? Leave out Dropped projects.
+      - Equity versus loans by industry, not counting projects that were dropped.
+      - Show loan and equity amounts side by side per industry, excluding cancelled (Dropped) projects.
+      - Excluding Dropped projects, what are the equity and loan totals in each industry?
+    key_columns: [equity_musd, loan_musd]
+
+  - id: Q04
+    certified: Q04
+    original: Which countries received more than $1,000M of IFC loan investment across their Active and Closed projects?
+    paraphrases:
+      - Which countries have over 1 billion dollars of loan investment from their Active and Closed projects combined?
+      - List countries whose loan investment on Active plus Closed projects exceeds $1,000 million.
+      - Considering only Active and Closed projects, which countries got more than $1,000M in IFC loans?
+      - Countries with loan totals above $1bn, counting Active and Closed projects only.
+    key_columns: [loan_investment_musd]
+    check_rows: true
+
+  - id: Q05
+    certified: Q05
+    original: Show the trend of IFC approved investment year-over-year.
+    paraphrases:
+      - How has the amount of investment approved by the Board changed from year to year?
+      - Give me approved investment per approval year with the year-on-year change.
+      - What does the annual trend in Board-approved IFC investment look like?
+      - Year-over-year approved investment totals, by year of approval.
+    key_columns: [approved_musd]
+
+  - id: Q06
+    certified: Q06
+    original: What are the top performing regions by committed investment? Treat a project as committed once its agreements are signed, unless it was later Dropped.
+    paraphrases:
+      - Rank regions by committed investment, where committed means the agreements are signed and the project was not later dropped.
+      - Which regions have the most committed investment? A project counts as committed once signed, unless it was Dropped afterwards.
+      - Committed investment by region (signed and not Dropped), largest first.
+      - Using signed, non-dropped projects as the definition of committed, how do the regions rank on committed investment?
+    key_columns: [committed_investment_musd]
+
+  - id: Q07
+    certified: Q07
+    original: List the 10 countries with the highest number of Active projects.
+    paraphrases:
+      - Which ten countries have the most Active projects?
+      - Top 10 countries by count of Active projects.
+      - In which 10 countries does IFC have the largest number of Active projects?
+      - Rank countries by number of Active projects and show the top ten.
+    key_columns: [active_projects]
+
+  - id: Q08
+    certified: Q08
+    original: Show the IFC investment split (Loan / Equity / Guarantee / Risk Management) for East Asia & Pacific, excluding Dropped projects.
+    paraphrases:
+      - In East Asia & Pacific, how is investment split across loans, equity, guarantees and risk management? Exclude Dropped projects.
+      - Product mix for East Asia and Pacific (excluding Dropped): loan, equity, guarantee and risk management amounts.
+      - For non-dropped projects in East Asia & Pacific, what are the loan, equity, guarantee and risk management totals and their shares?
+      - Break down East Asia & Pacific investment by product type, leaving out Dropped projects.
+    key_columns: [amount_musd]
+
+  - id: Q09
+    certified: Q09
+    original: Which 10 WB Country Codes have the longest average time between approval and signing? Only include codes with at least 10 signed projects.
+    paraphrases:
+      - Among World Bank country codes with 10 or more signed projects, which ten take the longest on average from approval to signing?
+      - Top 10 WB country codes by average days from Board approval to signing (minimum 10 signed projects per code).
+      - Which country codes have the slowest approval-to-signing times on average? Only codes with at least ten signed projects; show ten.
+      - For WB Country Codes with at least 10 signed projects, rank the 10 with the highest average approval-to-signing time.
+    key_columns: [avg_days_approval_to_signing]
+
+  - id: Q10
+    certified: Q10
+    original: For each industry, show the number of projects approved and the number first invested each year from 2020 to 2025.
+    paraphrases:
+      - By industry and year (2020-2025), how many projects were approved and how many had their first investment?
+      - For 2020 through 2025, count approvals and first disbursements per industry per year.
+      - Each year from 2020 to 2025, how many projects did each industry get approved, and how many received their first investment?
+      - Industry by year 2020-2025 - number of approvals and number of projects first invested.
+    key_columns: [projects_approved, projects_first_invested]
+
+  - id: Q11
+    certified: Q11
+    original: Show the average time taken between Approval -> Signing -> Investment for each region.
+    paraphrases:
+      - For each region, what is the average number of days from approval to signing, from signing to first investment, and from approval to investment?
+      - How long on average does each region take to go from Board approval to signing and then to first disbursement?
+      - Average lifecycle durations by region - approval to signing, signing to investment, approval to investment.
+      - Per region, average days between the approval, signing and investment milestones.
+    key_columns: [avg_days_approval_to_signing, avg_days_signing_to_investment, avg_days_approval_to_investment]
+
+  - id: Q12
+    certified: Q12
+    original: List Pending projects whose Projected Board Date has passed as of their As of Date but that have not yet been approved.
+    paraphrases:
+      - Which Pending projects have missed their projected Board date (compared with their As of Date) and still have no approval?
+      - Show unapproved Pending projects whose projected Board date is earlier than their As of Date.
+      - List Pending projects that are past their planned Board date as of the record date and not yet approved.
+      - Which projects are still Pending and unapproved even though the projected Board date was before their As of Date?
+    key_columns: [proposed_musd]
+    check_rows: true
+
+  - id: Q13
+    certified: Q13
+    original: Which Active projects have new renewable power generation as their main purpose? Show the count and approved amount by region.
+    paraphrases:
+      - How many Active projects are mainly about building new renewable power generation, and how much was approved, by region?
+      - By region, count and approved amount of Active projects whose main purpose is new renewable generation capacity.
+      - Active projects focused on new renewable energy generation - number and approved investment per region.
+      - Per region, how many Active projects primarily add renewable power generation, and what is their approved total?
+    key_columns: [projects, approved_musd]
+    ignore_total: true
+
+  - id: Q14
+    certified: Q14
+    original: How many Summary of Proposed Investment documents were disclosed each year after 2020?
+    paraphrases:
+      - Count of Summary of Proposed Investment disclosures per year from 2021 onwards.
+      - How many SPI documents were disclosed in each year after 2020?
+      - By disclosure year after 2020, how many projects have the document type Summary of Proposed Investment?
+      - Number of Summary of Proposed Investment documents disclosed per year, for years later than 2020.
+    key_columns: [spi_documents]
+
+  - id: Q15
+    certified: Q15
+    original: Which projects have an Environmental Category = A but are still Pending? Show the count and approved amount by region.
+    paraphrases:
+      - By region, how many Pending projects are Environmental Category A and what is their total amount?
+      - Count and total investment of Category A projects that are still Pending, per region.
+      - Pending projects with environmental category A - number and approved amount by region.
+      - Per region, how many category-A projects remain Pending and how much investment do they represent?
+    key_columns: [projects, approved_or_proposed_musd]
+    ignore_total: true
+
+  - id: Q16
+    certified: Q16
+    original: Find all projects with Document Type = Environmental & Social Review Summary, broken down by Environmental Category.
+    paraphrases:
+      - How many projects have an Environmental & Social Review Summary document, by environmental category?
+      - Break down projects with document type ESRS by Environmental Category, with counts and amounts.
+      - Projects whose document type is Environmental & Social Review Summary - split by category A, B and C.
+      - For Environmental & Social Review Summary documents, show the number of projects and total investment per environmental category.
+    key_columns: [projects]
+
+  - id: Q17
+    certified: Q17
+    original: Show approved investment by Department for projects approved in the last 5 years.
+    paraphrases:
+      - How much investment did each department get approved over the past five years?
+      - Approved investment per department for projects approved in the last 5 years.
+      - Over the last five years of approvals, what is the approved total by department?
+      - Break down Board-approved investment by department, last 5 years.
+    key_columns: [approved_musd]
+
+  - id: Q18
+    certified: Q18
+    original: Compare Product Line categories (Loan, Equity, Guarantee, Risk Management) across regions, excluding Dropped projects.
+    paraphrases:
+      - For each region, show loan, equity, guarantee and risk management amounts, excluding Dropped projects.
+      - Compare the four product lines across regions (no Dropped projects).
+      - Excluding Dropped projects, how much loan, equity, guarantee and risk management investment does each region have?
+      - Regional comparison of Loan, Equity, Guarantee and Risk Management investment, leaving out Dropped projects.
+    key_columns: [loan_musd, equity_musd, guarantee_musd, risk_management_musd]
+
+  - id: Q19
+    certified: Q19
+    original: Which industries receive the largest risk management investments, and what share of each industry's investment is risk management?
+    paraphrases:
+      - Rank industries by risk management investment and show what percentage of each industry's investment it represents.
+      - Which industries get the most risk management money, and how big is that as a share of their total investment?
+      - Risk management investment by industry, with its share of each industry's total.
+      - For each industry, total risk management investment and the risk management share of all investment.
+    key_columns: [risk_management_musd, risk_management_share_pct]
+
+  - id: Q20
+    certified: Q20
+    original: Show the number of projects approved by each Department yearly from 2020 to 2025.
+    paraphrases:
+      - How many projects did each department get approved in each year from 2020 to 2025?
+      - Count of approvals per department per year, 2020-2025.
+      - For 2020 through 2025, number of projects approved by department and year.
+      - Yearly approvals by department between 2020 and 2025.
+    key_columns: ["2020", "2021", "2022", "2023", "2024", "2025"]
+
+  - id: Q21
+    certified: Q21
+    original: Find all Dropped projects with more than $250M originally approved investment.
+    paraphrases:
+      - Which Dropped projects had a total investment above $250 million?
+      - List Dropped projects whose original total exceeded $250M.
+      - Show cancelled (Dropped) projects with more than 250 million dollars of total IFC investment.
+      - Dropped projects over $250M in total approved investment - list them.
+    key_columns: [total_musd]
+    check_rows: true
+
+  - id: Q22
+    certified: Q22
+    original: List all Active projects whose first investment came more than 2 years after Board approval.
+    paraphrases:
+      - Which Active projects took more than two years from Board approval to first disbursement?
+      - Show Active projects where the first investment happened over 24 months after approval.
+      - List Active projects with a gap of more than 2 years between approval and first investment.
+      - Active projects whose invested date is more than two years after the approval date.
+    key_columns: [days_approval_to_investment]
+    check_rows: true
+
+  - id: Q23
+    certified: Q23
+    original: What percentage of projects are Active, Closed, Pending, and Dropped in each region?
+    paraphrases:
+      - For each region, what share of projects is Active, Closed, Pending and Dropped?
+      - Status mix by region as percentages of the project count.
+      - In every region, what percent of projects falls in each status?
+      - Break down each region's projects by status (Active, Closed, Pending, Dropped) in percent.
+    key_columns: [Active, Closed, Pending, Dropped]
+
+  - id: Q24
+    certified: Q24
+    original: What is the total new renewable generation capacity (MW) of Active and Closed projects, by region, and how many of these projects do not state a capacity?
+    paraphrases:
+      - By region, how many MW of new renewable generation capacity do Active and Closed projects add, and how many of them give no capacity figure?
+      - For Active and Closed renewable generation projects, total new MW per region and the number without a stated capacity.
+      - New renewable power capacity in megawatts by region (Active and Closed projects), plus the count of projects missing a capacity.
+      - Per region - Active and Closed projects building new renewable generation, their total new MW, and how many don't state MW.
+    key_columns: [renewable_generation_projects, total_new_capacity_mw]
+    ignore_total: true
+
+  - id: Q25
+    certified: Q25a
+    original: "Summarize IFC's financing for micro, small and medium enterprises, excluding Dropped projects: number of projects, approved amount, top 5 countries, and the main groups of businesses targeted."
+    paraphrases:
+      - Excluding Dropped projects, how many projects mainly finance MSMEs and what is their total approved amount?
+      - How many non-dropped projects are SME and micro-enterprise financing, and how much has been approved for them?
+      - Number of projects and approved investment for micro, small and medium enterprise financing, not counting Dropped projects.
+      - Leaving out Dropped projects, what is the count and total amount of IFC projects whose main purpose is MSME financing?
+    key_columns: [msme_projects, approved_musd]
+
+  - id: Q26
+    certified: Q26a
+    original: Which projects' descriptions describe a different financing product than the one recorded in Product Line? Show the count by recorded Product Line and list the projects.
+    paraphrases:
+      - How many projects have a description that names a different financing product than their recorded Product Line? Count by recorded product line.
+      - Where does the product named in the project description disagree with the Product Line field? Give counts per recorded product line.
+      - Count projects whose described financing instrument differs from the recorded Product Line, grouped by recorded product line and described product.
+      - Mismatch between described product and recorded Product Line - number of projects by product line.
+    key_columns: [projects]
+
+  - id: Q27
+    certified: Q27
+    original: "Show a bubble chart for the 15 countries with the highest approved investment (excluding Dropped): x = Loan Investment, y = Equity Investment, size = Total IFC Investment."
+    paraphrases:
+      - For the 15 countries with the most approved investment (excluding Dropped), give loan, equity and total approved investment.
+      - Top 15 countries by total approved investment, not counting Dropped projects - show their loan and equity amounts too.
+      - Which 15 countries have the highest approved investment excluding Dropped projects, and what are their loan and equity totals?
+      - Excluding Dropped, list the 15 largest countries by approved investment with loan, equity and total amounts.
+    key_columns: [total_approved_musd]
+
+  - id: Q28
+    certified: Q28
+    original: Which projects have a Board-approved total that differs from the sum of their product allocations (Loan + Equity + Guarantee + Risk Management) by more than $1M?
+    paraphrases:
+      - List projects where the Board total and the sum of the four product allocations differ by more than 1 million dollars.
+      - Which projects have a gap above $1M between their total approved amount and loan + equity + guarantee + risk management?
+      - Show projects whose product allocations don't add up to the Board-approved total, off by more than $1M either way.
+      - Projects where |total approved - sum of product allocations| is greater than $1M.
+    key_columns: [board_total_musd]
+    check_rows: true
+
+  - id: Q29
+    certified: Q29
+    original: List multi-product projects (more than one product with a non-zero allocation) and their totals.
+    paraphrases:
+      - Which projects have non-zero amounts in more than one product (loan, equity, guarantee, risk management), and what are their totals?
+      - Show all projects that use two or more products, with their total investment.
+      - List projects with allocations in more than one product line and their total IFC investment.
+      - Multi-product projects - more than one non-zero product allocation - with totals.
+    key_columns: [total_musd]
+    check_rows: true
+
+  - id: Q30
+    certified: Q30
+    original: Provide a heatmap of region vs industry based on total approved investment, excluding Dropped projects.
+    paraphrases:
+      - Show total approved investment for every region and industry combination, excluding Dropped projects.
+      - Region by industry matrix of approved investment, not counting Dropped projects.
+      - Excluding Dropped projects, how much approved investment is there in each region for each industry?
+      - Cross-tab of approved investment by region and industry (no Dropped projects).
+    key_columns: [Agribusiness, Energy, Finance, Manufacturing, Telecom]
