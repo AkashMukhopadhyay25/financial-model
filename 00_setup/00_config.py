@@ -141,19 +141,34 @@ ANSWERS_REGISTER_COLUMNS = [
     ("workstream", "STRING"), ("question_id", "STRING"), ("question", "STRING"), ("sql_text", "STRING"),
     ("assumptions", "STRING"), ("assumption_ids", "STRING"), ("row_count", "BIGINT"),
     ("result_preview_json", "STRING"), ("sensitivity_label", "STRING"), ("sensitivity_sql", "STRING"),
-    ("sensitivity_preview_json", "STRING"), ("computed_at", "STRING"),
+    ("sensitivity_preview_json", "STRING"), ("scope_where", "STRING"), ("rows_in_scope", "BIGINT"),
+    ("rows_needing_review", "BIGINT"), ("rows_high_severity", "BIGINT"), ("rows_text_review", "BIGINT"),
+    ("computed_at", "STRING"),
 ]
+
+# Table whose rows an answer's scope refers to (for the data-quality counts stored with every answer).
+SCOPE_TABLE = "certified_investment_portfolio"
 
 
 def answer(question_id: str, question: str, sql: str, assumptions: str = "", show: bool = True,
-           assumption_ids: str = "", sensitivity_sql: str = None, sensitivity_label: str = None):
+           assumption_ids: str = "", sensitivity_sql: str = None, sensitivity_label: str = None,
+           scope_where: str = None):
     """Run one answer query, record it for the register, and display it.
 
     assumption_ids     comma list of ref_assumptions IDs, e.g. "A02,A03"
     sensitivity_sql    optional alternative query (e.g. the same query excluding Dropped)
     sensitivity_label  short label for it, e.g. "Excluding Dropped"
+    scope_where        WHERE condition on certified_investment_portfolio selecting the projects the answer covers
+                       ("TRUE" = all). Used to count, deterministically, how many of those projects carry open
+                       data-quality issues; the counts are stored with the answer and shown as its caveat.
     """
     df = spark.sql(sql)
+    scope = None
+    if scope_where:
+        scope = spark.sql(f"""
+            SELECT count(*) AS n, count_if(needs_review) AS review, count_if(dq_max_severity = 'high') AS high,
+                   count_if(text_attributes_need_review) AS text
+            FROM {T(SCOPE_TABLE)} WHERE {scope_where}""").first()
     pdf = df.limit(500).toPandas()
     sens_json = None
     if sensitivity_sql:
@@ -170,6 +185,11 @@ def answer(question_id: str, question: str, sql: str, assumptions: str = "", sho
         "sensitivity_label": (sensitivity_label or ("Sensitivity" if sensitivity_sql else None)),
         "sensitivity_sql": sensitivity_sql.strip() if sensitivity_sql else None,
         "sensitivity_preview_json": sens_json,
+        "scope_where": scope_where.strip() if scope_where else None,
+        "rows_in_scope": int(scope["n"]) if scope else None,
+        "rows_needing_review": int(scope["review"]) if scope else None,
+        "rows_high_severity": int(scope["high"]) if scope else None,
+        "rows_text_review": int(scope["text"]) if scope else None,
         "computed_at": datetime.now(timezone.utc).isoformat(),
     })
     if show:
@@ -178,6 +198,9 @@ def answer(question_id: str, question: str, sql: str, assumptions: str = "", sho
             print(f"  Assumptions: {assumptions}")
         if assumption_ids:
             print(f"  Assumption IDs: {assumption_ids}")
+        if scope:
+            print(f"  Data quality: {scope['review']} of {scope['n']} projects in scope have open data-quality issues "
+                  f"({scope['high']} high severity); {scope['text']} have text attributes awaiting review.")
         display(df)  # noqa: F821
         if sensitivity_sql:
             print(f"  Sensitivity: {sensitivity_label or 'Sensitivity'}")
