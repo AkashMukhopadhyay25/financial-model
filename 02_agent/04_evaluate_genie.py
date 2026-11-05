@@ -181,7 +181,7 @@ def ask_genie(text: str, timeout_s: int = 300) -> dict:
         for a in msg.get("attachments") or []:
             if (a.get("query") or {}).get("query"):
                 sql = a["query"]["query"]
-            if (a.get("text") or {}).get("content"):
+            if (a.get("text") or {}).get("content") and answer_text is None:   # first text = the answer; later ones are follow-up suggestions
                 answer_text = a["text"]["content"]
         err = (msg.get("error") or {}).get("error") if msg.get("status") != "COMPLETED" else None
         return {"status": msg.get("status"), "genie_sql": sql, "genie_text": answer_text, "conversation_id": cid,
