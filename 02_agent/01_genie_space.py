@@ -78,15 +78,20 @@ certified = spark.sql(f"""
   ORDER BY question_id""").collect()
 print(f"{len(certified)} certified WS1 queries")
 
+def by_id(items: list) -> list:
+    """The API requires every list of items with an id to be sorted by id."""
+    return sorted(items, key=lambda x: x["id"])
+
+
 space = {
     "version": 2,
     "data_sources": {"tables": [{"identifier": t} for t in sorted(TABLES)]},
     "instructions": {
-        "text_instructions": [{"id": hid(), "content": [INSTRUCTIONS]}],
-        "example_question_sqls": [{"id": hid(), "question": [r.question], "sql": [r.sql_text]} for r in certified],
+        "text_instructions": by_id([{"id": hid(), "content": [INSTRUCTIONS]}]),
+        "example_question_sqls": by_id([{"id": hid(), "question": [r.question], "sql": [r.sql_text]} for r in certified]),
     },
-    "benchmarks": {"questions": [{"id": hid(), "question": [r.question],
-                                  "answer": [{"format": "SQL", "content": [r.sql_text]}]} for r in certified]},
+    "benchmarks": {"questions": by_id([{"id": hid(), "question": [r.question],
+                                        "answer": [{"format": "SQL", "content": [r.sql_text]}]} for r in certified])},
 }
 
 # COMMAND ----------
