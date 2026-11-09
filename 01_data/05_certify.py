@@ -61,6 +61,7 @@ select_cols = [
     "p.environmental_category", "p.department", "p.status",
     "p.projected_board_date", "p.approval_date", "p.signed_date", "p.invested_date", "p.as_of_date",
     "max(p.as_of_date) OVER () AS reporting_date",
+    "p._reporting_month AS reporting_month",
     "p.amt_loan_musd", "p.amt_equity_musd", "p.amt_guarantee_musd", "p.amt_risk_mgmt_musd", "p.total_approved_musd",
     # --- derived amounts (A08)
     f"{ALLOC_SUM} AS product_alloc_sum_musd",
@@ -148,6 +149,7 @@ COMMENTS = {
     "invested_date": "Date of IFC's first disbursement; null if nothing disbursed.",
     "as_of_date": "Date the record was last updated.",
     "reporting_date": "Latest as_of_date in the data (2026-06-30 on the first delivery). Anchor for 'last N years' questions instead of today's date (A02).",
+    "reporting_month": "Reporting month of the delivery this row comes from (first day of the month; from the landing folder incoming/YYYY-MM/). This table holds the latest month; every month is in certified_investment_portfolio_history.",
     "amt_loan_musd": "IFC investment allocated to loans, USD millions. Use for product mix only, not totals (A08).",
     "amt_equity_musd": "IFC investment allocated to equity, USD millions. Use for product mix only, not totals (A08).",
     "amt_guarantee_musd": "IFC investment allocated to guarantees, USD millions. Use for product mix only, not totals (A08).",

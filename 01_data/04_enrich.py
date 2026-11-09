@@ -125,17 +125,21 @@ COMMENT 'Audit trail of LLM extraction from project descriptions (one row per pr
 
 # One-time carry-over of the earlier pipeline's results, so those descriptions are never sent to the model again.
 # Only rows not already present are inserted, so re-running this cell changes nothing.
-if LEGACY_LLM_TABLE and spark.catalog.tableExists(T(LEGACY_LLM_TABLE)):
+# A bare name is looked up in this schema; a full catalog.schema.table name (e.g. the team schema's cache, when this
+# pipeline runs in a separate schema) is used as given. Read-only: the source table is never changed.
+LEGACY_FQN = (LEGACY_LLM_TABLE if LEGACY_LLM_TABLE and "." in LEGACY_LLM_TABLE else T(LEGACY_LLM_TABLE)) \
+    if LEGACY_LLM_TABLE else None
+if LEGACY_FQN and LEGACY_FQN != LLM_TABLE and spark.catalog.tableExists(LEGACY_FQN):
     before = spark.table(LLM_TABLE).count()
     spark.sql(f"""
     INSERT INTO {LLM_TABLE}
     SELECT s.project_url, s.description_hash, s.model_endpoint, s.extracted_at, s.raw_response, s.error_message,
            s.is_new_renewable_generation, s.new_capacity_mw, s.is_msme_financing, s.msme_target_group, s.described_product
-    FROM {T(LEGACY_LLM_TABLE)} s
+    FROM {LEGACY_FQN} s
     LEFT ANTI JOIN {LLM_TABLE} e
       ON e.project_url = s.project_url AND e.description_hash = s.description_hash AND e.extracted_at = s.extracted_at
     """)
-    print(f"Carried over {spark.table(LLM_TABLE).count() - before} rows from {T(LEGACY_LLM_TABLE)} (earlier pipeline).")
+    print(f"Carried over {spark.table(LLM_TABLE).count() - before} rows from {LEGACY_FQN} (earlier pipeline).")
 else:
     print("No earlier LLM cache to carry over.")
 
