@@ -40,7 +40,7 @@ TARGET = T("certified_investment_portfolio")
 
 # COMMAND ----------
 
-# MAGIC %md ## Build the table
+# MAGIC %md ## The query behind the table
 
 # COMMAND ----------
 
@@ -112,19 +112,17 @@ select_cols = [
     "p._contract_version AS _projects_contract_version", "p._validation_run_id",
 ]
 
-BUILD_SQL = (f"CREATE OR REPLACE TABLE {TARGET}\n"
-             "COMMENT 'Certified investment portfolio: one row per IFC project (portfolio + monitoring + text attributes + every "
-             "data-quality flag). The table every WS1 answer and Genie read. Amounts in USD millions. Definitions in ref_assumptions.'\n"
-             "AS SELECT\n  " + ",\n  ".join(select_cols) + "\n"
-             f"FROM {T('validated_projects')} p\n"
-             f"LEFT JOIN {T('validated_monitoring')} m ON p.project_url = m.project_url\n"
-             f"LEFT JOIN {T('enriched_project_text_features')} tf ON p.project_url = tf.project_url")
-spark.sql(BUILD_SQL)
-print(f"Built {TARGET}: {spark.table(TARGET).count()} rows, {len(spark.table(TARGET).columns)} columns")
+SELECT_SQL = ("SELECT\n  " + ",\n  ".join(select_cols) + "\n"
+              f"FROM {T('validated_projects')} p\n"
+              f"LEFT JOIN {T('validated_monitoring')} m ON p.project_url = m.project_url\n"
+              f"LEFT JOIN {T('enriched_project_text_features')} tf ON p.project_url = tf.project_url")
+TABLE_COMMENT = ("Certified investment portfolio: one row per IFC project (portfolio + monitoring + text attributes + every "
+                 "data-quality flag). The table every WS1 answer and Genie read. Amounts in USD millions. Definitions in ref_assumptions.")
+# The table is created in the next cell, together with its column comments (one statement instead of ~100).
 
 # COMMAND ----------
 
-# MAGIC %md ## Column comments (Genie reads these to choose columns)
+# MAGIC %md ## Build the table with its column comments (Genie reads these to choose columns)
 
 # COMMAND ----------
 
@@ -220,12 +218,21 @@ def esc(s: str) -> str:
     return s.replace("\\", "\\\\").replace("'", "\\'")
 
 
-columns = set(spark.table(TARGET).columns)
-missing = sorted(columns - set(COMMENTS))
-for col, comment in COMMENTS.items():
-    if col in columns:
-        spark.sql(f"ALTER TABLE {TARGET} ALTER COLUMN {col} COMMENT '{esc(comment)}'")
-print(f"Documented {len(columns) - len(missing)} of {len(columns)} columns" + (f"; no comment for {missing}" if missing else ""))
+# Build the table with every column comment in the same statement: CREATE ... (col COMMENT '...', ...) AS SELECT.
+# Writing ~100 comments one ALTER at a time took about two minutes per run.
+ordered = spark.sql(SELECT_SQL + " LIMIT 0").columns
+col_list = ",\n  ".join(f"{c} COMMENT '{esc(COMMENTS[c])}'" if c in COMMENTS else c for c in ordered)
+try:
+    spark.sql(f"CREATE OR REPLACE TABLE {TARGET} (\n  {col_list}\n) COMMENT '{esc(TABLE_COMMENT)}'\nAS {SELECT_SQL}")
+except Exception as e:  # runtime without column comments in CTAS: build, then comment column by column
+    print(f"Column comments in CREATE not supported here ({type(e).__name__}); writing them one by one.")
+    spark.sql(f"CREATE OR REPLACE TABLE {TARGET} COMMENT '{esc(TABLE_COMMENT)}' AS {SELECT_SQL}")
+    for col in ordered:
+        if col in COMMENTS:
+            spark.sql(f"ALTER TABLE {TARGET} ALTER COLUMN {col} COMMENT '{esc(COMMENTS[col])}'")
+missing = sorted(set(ordered) - set(COMMENTS))
+print(f"Built {TARGET}: {spark.table(TARGET).count()} rows, {len(ordered)} columns; documented "
+      f"{len(ordered) - len(missing)}" + (f"; no comment for {missing}" if missing else ""))
 
 # COMMAND ----------
 

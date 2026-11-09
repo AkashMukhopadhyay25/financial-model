@@ -94,10 +94,16 @@ else:
         order.append(latest)   # always finish on the latest month so the current tables show it
 print("Months to build: " + (", ".join(month_label(m) for m in order) or "none (no changes)"))
 
-for m in order:
+for n, m in enumerate(order):
     print(f"\n=== {month_label(m)} ===")
     point_current_views(spark, CFG, CONTRACTS, m)
+    last = n == len(order) - 1
     for step in MONTH_STEPS:
+        # ref_assumptions quotes figures of the current month only, so while back-filling older months it is rebuilt
+        # just once, for the month processed last (enrichment only needs the vocabulary, which does not change).
+        if step == "./00_reference" and not last and spark.catalog.tableExists(T("ref_product_vocabulary")):
+            print("  -> ./00_reference skipped (older month; rebuilt for the latest month)")
+            continue
         run(step)
 
 # COMMAND ----------
