@@ -218,21 +218,25 @@ def esc(s: str) -> str:
     return s.replace("\\", "\\\\").replace("'", "\\'")
 
 
-# Build the table with every column comment in the same statement: CREATE ... (col COMMENT '...', ...) AS SELECT.
-# Writing ~100 comments one ALTER at a time took about two minutes per run.
+# Writing ~100 column comments one ALTER at a time takes about two minutes, so they are written only when needed:
+# - same columns as the existing table: replace the rows in place (INSERT OVERWRITE keeps comments and tags), then
+#   rewrite only comments whose text changed;
+# - first run or the columns changed: rebuild the table and write every comment.
 ordered = spark.sql(SELECT_SQL + " LIMIT 0").columns
-col_list = ",\n  ".join(f"{c} COMMENT '{esc(COMMENTS[c])}'" if c in COMMENTS else c for c in ordered)
-try:
-    spark.sql(f"CREATE OR REPLACE TABLE {TARGET} (\n  {col_list}\n) COMMENT '{esc(TABLE_COMMENT)}'\nAS {SELECT_SQL}")
-except Exception as e:  # runtime without column comments in CTAS: build, then comment column by column
-    print(f"Column comments in CREATE not supported here ({type(e).__name__}); writing them one by one.")
+same_columns = spark.catalog.tableExists(TARGET) and spark.table(TARGET).columns == ordered
+if same_columns:
+    spark.sql(f"INSERT OVERWRITE TABLE {TARGET} {SELECT_SQL}")
+    current = {c.name: (c.description or "") for c in spark.catalog.listColumns(TARGET)}
+else:
     spark.sql(f"CREATE OR REPLACE TABLE {TARGET} COMMENT '{esc(TABLE_COMMENT)}' AS {SELECT_SQL}")
-    for col in ordered:
-        if col in COMMENTS:
-            spark.sql(f"ALTER TABLE {TARGET} ALTER COLUMN {col} COMMENT '{esc(COMMENTS[col])}'")
+    current = {}
+to_write = [c for c in ordered if c in COMMENTS and current.get(c) != COMMENTS[c]]
+for col in to_write:
+    spark.sql(f"ALTER TABLE {TARGET} ALTER COLUMN {col} COMMENT '{esc(COMMENTS[col])}'")
 missing = sorted(set(ordered) - set(COMMENTS))
-print(f"Built {TARGET}: {spark.table(TARGET).count()} rows, {len(ordered)} columns; documented "
-      f"{len(ordered) - len(missing)}" + (f"; no comment for {missing}" if missing else ""))
+print(f"{'Refreshed rows of' if same_columns else 'Rebuilt'} {TARGET}: {spark.table(TARGET).count()} rows, "
+      f"{len(ordered)} columns; {len(to_write)} column comments written, {len(ordered) - len(missing)} documented"
+      + (f"; no comment for {missing}" if missing else ""))
 
 # COMMAND ----------
 
