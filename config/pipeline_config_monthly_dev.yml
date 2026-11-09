@@ -7,7 +7,8 @@ environment:
   schema: portfolio_monthly_dev     # separate schema (own landing volume) so the team's tables are never touched
 
 ai:
-  # Demo months reuse existing descriptions, which are already in the team's LLM cache (read-only carry-over below).
-  # New demo projects get rule-based text attributes and are flagged for review: no model calls.
+  # Demo months reuse existing descriptions, which are already in an LLM cache in the team schema (read-only
+  # carry-over below; llm_text_extractions is the earlier pipeline's cache, same key). New demo projects get
+  # rule-based text attributes and are flagged for review: no model calls.
   run_llm_extraction: false
-  legacy_llm_cache_table: ifc_challenge.portfolio.enriched_llm_extractions
+  legacy_llm_cache_table: ifc_challenge.portfolio.llm_text_extractions
