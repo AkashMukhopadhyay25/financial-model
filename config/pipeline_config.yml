@@ -58,9 +58,7 @@ reporting:
 ai:
   # Any chat model under Serving works; check the exact name in your workspace.
   llm_endpoint: databricks-meta-llama-3-3-70b-instruct
-  # false = rule-based text features only (no model calls). Off for the first run in a new workspace: results come
-  # from the imported cache (legacy_llm_cache_table) and nothing is sent to the model.
-  run_llm_extraction: false
+  run_llm_extraction: true          # false = rule-based text features only (no model calls)
   # Rows sent to the model per run. Keep 5 for smoke tests. Set to empty (null) for the full run
   # ONLY with explicit approval: the full run takes ~60 min on a pay-per-token endpoint.
   llm_extraction_limit: 5
