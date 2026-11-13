@@ -65,6 +65,20 @@ def _repo_root():
 REPO_ROOT = _repo_root()
 if str(REPO_ROOT / "00_setup") not in sys.path:
     sys.path.insert(0, str(REPO_ROOT / "00_setup"))
+try:
+    import ifc_common  # noqa: E402,F401
+except OSError:
+    # On serverless, reading a workspace file sometimes fails with "[Errno 5] Input/output error" for the whole run.
+    # The Workspace API still serves it, so load the helper module from there.
+    import types
+    from databricks.sdk import WorkspaceClient
+    from databricks.sdk.service.workspace import ExportFormat
+    _helper = str(REPO_ROOT / "00_setup" / "ifc_common.py")
+    ifc_common = types.ModuleType("ifc_common")
+    ifc_common.__file__ = _helper
+    exec(compile(WorkspaceClient().workspace.download(_helper, format=ExportFormat.AUTO).read().decode("utf-8"),  # noqa: S102
+                 _helper, "exec"), ifc_common.__dict__)
+    sys.modules["ifc_common"] = ifc_common
 from ifc_common import T, load_config, load_contracts, load_order, resolve_config_path  # noqa: E402
 
 try:
