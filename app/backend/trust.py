@@ -26,10 +26,16 @@ def scope_where(sql: str):
     tables = {t.name.lower() for t in tree.find_all(exp.Table)}
     if tables != {PORTFOLIO}:
         return None, f"The SQL reads {', '.join(sorted(tables)) or 'no table'}; the automatic check covers only {PORTFOLIO}."
-    if not isinstance(tree, exp.Select) or tree.find(exp.Join) or tree.args.get("with") \
-            or any(s is not tree for s in tree.find_all(exp.Select)):
-        return None, "The SQL uses joins, CTEs or subqueries; the automatic data-quality check needs a single-table query."
-    where = tree.args.get("where")
+    # Scalar subqueries inside WHERE (e.g. the reporting date) are fine: the count query reuses the WHERE as is.
+    # Joins, CTEs and derived tables in FROM change which rows are in scope, so they are not analyzed.
+    def arg(name):  # sqlglot renamed some keys ("from" -> "from_", "with" -> "with_")
+        return tree.args.get(name) or tree.args.get(name + "_")
+
+    from_ = arg("from") if isinstance(tree, exp.Select) else None
+    if not isinstance(tree, exp.Select) or arg("joins") or arg("with") \
+            or (from_ is not None and from_.find(exp.Subquery)):
+        return None, "The SQL uses joins, CTEs or derived tables; the automatic data-quality check needs a single-table query."
+    where = arg("where")
     return (where.this.sql("databricks") if where else "TRUE"), None
 
 
@@ -58,7 +64,8 @@ def assess(sql: str, has_rows: bool, db, table_fqn: str) -> dict:
         else:
             reasons.append(f"None of the {counts['rows_in_scope']:,} projects in scope has an open data-quality issue.")
         if counts["rows_text_review"]:
-            reasons.append(f"{counts['rows_text_review']:,} projects in scope have text-derived attributes awaiting review.")
+            n = counts["rows_text_review"]
+            reasons.append(f"{n:,} project{'s' if n != 1 else ''} in scope {'have' if n != 1 else 'has'} text-derived attributes awaiting review.")
     if not has_rows:
         reasons.append("The query returned no rows.")
     if counts is None or counts["rows_high_severity"] > 0:
