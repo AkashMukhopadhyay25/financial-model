@@ -1,0 +1,15 @@
+# Databricks App definition for 03_demo/04_app.py.
+# Create the app with source code path = this team folder, so the app can import 02_agent/cfo_agent.py.
+command: ["streamlit", "run", "03_demo/04_app.py", "--server.headless", "true"]
+env:
+  - name: IFC_CATALOG
+    value: "workspace"
+  - name: IFC_SCHEMA
+    value: "cfo_copilot"
+  - name: IFC_LLM_ENDPOINT
+    value: "databricks-meta-llama-3-3-70b-instruct"
+  # Add the SQL warehouse and Genie space as app resources (keys below) in the app's Configure page.
+  - name: IFC_WAREHOUSE_ID
+    valueFrom: "sql-warehouse"
+  - name: IFC_GENIE_SPACE_ID
+    valueFrom: "genie-space"

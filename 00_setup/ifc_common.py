@@ -8,7 +8,7 @@ A plain Python file (not a notebook) so it can be imported on Databricks and loc
 
 Rules:
 - Settings live in config/pipeline_config.yml only.
-- Table names come from T(cfg, "raw_projects") -> "ifc_challenge.portfolio.raw_projects".
+- Table names come from T(cfg, "raw_projects") -> "workspace.portfolio.raw_projects".
 """
 import os
 from pathlib import Path
