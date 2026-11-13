@@ -24,10 +24,42 @@ This repository is mid-merge. Two rules:
 | `01_data/04_enrich.py` | Text features from descriptions: rules + cached LLM + reviewer overrides → `enriched_rule_features`, `enriched_llm_extractions`, `enriched_project_text_features` |
 | `01_data/05_certify.py` | Builds `certified_investment_portfolio`: one row per project with monitoring, text attributes and every data-quality flag; column comments for Genie; layer tags |
 | `01_data/06_dq_checks.py` | Portfolio-level checks (reconciliation raw → validated → certified, keys, structure, allowed values; blocking ones stop the job) → `ops_dq_checks`; reviewers' work list view `ops_dq_issues` |
+| `00_setup/ifc_monthly.py` | Monthly history helpers: month folders, the load registry `ops_monthly_loads` (one active upload per month and source), `raw_*_current` views, which months need rebuilding |
+| `01_data/07_snapshot_month.py` | Copies the month just certified into `certified_investment_portfolio_history`, replacing only that month; records it in `ops_monthly_snapshots` |
+| `01_data/08_trends.py` | KPIs per month (`kpi_monthly`), month over month with Improving / Deteriorating / Stable (`kpi_month_over_month`, `kpi_latest_scorecard`), project-level changes (`project_month_changes`), SQL function `compare_months()` |
+| `01_data/run_monthly_pipeline.py` | One click: gate → Raw → rebuild every changed month (latest last) → trends |
+| `config/pipeline_config_monthly_dev.yml` | Dev config (`extends` the main one): runs everything in schema `portfolio_monthly_dev` |
+| `test_files/make_demo_months.py` | Writes synthetic months 2026-07 … 2026-10 (and a corrected October) into the landing zone for testing and the demo |
 | `04_answers/ws1/ws1_answers.py` | WS1: certified answers to the 30 questions (+ detail lists) from `certified_investment_portfolio`, with SQL, assumption IDs, excluding-Dropped sensitivity figures, per-answer data-quality counts and 14 reconciliation checks → `answers_register` |
 | `tests/` | Runs Stage 3's SQL locally on SQLite |
 | `test_files/` | Deliberately broken files for testing and the demo |
 | `data/` | Source CSVs and case files (not in git; copy them in yourself) |
+
+## Monthly history: upload, override, trends
+
+**Upload a month.** In Catalog Explorer: `ifc_challenge` → schema → Volumes → `landing` → `incoming` → create a folder
+named for the month (`2026-10`) → Upload the projects and monitoring files into it. The folder name is the reporting
+month; file names only need to match the contracts. Then run `01_data/run_monthly_pipeline` (Run all).
+
+**Correct a month.** Upload the corrected file into the same month folder and run the pipeline again. The new upload
+becomes the active one for that month (`ops_monthly_loads.is_active`); the earlier upload stays in Raw, marked
+superseded. Only that month is rebuilt in `certified_investment_portfolio_history`; every other month is untouched.
+
+**Latest data** = the highest month that has both files. `certified_investment_portfolio` (WS1, Genie) always shows it,
+even when an older month is back-filled or corrected.
+
+**Trends.**
+- `kpi_latest_scorecard`: the latest month vs the previous one, worst first.
+- `kpi_month_over_month`: every month, with the same comparison by region, industry, product line and department.
+- `project_month_changes`: the projects behind each movement.
+- Any two months: `SELECT * FROM compare_months('2026-07', '2026-10', 'Region')`.
+
+KPIs, their "better" direction and the materiality threshold are in `trends` in the config.
+
+**Try it without touching the team schema.**
+1. Set the `config_path` widget to `config/pipeline_config_monthly_dev.yml`.
+2. Run `test_files/make_demo_months` (step `generate`), then `01_data/run_monthly_pipeline`.
+3. Run `make_demo_months` again with step `reupload_october`, then the pipeline again.
 
 ## What will move over from `reference/teammate_original/` during the merge
 

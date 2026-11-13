@@ -115,3 +115,56 @@ reference_figures:
   distinct_project_numbers: 3559
   q28_gap_projects: 146
   rule_new_renewable_projects: 277
+
+# --- Monthly history and trends (01_data/run_monthly_pipeline.py, 07_snapshot_month.py, 08_trends.py) -----------------
+# Files are dropped into incoming/YYYY-MM/; the folder name is the reporting month. A re-upload for a month replaces
+# that month only. Latest month = highest month with an active load for every source.
+trends:
+  # A change smaller than this (in % of the earlier value) is reported as "Stable", not Improving/Deteriorating.
+  materiality_pct: 2.0
+  # Breakdowns computed for every KPI, besides the whole portfolio: label -> column of certified_investment_portfolio.
+  dimensions:
+    Region: region
+    Industry: industry
+    Product line: product_line
+    Department: department
+  # Each KPI is one SQL aggregate over certified_investment_portfolio_history rows of a month.
+  # better: higher | lower | neutral (neutral = reported as Up/Down, never as good or bad).
+  kpis:
+    - {id: G01, category: Growth, name: Projects in portfolio, unit: projects, better: neutral, sql: "count(*)"}
+    - {id: G02, category: Growth, name: Active projects, unit: projects, better: higher, sql: "count_if(status = 'Active')"}
+    - {id: G03, category: Growth, name: Board-approved investment, unit: USD M, better: higher,
+       sql: "sum(CASE WHEN is_board_approved THEN total_approved_musd ELSE 0 END)"}
+    - {id: G04, category: Growth, name: Committed investment (signed and not Dropped), unit: USD M, better: higher,
+       sql: "sum(CASE WHEN is_committed THEN total_approved_musd ELSE 0 END)"}
+    - {id: G05, category: Growth, name: Disbursed to date, unit: USD M, better: higher, sql: "sum(coalesce(disbursed_musd, 0))"}
+    - {id: G06, category: Growth, name: Unsigned pipeline (Pending), unit: USD M, better: neutral, sql: "sum(pipeline_unsigned_musd)"}
+    - {id: E01, category: Exposure, name: Current disbursed exposure (Active), unit: USD M, better: neutral,
+       sql: "sum(current_disbursed_exposure_musd)"}
+    - {id: E02, category: Exposure, name: Undisbursed commitments, unit: USD M, better: neutral, sql: "sum(undisbursed_commitment_musd)"}
+    - {id: R01, category: Credit risk, name: Past Due projects, unit: projects, better: lower,
+       sql: "count_if(performance_status = 'Past Due')"}
+    - {id: R02, category: Credit risk, name: Watchlist projects, unit: projects, better: lower,
+       sql: "count_if(performance_status = 'Watchlist')"}
+    - {id: R03, category: Credit risk, name: Disbursed in Past Due or Watchlist projects, unit: USD M, better: lower,
+       sql: "sum(CASE WHEN performance_status IN ('Past Due', 'Watchlist') THEN coalesce(disbursed_musd, 0) ELSE 0 END)"}
+    - {id: R04, category: Credit risk, name: Expected credit loss (A11), unit: USD M, better: lower, sql: "sum(expected_credit_loss_musd)"}
+    - {id: R05, category: Credit risk, name: Category A projects Past Due or on Watchlist (WS2), unit: projects, better: lower,
+       sql: "count_if(environmental_category = 'A' AND performance_status IN ('Past Due', 'Watchlist'))"}
+    - {id: R06, category: Credit risk, name: Exposure-weighted risk rating (Active), unit: rating 1-6, better: lower,
+       sql: "sum(current_disbursed_exposure_musd * internal_risk_rating) / nullif(sum(current_disbursed_exposure_musd), 0)"}
+    - {id: R07, category: Credit risk, name: Share of Active exposure rated 5-6, unit: '%', better: lower,
+       sql: "100 * sum(CASE WHEN internal_risk_rating >= 5 THEN current_disbursed_exposure_musd ELSE 0 END) / nullif(sum(current_disbursed_exposure_musd), 0)"}
+    - {id: M01, category: Monitoring discipline, name: Reviews overdue (A18), unit: projects, better: lower,
+       sql: "count_if(mon_flag_review_overdue)"}
+    - {id: M02, category: Monitoring discipline, name: Pending projects past their Board date (A19), unit: projects, better: lower,
+       sql: "count_if(flag_board_date_passed)"}
+    - {id: D01, category: Data quality, name: Projects needing data review, unit: projects, better: lower, sql: "count_if(needs_review)"}
+    - {id: D02, category: Data quality, name: Projects with a high-severity data issue, unit: projects, better: lower,
+       sql: "count_if(dq_max_severity = 'high')"}
+    - {id: D03, category: Data quality, name: Records not refreshed this cycle, unit: projects, better: lower,
+       sql: "count_if(flag_outdated_record)"}
+    - {id: I01, category: Impact, name: New renewable capacity (Active and Closed), unit: MW, better: higher,
+       sql: "sum(CASE WHEN status IN ('Active', 'Closed') THEN coalesce(new_capacity_mw, 0) ELSE 0 END)"}
+    - {id: I02, category: Impact, name: Climate-related share of Active exposure, unit: '%', better: higher,
+       sql: "100 * sum(CASE WHEN is_climate_related THEN current_disbursed_exposure_musd ELSE 0 END) / nullif(sum(current_disbursed_exposure_musd), 0)"}

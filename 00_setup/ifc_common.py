@@ -42,12 +42,29 @@ def resolve_config_path(widget_value=None, repo_root=None):
         "or the environment variable IFC_PIPELINE_CONFIG, to its full path.")
 
 
+def _deep_merge(base: dict, override: dict) -> dict:
+    out = dict(base)
+    for k, v in override.items():
+        out[k] = _deep_merge(out[k], v) if isinstance(v, dict) and isinstance(out.get(k), dict) else v
+    return out
+
+
+def _read_yaml(config_path: Path) -> dict:
+    """Read one config file. `extends: <file>` (relative to this file) starts from that file and overrides only the
+    keys given here, so e.g. a development config can change the schema and nothing else."""
+    with open(config_path) as f:
+        cfg = yaml.safe_load(f) or {}
+    parent = cfg.pop("extends", None)
+    if parent:
+        cfg = _deep_merge(_read_yaml((config_path.parent / parent).resolve()), cfg)
+    return cfg
+
+
 def load_config(config_path):
     """Read the YAML and add derived values:
     _config_path, _contracts_dir, environment.landing_root (if not set)."""
     config_path = Path(config_path).resolve()
-    with open(config_path) as f:
-        cfg = yaml.safe_load(f)
+    cfg = _read_yaml(config_path)
     env = cfg["environment"]
     if not env.get("landing_root"):
         env["landing_root"] = f"/Volumes/{env['catalog']}/{env['schema']}/{env['volume']}"

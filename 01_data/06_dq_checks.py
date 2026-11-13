@@ -191,10 +191,28 @@ def scalar(sql):
     return float(v) if v is not None else None
 
 
+def scalars(sqls: list, batch: int = 25) -> list:
+    """Run many one-number queries as a few SELECTs of scalar subqueries, which Spark runs together. Much faster than
+    one query at a time; a batch that fails is re-run query by query, so every check still gets its own result."""
+    out = []
+    for i in range(0, len(sqls), batch):
+        chunk = sqls[i:i + batch]
+        try:
+            row = spark.sql("SELECT " + ", ".join(f"({s}) AS v{j}" for j, s in enumerate(chunk))).collect()[0]
+            out += [float(v) if v is not None else None for v in row]
+        except Exception:
+            out += [scalar(s) for s in chunk]
+    return out
+
+
+actuals = scalars([c["actual_sql"] for c in CHECKS])
+with_sql = [i for i, c in enumerate(CHECKS) if c["expected_sql"]]
+expected_by_index = dict(zip(with_sql, scalars([CHECKS[i]["expected_sql"] for i in with_sql])))
+
 rows = []
-for c in CHECKS:
-    actual = scalar(c["actual_sql"])
-    expected = scalar(c["expected_sql"]) if c["expected_sql"] else (None if c["expected"] is None else float(c["expected"]))
+for i, c in enumerate(CHECKS):
+    actual = actuals[i]
+    expected = expected_by_index[i] if c["expected_sql"] else (None if c["expected"] is None else float(c["expected"]))
     passed = True if expected is None else (actual is not None and abs(actual - expected) <= c["tol"])
     rows.append((RUN_ID, c["check_id"], c["severity"], c["description"], c["actual_sql"], c["expected_sql"],
                  expected, actual, float(c["tol"]), passed))

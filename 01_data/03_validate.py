@@ -22,6 +22,9 @@
 # MAGIC    validated tables are left untouched.
 # MAGIC 2. After writing, rows in = validated + quarantined, or the run fails.
 # MAGIC
+# MAGIC `raw_<source>_current` is the active load of the reporting month being processed (normally the latest month;
+# MAGIC see `ops_monthly_loads` and `run_monthly_pipeline`). `_reporting_month` travels with every row.
+# MAGIC
 # MAGIC Validated tables are **rebuilt** each run from the latest Raw load (history lives in Raw), so the result
 # MAGIC always reflects the current contract and thresholds. Sources run in dependency order: `projects` first,
 # MAGIC because monitoring rules check against validated projects.
@@ -81,7 +84,7 @@ try:
 except NameError:
     ON_DATABRICKS = False
 
-AUDIT_COLS = ["_load_id", "_loaded_at", "_source_file", "_file_sha256", "_source_row_number"]
+AUDIT_COLS = ["_load_id", "_reporting_month", "_loaded_at", "_source_file", "_file_sha256", "_source_row_number"]
 SEVERITY_ORDER = ["high", "warning", "info"]
 
 # COMMAND ----------

@@ -5,17 +5,22 @@
 # MAGIC Every file dropped into the landing zone is checked against its **data contract**
 # MAGIC before anything else happens.
 # MAGIC
+# MAGIC **Files go into a month folder:** `incoming/YYYY-MM/` (e.g. `incoming/2026-10/`). The folder name is the
+# MAGIC file's reporting month; file names don't matter beyond matching a contract. The month is kept in every folder the
+# MAGIC file moves to: `accepted/2026-10/<source>/`, `held/2026-10/`, `loaded/2026-10/<source>/`.
+# MAGIC
 # MAGIC | Outcome | What happens |
 # MAGIC |---|---|
-# MAGIC | **PASSED** | Header matches the contract. File moves to `accepted/<source>/` for the Raw stage. |
+# MAGIC | **PASSED** | Header matches the contract. File moves to `accepted/<month>/<source>/` for the Raw stage. |
 # MAGIC | **PASSED_WITH_WARNINGS** | Only harmless differences (e.g. column order, if allowed in config). File moves on; warning is logged. |
-# MAGIC | **HELD** | Column added, removed, renamed, duplicated, empty file, or no matching contract. File moves to `held/`, nothing downstream changes, the job fails so the developer is alerted. |
-# MAGIC | **SKIPPED** | Exact same file content was already processed. |
+# MAGIC | **HELD** | Column added, removed, renamed, duplicated, empty file, no matching contract, **or the file is not in a valid month folder**. File moves to `held/`, nothing downstream changes, the job fails so the developer is alerted. |
+# MAGIC | **SKIPPED** | Identical to the file already active for that month (nothing would change). |
 # MAGIC
+# MAGIC A **different** file for a month that is already loaded passes: it will replace that month (see `02_load_raw`).
 # MAGIC Downstream tables are never touched by a held file, so Genie and the app keep serving the last good data.
 # MAGIC Every decision is written to the `ops_schema_gate_log` table.
 # MAGIC
-# MAGIC **To fix a held file:** either correct the file and drop it back into `incoming/`,
+# MAGIC **To fix a held file:** either correct the file and drop it back into `incoming/<month>/`,
 # MAGIC or (if the change is intended) update the contract, bump its `version`, and re-run.
 
 # COMMAND ----------
@@ -62,6 +67,7 @@ REPO_ROOT = _repo_root()
 if str(REPO_ROOT / "00_setup") not in sys.path:
     sys.path.insert(0, str(REPO_ROOT / "00_setup"))
 from ifc_common import T, load_config, load_contracts, load_order, resolve_config_path  # noqa: E402
+from ifc_monthly import active_sha, month_from_folder  # noqa: E402
 
 try:
     dbutils.widgets.text("config_path", "", "Config path (blank = repo config)")  # noqa: F821
@@ -176,7 +182,7 @@ def check_header(header: list, contract: dict, gate_cfg: dict) -> dict:
 # COMMAND ----------
 
 LOG_COLUMNS = [
-    "run_id", "checked_at", "file_name", "file_sha256", "source", "contract_version",
+    "run_id", "checked_at", "reporting_month", "file_name", "file_sha256", "source", "contract_version",
     "status", "expected_columns", "received_columns", "missing", "unexpected",
     "probable_renames", "messages", "moved_to",
 ]
@@ -190,25 +196,21 @@ def local_log_path(cfg) -> Path:
     return Path(cfg["environment"]["landing_root"]) / "_schema_gate_log.jsonl"
 
 
-def previously_processed_hashes(cfg) -> set:
+def is_current_file(cfg, month, source: str, sha: str) -> bool:
+    """True if this exact content is already the active load for the month (re-uploading it would change nothing)."""
     if ON_DATABRICKS:
-        table = log_table_name(cfg)
-        if not spark.catalog.tableExists(table):  # noqa: F821
-            return set()
-        rows = spark.sql(  # noqa: F821
-            f"SELECT DISTINCT file_sha256 FROM {table} WHERE status IN ('PASSED', 'PASSED_WITH_WARNINGS')"
-        ).collect()
-        return {r.file_sha256 for r in rows}
+        return active_sha(spark, cfg, month, source) == sha  # noqa: F821
     path = local_log_path(cfg)
     if not path.exists():
-        return set()
-    hashes = set()
+        return False
+    last = None
     with open(path) as f:
         for line in f:
             rec = json.loads(line)
-            if rec["status"] in ("PASSED", "PASSED_WITH_WARNINGS"):
-                hashes.add(rec["file_sha256"])
-    return hashes
+            if (rec["status"] in ("PASSED", "PASSED_WITH_WARNINGS") and rec.get("reporting_month") == month.isoformat()[:7]
+                    and rec["source"] == source):
+                last = rec["file_sha256"]
+    return last == sha
 
 
 def write_log(cfg, records: list):
@@ -219,6 +221,7 @@ def write_log(cfg, records: list):
 
         schema = StructType([
             StructField("run_id", StringType()), StructField("checked_at", StringType()),
+            StructField("reporting_month", StringType()),
             StructField("file_name", StringType()), StructField("file_sha256", StringType()),
             StructField("source", StringType()), StructField("contract_version", StringType()),
             StructField("status", StringType()), StructField("expected_columns", IntegerType()),
@@ -229,7 +232,8 @@ def write_log(cfg, records: list):
             StructField("messages", ArrayType(StringType())), StructField("moved_to", StringType()),
         ])
         df = spark.createDataFrame([[r[c] for c in LOG_COLUMNS] for r in records], schema)  # noqa: F821
-        df.write.mode("append").saveAsTable(log_table_name(cfg))
+        # mergeSchema: a log created before monthly folders existed gets the reporting_month column added.
+        df.write.mode("append").option("mergeSchema", "true").saveAsTable(log_table_name(cfg))
     else:
         path = local_log_path(cfg)
         with open(path, "a") as f:
@@ -251,6 +255,11 @@ def move_file(src: Path, dest_dir: Path, run_ts: str) -> Path:
     return dest
 
 
+def visible(folder: Path) -> list:
+    """Entries of a folder, skipping hidden/system names (., _)."""
+    return sorted(p for p in folder.iterdir() if not p.name.startswith((".", "_")))
+
+
 def run_schema_gate(config_path: str = CONFIG_PATH) -> list:
     cfg = load_config(config_path)
     contracts = list(load_contracts(cfg["_contracts_dir"]).values())
@@ -259,65 +268,94 @@ def run_schema_gate(config_path: str = CONFIG_PATH) -> list:
     root = Path(cfg["environment"]["landing_root"])
     incoming = root / lz["incoming"]
     incoming.mkdir(parents=True, exist_ok=True)
+    held_root = root / lz["held"]
 
     run_id = str(uuid.uuid4())
     now = datetime.now(timezone.utc)
     run_ts = now.strftime("%Y%m%dT%H%M%SZ")
-    seen = previously_processed_hashes(cfg) if gate_cfg.get("skip_already_processed", True) else set()
-
-    files = sorted(p for p in incoming.iterdir() if p.is_file() and not p.name.startswith("."))
+    skip_identical = gate_cfg.get("skip_already_processed", True)
+    accepted_now = set()   # (month, source, sha) accepted earlier in this run
     records = []
 
-    for path in files:
+    def new_record(path: Path, month_text):
         rec = {c: None for c in LOG_COLUMNS}
-        rec.update(run_id=run_id, checked_at=now.isoformat(), file_name=path.name,
+        rec.update(run_id=run_id, checked_at=now.isoformat(), reporting_month=month_text, file_name=path.name,
                    missing=[], unexpected=[], probable_renames=[], messages=[])
         rec["file_sha256"] = file_sha256(path)
+        return rec
 
-        matches = match_contract(path.name, contracts)
-        if len(matches) != 1:
+    # 1. Anything not inside a valid month folder is held: the month cannot be known.
+    for entry in visible(incoming):
+        if entry.is_file():
+            rec = new_record(entry, None)
             rec["status"] = "HELD"
-            rec["messages"] = [
-                "No contract matches this file name." if not matches
-                else f"File name matches several contracts: {[m['contract']['name'] for m in matches]}"
-            ]
-            rec["moved_to"] = str(move_file(path, root / lz["held"], run_ts))
+            rec["messages"] = ["File is not inside a month folder. Put it in incoming/YYYY-MM/ "
+                               "(e.g. incoming/2026-10/); the folder name is the reporting month."]
+            rec["moved_to"] = str(move_file(entry, held_root / "_no_month_folder", run_ts))
             records.append(rec)
-            continue
+        elif entry.is_dir() and month_from_folder(entry.name) is None:
+            for f in sorted(p for p in entry.rglob("*") if p.is_file()):
+                rec = new_record(f, None)
+                rec["status"] = "HELD"
+                rec["messages"] = [f"Folder '{entry.name}' is not a month. Month folders are named YYYY-MM, "
+                                   "e.g. 2026-10."]
+                rec["moved_to"] = str(move_file(f, held_root / "_invalid_month_folder" / entry.name, run_ts))
+                records.append(rec)
+            shutil.rmtree(entry, ignore_errors=True)
 
-        contract = matches[0]
-        rec["source"] = contract["contract"]["name"]
-        rec["contract_version"] = str(contract["contract"]["version"])
+    # 2. Month folders, oldest month first. The folder name is the reporting month.
+    month_dirs = [d for d in visible(incoming) if d.is_dir() and month_from_folder(d.name)]
+    for month_dir in month_dirs:
+        month = month_from_folder(month_dir.name)
+        label = month_dir.name
+        for path in [p for p in visible(month_dir) if p.is_file()]:
+            rec = new_record(path, label)
 
-        if rec["file_sha256"] in seen:
-            rec["status"] = "SKIPPED"
-            rec["messages"] = ["Identical file content already accepted in an earlier run."]
-            rec["moved_to"] = str(move_file(path, root / lz["held"] / "duplicates", run_ts))
+            matches = match_contract(path.name, contracts)
+            if len(matches) != 1:
+                rec["status"] = "HELD"
+                rec["messages"] = [
+                    "No contract matches this file name." if not matches
+                    else f"File name matches several contracts: {[m['contract']['name'] for m in matches]}"
+                ]
+                rec["moved_to"] = str(move_file(path, held_root / label, run_ts))
+                records.append(rec)
+                continue
+
+            contract = matches[0]
+            rec["source"] = contract["contract"]["name"]
+            rec["contract_version"] = str(contract["contract"]["version"])
+
+            key = (label, rec["source"], rec["file_sha256"])
+            if skip_identical and (key in accepted_now or is_current_file(cfg, month, rec["source"], rec["file_sha256"])):
+                rec["status"] = "SKIPPED"
+                rec["messages"] = [f"Identical to the {rec['source']} file already loaded for {label}; nothing would change."]
+                rec["moved_to"] = str(move_file(path, held_root / label / "duplicates", run_ts))
+                records.append(rec)
+                continue
+
+            header, has_data, read_error = read_header(path)
+            if read_error or not has_data:
+                rec["status"] = "HELD"
+                rec["messages"] = [read_error or "File has a header but no data rows."]
+                rec["moved_to"] = str(move_file(path, held_root / label, run_ts))
+                records.append(rec)
+                continue
+
+            result = check_header(header, contract, gate_cfg)
+            rec.update(expected_columns=result["expected_columns"], received_columns=result["received_columns"],
+                       missing=result["missing"], unexpected=result["unexpected"],
+                       probable_renames=result["probable_renames"],
+                       messages=result["errors"] + result["warnings"])
+
+            if result["errors"]:
+                rec["status"] = "HELD"
+                rec["moved_to"] = str(move_file(path, held_root / label, run_ts))
+            else:
+                rec["status"] = "PASSED_WITH_WARNINGS" if result["warnings"] else "PASSED"
+                rec["moved_to"] = str(move_file(path, root / lz["accepted"] / label / rec["source"], run_ts))
+                accepted_now.add(key)
             records.append(rec)
-            continue
-
-        header, has_data, read_error = read_header(path)
-        if read_error or not has_data:
-            rec["status"] = "HELD"
-            rec["messages"] = [read_error or "File has a header but no data rows."]
-            rec["moved_to"] = str(move_file(path, root / lz["held"], run_ts))
-            records.append(rec)
-            continue
-
-        result = check_header(header, contract, gate_cfg)
-        rec.update(expected_columns=result["expected_columns"], received_columns=result["received_columns"],
-                   missing=result["missing"], unexpected=result["unexpected"],
-                   probable_renames=result["probable_renames"],
-                   messages=result["errors"] + result["warnings"])
-
-        if result["errors"]:
-            rec["status"] = "HELD"
-            rec["moved_to"] = str(move_file(path, root / lz["held"], run_ts))
-        else:
-            rec["status"] = "PASSED_WITH_WARNINGS" if result["warnings"] else "PASSED"
-            rec["moved_to"] = str(move_file(path, root / lz["accepted"] / rec["source"], run_ts))
-            seen.add(rec["file_sha256"])
-        records.append(rec)
 
     write_log(cfg, records)
     return records
@@ -328,7 +366,8 @@ def print_summary(records: list):
         print("No files in incoming/. Nothing to do.")
         return
     for r in records:
-        print(f"[{r['status']}] {r['file_name']}  (source: {r['source']}, contract v{r['contract_version']})")
+        print(f"[{r['status']}] {r['reporting_month'] or 'no month'} / {r['file_name']}  "
+              f"(source: {r['source']}, contract v{r['contract_version']})")
         for m in r["messages"]:
             print(f"    - {m}")
         print(f"    -> {r['moved_to']}")

@@ -40,7 +40,7 @@ TARGET = T("certified_investment_portfolio")
 
 # COMMAND ----------
 
-# MAGIC %md ## Build the table
+# MAGIC %md ## The query behind the table
 
 # COMMAND ----------
 
@@ -61,6 +61,7 @@ select_cols = [
     "p.environmental_category", "p.department", "p.status",
     "p.projected_board_date", "p.approval_date", "p.signed_date", "p.invested_date", "p.as_of_date",
     "max(p.as_of_date) OVER () AS reporting_date",
+    "p._reporting_month AS reporting_month",
     "p.amt_loan_musd", "p.amt_equity_musd", "p.amt_guarantee_musd", "p.amt_risk_mgmt_musd", "p.total_approved_musd",
     # --- derived amounts (A08)
     f"{ALLOC_SUM} AS product_alloc_sum_musd",
@@ -111,19 +112,17 @@ select_cols = [
     "p._contract_version AS _projects_contract_version", "p._validation_run_id",
 ]
 
-BUILD_SQL = (f"CREATE OR REPLACE TABLE {TARGET}\n"
-             "COMMENT 'Certified investment portfolio: one row per IFC project (portfolio + monitoring + text attributes + every "
-             "data-quality flag). The table every WS1 answer and Genie read. Amounts in USD millions. Definitions in ref_assumptions.'\n"
-             "AS SELECT\n  " + ",\n  ".join(select_cols) + "\n"
-             f"FROM {T('validated_projects')} p\n"
-             f"LEFT JOIN {T('validated_monitoring')} m ON p.project_url = m.project_url\n"
-             f"LEFT JOIN {T('enriched_project_text_features')} tf ON p.project_url = tf.project_url")
-spark.sql(BUILD_SQL)
-print(f"Built {TARGET}: {spark.table(TARGET).count()} rows, {len(spark.table(TARGET).columns)} columns")
+SELECT_SQL = ("SELECT\n  " + ",\n  ".join(select_cols) + "\n"
+              f"FROM {T('validated_projects')} p\n"
+              f"LEFT JOIN {T('validated_monitoring')} m ON p.project_url = m.project_url\n"
+              f"LEFT JOIN {T('enriched_project_text_features')} tf ON p.project_url = tf.project_url")
+TABLE_COMMENT = ("Certified investment portfolio: one row per IFC project (portfolio + monitoring + text attributes + every "
+                 "data-quality flag). The table every WS1 answer and Genie read. Amounts in USD millions. Definitions in ref_assumptions.")
+# The table is created in the next cell, together with its column comments (one statement instead of ~100).
 
 # COMMAND ----------
 
-# MAGIC %md ## Column comments (Genie reads these to choose columns)
+# MAGIC %md ## Build the table with its column comments (Genie reads these to choose columns)
 
 # COMMAND ----------
 
@@ -148,6 +147,7 @@ COMMENTS = {
     "invested_date": "Date of IFC's first disbursement; null if nothing disbursed.",
     "as_of_date": "Date the record was last updated.",
     "reporting_date": "Latest as_of_date in the data (2026-06-30 on the first delivery). Anchor for 'last N years' questions instead of today's date (A02).",
+    "reporting_month": "Reporting month of the delivery this row comes from (first day of the month; from the landing folder incoming/YYYY-MM/). This table holds the latest month; every month is in certified_investment_portfolio_history.",
     "amt_loan_musd": "IFC investment allocated to loans, USD millions. Use for product mix only, not totals (A08).",
     "amt_equity_musd": "IFC investment allocated to equity, USD millions. Use for product mix only, not totals (A08).",
     "amt_guarantee_musd": "IFC investment allocated to guarantees, USD millions. Use for product mix only, not totals (A08).",
@@ -218,12 +218,25 @@ def esc(s: str) -> str:
     return s.replace("\\", "\\\\").replace("'", "\\'")
 
 
-columns = set(spark.table(TARGET).columns)
-missing = sorted(columns - set(COMMENTS))
-for col, comment in COMMENTS.items():
-    if col in columns:
-        spark.sql(f"ALTER TABLE {TARGET} ALTER COLUMN {col} COMMENT '{esc(comment)}'")
-print(f"Documented {len(columns) - len(missing)} of {len(columns)} columns" + (f"; no comment for {missing}" if missing else ""))
+# Writing ~100 column comments one ALTER at a time takes about two minutes, so they are written only when needed:
+# - same columns as the existing table: replace the rows in place (INSERT OVERWRITE keeps comments and tags), then
+#   rewrite only comments whose text changed;
+# - first run or the columns changed: rebuild the table and write every comment.
+ordered = spark.sql(SELECT_SQL + " LIMIT 0").columns
+same_columns = spark.catalog.tableExists(TARGET) and spark.table(TARGET).columns == ordered
+if same_columns:
+    spark.sql(f"INSERT OVERWRITE TABLE {TARGET} {SELECT_SQL}")
+    current = {c.name: (c.description or "") for c in spark.catalog.listColumns(TARGET)}
+else:
+    spark.sql(f"CREATE OR REPLACE TABLE {TARGET} COMMENT '{esc(TABLE_COMMENT)}' AS {SELECT_SQL}")
+    current = {}
+to_write = [c for c in ordered if c in COMMENTS and current.get(c) != COMMENTS[c]]
+for col in to_write:
+    spark.sql(f"ALTER TABLE {TARGET} ALTER COLUMN {col} COMMENT '{esc(COMMENTS[col])}'")
+missing = sorted(set(ordered) - set(COMMENTS))
+print(f"{'Refreshed rows of' if same_columns else 'Rebuilt'} {TARGET}: {spark.table(TARGET).count()} rows, "
+      f"{len(ordered)} columns; {len(to_write)} column comments written, {len(ordered) - len(missing)} documented"
+      + (f"; no comment for {missing}" if missing else ""))
 
 # COMMAND ----------
 
