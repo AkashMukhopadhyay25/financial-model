@@ -8,7 +8,7 @@ A plain Python file (not a notebook) so it can be imported on Databricks and loc
 
 Rules:
 - Settings live in config/pipeline_config.yml only.
-- Table names come from T(cfg, "raw_projects") -> "ifc_challenge.portfolio.raw_projects".
+- Table names come from T(cfg, "raw_projects") -> "workspace.portfolio.raw_projects".
 """
 import os
 from pathlib import Path
@@ -16,6 +16,20 @@ from pathlib import Path
 import yaml
 
 CONFIG_RELATIVE = Path("config") / "pipeline_config.yml"
+
+
+def read_text(path):
+    """Text of a file. On Databricks serverless, reading a workspace file sometimes fails with
+    "[Errno 5] Input/output error" for a whole run; the Workspace API still serves it, so fall back to that."""
+    try:
+        with open(path, encoding="utf-8") as f:
+            return f.read()
+    except OSError:
+        if not str(path).startswith("/Workspace/"):
+            raise
+        from databricks.sdk import WorkspaceClient
+        from databricks.sdk.service.workspace import ExportFormat
+        return WorkspaceClient().workspace.download(str(path), format=ExportFormat.AUTO).read().decode("utf-8")
 
 
 def find_repo_root(start=None):
@@ -46,8 +60,7 @@ def load_config(config_path):
     """Read the YAML and add derived values:
     _config_path, _contracts_dir, environment.landing_root (if not set)."""
     config_path = Path(config_path).resolve()
-    with open(config_path) as f:
-        cfg = yaml.safe_load(f)
+    cfg = yaml.safe_load(read_text(config_path))
     env = cfg["environment"]
     if not env.get("landing_root"):
         env["landing_root"] = f"/Volumes/{env['catalog']}/{env['schema']}/{env['volume']}"
@@ -69,8 +82,7 @@ def load_contracts(contracts_dir):
     """All contracts, keyed by contract name."""
     contracts = {}
     for path in sorted(Path(contracts_dir).glob("*.yml")):
-        with open(path) as f:
-            c = yaml.safe_load(f)
+        c = yaml.safe_load(read_text(path))
         c["_path"] = str(path)
         contracts[c["contract"]["name"]] = c
     if not contracts:
