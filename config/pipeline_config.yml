@@ -7,7 +7,8 @@
 #   3. <repo root>/config/pipeline_config.yml, next to the notebooks in the workspace / Git folder
 
 environment:
-  catalog: ifc_challenge            # Unity Catalog catalog
+  catalog: workspace                # Unity Catalog catalog (workspace dbc-ba139e62-9140; its metastore has no
+                                    # storage root, so a new catalog cannot be created without a storage location)
   schema: portfolio                 # every table, view, function and volume lives in this one schema
   volume: landing                   # Unity Catalog volume that holds the landing zone (data files only)
   # landing_root is derived as /Volumes/{catalog}/{schema}/{volume}.
@@ -57,7 +58,9 @@ reporting:
 ai:
   # Any chat model under Serving works; check the exact name in your workspace.
   llm_endpoint: databricks-meta-llama-3-3-70b-instruct
-  run_llm_extraction: true          # false = rule-based text features only (no model calls)
+  # false = rule-based text features only (no model calls). Off for the first run in a new workspace: results come
+  # from the imported cache (legacy_llm_cache_table) and nothing is sent to the model.
+  run_llm_extraction: false
   # Rows sent to the model per run. Keep 5 for smoke tests. Set to empty (null) for the full run
   # ONLY with explicit approval: the full run takes ~60 min on a pay-per-token endpoint.
   llm_extraction_limit: 5
@@ -70,8 +73,8 @@ ai:
 # --- Serving IDs (workspace-specific) --------------------------------------------------------------
 serving:
   # SQL Warehouses -> warehouse -> Connection details. Used by the agent and the app.
-  # b015ec4996eb0dd9 = "Serverless Starter Warehouse" in the team workspace (checked 2026-11-04).
-  sql_warehouse_id: b015ec4996eb0dd9
+  # a7792da7c24287a3 = "Serverless Starter Warehouse" in workspace dbc-ba139e62-9140 (checked 2026-11-13).
+  sql_warehouse_id: a7792da7c24287a3
   # From the Genie space URL: .../genie/rooms/<id>. Left empty on purpose: the space is rebuilt on the
   # merged tables in phase 8, then its ID goes here.
   genie_space_id:
