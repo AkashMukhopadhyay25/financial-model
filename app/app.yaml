@@ -3,7 +3,7 @@
 command: ["uvicorn", "backend.main:app", "--host", "0.0.0.0", "--port", "8000"]
 env:
   - name: IFC_CATALOG
-    value: "ifc_challenge"
+    value: "workspace"         # catalog.schema = config/pipeline_config.yml environment
   - name: IFC_SCHEMA
     value: "portfolio"
   - name: IFC_DATA_MODE

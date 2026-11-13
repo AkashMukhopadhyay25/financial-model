@@ -21,6 +21,19 @@
 
 # COMMAND ----------
 
+try:
+    import portfolio_sql  # noqa: E402
+except OSError:
+    # Serverless sometimes cannot read workspace files ("[Errno 5] Input/output error"); load it via the Workspace API.
+    import types
+    from databricks.sdk import WorkspaceClient
+    from databricks.sdk.service.workspace import ExportFormat
+    _path = str(REPO_ROOT / "00_setup" / "portfolio_sql.py")
+    portfolio_sql = types.ModuleType("portfolio_sql")
+    portfolio_sql.__file__ = _path
+    exec(compile(WorkspaceClient().workspace.download(_path, format=ExportFormat.AUTO).read().decode("utf-8"),  # noqa: S102
+                 _path, "exec"), portfolio_sql.__dict__)
+    sys.modules["portfolio_sql"] = portfolio_sql
 from portfolio_sql import client_scorecard_sql, early_warning_signals, early_warning_sql  # noqa: E402
 
 P = T("certified_investment_portfolio")

@@ -49,7 +49,7 @@ WS2/WS3 back up the teammate's earlier rows (`answers_register_ws2_teammate_back
 ## 2. Create the Genie space (once)
 
 1. Left sidebar → **Genie** → **New**.
-2. **Data**: add `ifc_challenge.portfolio.certified_investment_portfolio`, `certified_client_scorecard`, `ref_assumptions`.
+2. **Data**: add `workspace.portfolio.certified_investment_portfolio`, `certified_client_scorecard`, `ref_assumptions`.
 3. **Settings**: SQL warehouse = *Serverless Starter Warehouse*. Title: `IFC CFO Portfolio`.
 4. **Instructions**: paste the business rules (count projects by `project_url`; totals use `total_approved_musd`; no status
    filter unless asked, A03; "last N years" anchored on `reporting_date`; North Africa = filter by country).
@@ -67,9 +67,9 @@ WS2/WS3 back up the teammate's earlier rows (`answers_register_ws2_teammate_back
 5. Grant the app's service principal access to the data. Its name is on the app's **Authorization** tab. In a SQL editor:
 
 ```sql
-GRANT USE CATALOG ON CATALOG ifc_challenge TO `<app-service-principal>`;
-GRANT USE SCHEMA, SELECT ON SCHEMA ifc_challenge.portfolio TO `<app-service-principal>`;
-GRANT MODIFY ON TABLE ifc_challenge.portfolio.ops_review_requests TO `<app-service-principal>`;
+GRANT USE CATALOG ON CATALOG workspace TO `<app-service-principal>`;
+GRANT USE SCHEMA, SELECT ON SCHEMA workspace.portfolio TO `<app-service-principal>`;
+GRANT MODIFY ON TABLE workspace.portfolio.ops_review_requests TO `<app-service-principal>`;
 ```
 
 6. Open the app URL. The header shows "Genie space not configured" if the `genie-space` resource is missing.
