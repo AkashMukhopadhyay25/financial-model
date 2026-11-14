@@ -1,0 +1,22 @@
+# Databricks App: IFC | CFO Intelligence (FastAPI backend + React frontend, built files in frontend/dist).
+# Create the app with source code path = this app/ folder. Setup steps: app/README.md.
+command: ["uvicorn", "backend.main:app", "--host", "0.0.0.0", "--port", "8000"]
+env:
+  - name: IFC_CATALOG
+    value: "workspace"         # catalog.schema = config/pipeline_config.yml environment
+  - name: IFC_SCHEMA
+    value: "portfolio"
+  - name: IFC_DATA_MODE
+    value: "databricks"
+  - name: IFC_ECL_LOSS_RATE        # same as business.ecl_loss_rate in config/pipeline_config.yml (A11)
+    value: "0.6"
+  # Add these two as app resources (Configure page), with exactly these resource keys:
+  - name: IFC_WAREHOUSE_ID
+    valueFrom: "sql-warehouse"
+  - name: IFC_GENIE_SPACE_ID
+    valueFrom: "genie-space"
+  # Monthly history (01_data/run_monthly_pipeline): schema with kpi_monthly etc.; the job the Monthly trends page starts.
+  - name: IFC_MONTHLY_SCHEMA
+    value: "portfolio_monthly_dev"
+  - name: IFC_MONTHLY_JOB_ID
+    value: "824387683291203"

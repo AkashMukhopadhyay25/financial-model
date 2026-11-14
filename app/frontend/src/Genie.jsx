@@ -1,0 +1,309 @@
+import React, { useEffect, useRef, useState } from "react";
+import { askGenie, get, post } from "./api.js";
+import { BarChart, DataTable, Info, SparkIcon, SqlBlock, Tag } from "./ui.jsx";
+import { int } from "./format.js";
+
+const LEVEL = {
+  VALIDATED: { label: "Green · Validated", color: "green" },
+  REVIEW_RECOMMENDED: { label: "Amber · Review recommended", color: "amber" },
+  HUMAN_REVIEW_REQUIRED: { label: "Red · Human review required", color: "red" },
+};
+
+// The ask bar used across pages. `onAsk` lets a page route the question elsewhere (e.g. Overview -> Portfolio analytics).
+export function AskBar({ prompt = "What would you like to explore next?", placeholder, chips = [], extraChip, onAsk, busy, right, value, onChange, variant }) {
+  const [own, setOwn] = useState("");
+  const text = value ?? own;
+  const setText = onChange ?? setOwn;
+  const submit = (q) => {
+    const t = (q ?? text).trim();
+    if (t.length > 1) onAsk(t);
+  };
+  return (
+    <div className={`ask${variant === "hero" ? " ask-hero" : ""}`}>
+      <div className="ask-head">
+        <span style={{ display: "flex", gap: 8, alignItems: "center" }}>
+          <SparkIcon color={variant === "hero" ? "#fff" : "#2f66f6"} size={variant === "hero" ? 16 : 12} /> {prompt}
+        </span>
+        {right}
+      </div>
+      <form
+        className="ask-row"
+        onSubmit={(e) => {
+          e.preventDefault();
+          submit();
+        }}
+      >
+        <input value={text} onChange={(e) => setText(e.target.value)} placeholder={placeholder} aria-label={prompt} />
+        <button className="btn dark small" type="submit" disabled={busy}>
+          {busy ? "Asking…" : "Ask Genie"}
+        </button>
+      </form>
+      {(chips.length > 0 || extraChip) && (
+        <div className="chips">
+          {chips.length > 0 && <span className="chip-label">Suggested questions</span>}
+          {chips.map((c) => (
+            <button key={c.label || c} className="chip" title={c.question || c} onClick={() => (c.onClick ? c.onClick() : submit(c.question || c))}>
+              {c.label || c}
+            </button>
+          ))}
+          {extraChip}
+        </div>
+      )}
+    </div>
+  );
+}
+
+// A Genie conversation: question -> answer text, trust caveat, certified match, result table/chart, SQL.
+export function useGenie() {
+  const [turns, setTurns] = useState([]);
+  const [busy, setBusy] = useState(false);
+  const conv = useRef(null);
+  const ask = async (question) => {
+    setBusy(true);
+    setTurns((t) => [...t, { question, pending: true }]);
+    try {
+      const r = await askGenie(question, conv.current);
+      if (r.conversation_id) conv.current = r.conversation_id;
+      setTurns((t) => [...t.slice(0, -1), { question, result: r }]);
+    } catch (e) {
+      setTurns((t) => [...t.slice(0, -1), { question, error: String(e.message || e) }]);
+    } finally {
+      setBusy(false);
+    }
+  };
+  const reset = () => {
+    conv.current = null;
+    setTurns([]);
+  };
+  return { turns, busy, ask, reset };
+}
+
+export function GenieThread({ genie, onOpenCertified, onSql }) {
+  const end = useRef(null);
+  useEffect(() => end.current?.scrollIntoView({ behavior: "smooth", block: "nearest" }), [genie.turns.length]);
+  if (!genie.turns.length) return null;
+  return (
+    <div>
+      {genie.turns.map((t, i) => (
+        <GenieAnswer key={i} turn={t} onAsk={genie.ask} onOpenCertified={onOpenCertified} onSql={onSql} latest={i === genie.turns.length - 1} />
+      ))}
+      <div style={{ display: "flex", justifyContent: "flex-end", marginTop: 8 }}>
+        <button className="link" onClick={genie.reset}>New conversation</button>
+      </div>
+      <div ref={end} />
+    </div>
+  );
+}
+
+function GenieAnswer({ turn, onAsk, onOpenCertified, onSql, latest }) {
+  const [view, setView] = useState("table");
+  const [fb, setFb] = useState(null);
+  const r = turn.result;
+  useEffect(() => {
+    if (latest && r?.sql && onSql) onSql(r.sql);
+  }, [latest, r, onSql]);
+  if (turn.pending)
+    return (
+      <div className="answer">
+        <div className="q">{turn.question}</div>
+        <div className="thinking">
+          <span className="spinner" /> Genie is writing SQL on the certified tables…
+        </div>
+      </div>
+    );
+  if (turn.error)
+    return (
+      <div className="answer">
+        <div className="q">{turn.question}</div>
+        <div className="error">{turn.error}</div>
+      </div>
+    );
+  const lvl = LEVEL[r.trust?.level] || LEVEL.HUMAN_REVIEW_REQUIRED;
+  const chartable = canChart(r);
+  return (
+    <div className="answer">
+      <div style={{ display: "flex", justifyContent: "space-between", gap: 10, alignItems: "flex-start" }}>
+        <div className="q">{turn.question}</div>
+        <Tag color={lvl.color}>{lvl.label}</Tag>
+      </div>
+      {r.text && <div className="text">{r.text}</div>}
+      {r.error && <div className="error mt">{r.error}</div>}
+
+      {r.certified_match && (
+        <div className="certified">
+          <b>Certified answer {r.certified_match.question_id}</b> <Info align="left" text={`Matches “${r.certified_match.question}”. The certified figure in answers_register is the reference.`} />{" "}
+          <button className="link" onClick={() => onOpenCertified?.(r.certified_match.question_id)}>Open certified answer</button>
+        </div>
+      )}
+
+      {r.rows?.length > 0 && (
+        <div className="mt">
+          <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 8 }}>
+            <span className="small muted">{int(r.row_count)} rows from Genie's query</span>
+            {chartable && (
+              <div className="toggle">
+                <button className={view === "table" ? "active" : ""} onClick={() => setView("table")}>Table</button>
+                <button className={view === "chart" ? "active" : ""} onClick={() => setView("chart")}>Chart</button>
+              </div>
+            )}
+          </div>
+          {view === "chart" && chartable ? (
+            <BarChart data={r.rows.slice(0, 20)} labelKey={chartable.label} valueKey={chartable.value} format={(v) => v.toLocaleString("en-US", { maximumFractionDigits: 2 })} />
+          ) : (
+            <DataTable rows={r.rows} maxRows={50} />
+          )}
+        </div>
+      )}
+
+      <div className={`trust ${r.trust?.color || "red"}`} style={{ display: "flex", alignItems: "center", gap: 8 }}>
+        <b>Data quality</b>
+        <span style={{ flex: 1 }}>
+          {r.trust?.counts
+            ? `${int(r.trust.counts.rows_needing_review)} of ${int(r.trust.counts.rows_in_scope)} projects flagged · ${int(r.trust.counts.rows_high_severity)} high · included in the figures`
+            : (r.trust?.reasons || [])[0]}
+        </span>
+        <Info text={`Computed by the app, not by Genie. ${(r.trust?.reasons || []).join(" ")}`} />
+      </div>
+
+      {r.sql && (
+        <details>
+          <summary className="small" style={{ cursor: "pointer", fontWeight: 600 }}>SQL generated by Genie</summary>
+          <div className="mt">
+            <SqlBlock sql={r.sql} comment="Generated by Genie" />
+          </div>
+        </details>
+      )}
+
+      <div className="chips">
+        {(r.suggested_questions || []).map((q) => (
+          <button key={q} className="chip plain" onClick={() => onAsk(q)}>{q}</button>
+        ))}
+        {r.available && r.message_id && (
+          <span style={{ marginLeft: "auto", display: "flex", gap: 6, alignItems: "center" }} className="small muted">
+            {fb ? "Thanks for the feedback" : "Was this answer right?"}
+            {!fb && (
+              <>
+                <button className="btn small" onClick={() => sendFeedback(r, true, setFb)}>Yes</button>
+                <button className="btn small" onClick={() => sendFeedback(r, false, setFb)}>No</button>
+              </>
+            )}
+          </span>
+        )}
+      </div>
+    </div>
+  );
+}
+
+function sendFeedback(r, positive, setFb) {
+  post("/api/genie/feedback", { conversation_id: r.conversation_id, message_id: r.message_id, positive })
+    .then(() => setFb(positive ? "up" : "down"))
+    .catch(() => setFb("error"));
+}
+
+function canChart(r) {
+  if (!r.rows?.length || r.rows.length > 40) return null;
+  const cols = Object.keys(r.rows[0]);
+  const label = cols.find((c) => typeof r.rows[0][c] === "string");
+  const value = cols.find((c) => typeof r.rows[0][c] === "number" && !/year/i.test(c));
+  return label && value ? { label, value } : null;
+}
+
+// ---------------------------------------------------------------- certified answers library (30 WS1 questions)
+export function QuestionLibrary({ onClose, onAsk, openId }) {
+  const [items, setItems] = useState(null);
+  const [sel, setSel] = useState(openId || null);
+  const [detail, setDetail] = useState(null);
+  const [filter, setFilter] = useState("");
+  useEffect(() => {
+    get("/api/answers").then(setItems).catch(() => setItems([]));
+  }, []);
+  useEffect(() => {
+    if (!sel) return setDetail(null);
+    setDetail("loading");
+    get(`/api/answers/${sel}`).then(setDetail).catch((e) => setDetail({ error: String(e.message) }));
+  }, [sel]);
+  const cats = items ? [...new Set(items.map((i) => i.category))] : [];
+  return (
+    <div className="overlay" onMouseDown={(e) => e.target === e.currentTarget && onClose()}>
+      <div className="modal">
+        <div className="modal-head">
+          <h2>{sel ? `Certified answer · ${sel}` : "30-question library"}</h2>
+          <div className="actions">
+            {sel && <button className="btn small" onClick={() => setSel(null)}>All questions</button>}
+            <button className="btn small" onClick={onClose}>Close</button>
+          </div>
+        </div>
+        {!sel && (
+          <>
+            <p className="small muted" style={{ marginTop: 0 }}>
+              The 30 WS1 questions, each answered once with certified SQL, written assumptions and data-quality counts (<code>answers_register</code>).
+              These are the ground truth Genie is evaluated against.
+            </p>
+            <input className="note" style={{ minHeight: 0, marginBottom: 10 }} placeholder="Filter questions…" value={filter} onChange={(e) => setFilter(e.target.value)} />
+            {!items && <div className="thinking"><span className="spinner" /> Loading…</div>}
+            <div className="qlist">
+              {cats.map((c) => {
+                const qs = items.filter((i) => i.category === c && i.question.toLowerCase().includes(filter.toLowerCase()));
+                if (!qs.length) return null;
+                return (
+                  <div key={c}>
+                    <div className="eyebrow blue" style={{ margin: "14px 0 4px" }}>{c}</div>
+                    {qs.map((q) => (
+                      <div key={q.question_id} className="qitem" onClick={() => setSel(q.question_id)}>
+                        <span className="qid">{q.question_id}</span>
+                        <span style={{ flex: 1 }}>{q.question}</span>
+                        {q.challenge && <Tag color="pink">Challenge</Tag>}
+                        {q.certified ? <Tag color="green">Certified</Tag> : <Tag>Not run</Tag>}
+                      </div>
+                    ))}
+                  </div>
+                );
+              })}
+            </div>
+          </>
+        )}
+        {sel && detail === "loading" && <div className="thinking"><span className="spinner" /> Loading…</div>}
+        {sel && detail && detail !== "loading" && <CertifiedDetail a={detail} onAsk={onAsk} />}
+      </div>
+    </div>
+  );
+}
+
+function CertifiedDetail({ a, onAsk }) {
+  if (a.error) return <div className="error">{a.error}</div>;
+  return (
+    <div>
+      <p style={{ fontSize: 15, fontWeight: 600, marginTop: 0 }}>{a.question}</p>
+      <div className="chips" style={{ marginTop: 0, marginBottom: 12 }}>
+        {(a.assumption_ids || "").split(",").filter(Boolean).map((id) => (
+          <Tag key={id} color="blue">{id}</Tag>
+        ))}
+        {a.rows_in_scope != null && (
+          <Tag color={a.rows_high_severity ? "amber" : "green"}>
+            {int(a.rows_needing_review)} of {int(a.rows_in_scope)} projects in scope flagged ({int(a.rows_high_severity)} high)
+          </Tag>
+        )}
+        <button className="btn small dark" style={{ marginLeft: "auto" }} onClick={() => onAsk?.(a.question)}>
+          Ask Genie the same question
+        </button>
+      </div>
+      {a.assumptions && <p className="small" style={{ lineHeight: 1.5 }}><b>Assumptions:</b> {a.assumptions}</p>}
+      <div className="grid g2">
+        <div>
+          <div className="small" style={{ fontWeight: 600, marginBottom: 6 }}>Result{a.row_count != null ? ` (${int(a.row_count)} rows)` : ""}</div>
+          <DataTable rows={a.result_preview_json || []} maxRows={30} empty="Run 04_answers/ws1 on Databricks to see the certified result." />
+          {a.sensitivity_label && a.sensitivity_preview_json && (
+            <>
+              <div className="small" style={{ fontWeight: 600, margin: "14px 0 6px" }}>Sensitivity: {a.sensitivity_label}</div>
+              <DataTable rows={a.sensitivity_preview_json} maxRows={30} />
+            </>
+          )}
+        </div>
+        <div>
+          <div className="small" style={{ fontWeight: 600, marginBottom: 6 }}>Certified SQL</div>
+          <SqlBlock sql={a.sql_text} />
+        </div>
+      </div>
+    </div>
+  );
+}

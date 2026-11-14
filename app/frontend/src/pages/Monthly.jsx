@@ -1,0 +1,352 @@
+import React, { useState } from "react";
+import { useApp } from "../App.jsx";
+import { invalidate, post } from "../api.js";
+import { int, musd } from "../format.js";
+import { Drawer, ErrorBox, EvidenceDrawer, Info, Loading, Modal, StepLine, Tag, useApi } from "../ui.jsx";
+
+const DIRECTION = {
+  Deteriorated: { color: "red", label: "Deteriorated" },
+  Mixed: { color: "amber", label: "Mixed" },
+  Improved: { color: "green", label: "Improved" },
+  "New business": { color: "blue", label: "New business" },
+};
+const KPI_TEXT = {
+  R01: { label: "Past Due projects", foot: "Projects behind on repayments" },
+  R02: { label: "Watchlist projects", foot: "Projects showing early signs of stress" },
+  R04: { label: "Expected credit loss", foot: "60% of disbursed on Past Due projects (A11)" },
+  M01: { label: "Overdue monitoring reviews", foot: "Active projects past their review deadline (A18)" },
+};
+const FILTERS = [
+  { id: "attention", label: "Needs attention", dirs: ["Deteriorated", "Mixed"] },
+  { id: "improved", label: "Improved", dirs: ["Improved"] },
+  { id: "growth", label: "New business", dirs: ["New business"] },
+  { id: "all", label: "All changes", dirs: ["Deteriorated", "Mixed", "Improved", "New business"] },
+];
+const monthName =(m) => (m ? new Date(`${m}-01T00:00:00`).toLocaleString("en-US", { month: "long", year: "numeric" }) : "");
+const short = (m) => (m ? new Date(`${m}-01T00:00:00`).toLocaleString("en-US", { month: "short" }) : "");
+
+function fmtKpi(v, unit) {
+  if (v === null || v === undefined) return "–";
+  return unit === "USD M" ? musd(v) : int(Math.round(v));
+}
+
+export default function Monthly({ params }) {
+  const { nav } = useApp();
+  const [month, setMonth] = useState(params.month || "");
+  const [tick, setTick] = useState(0);
+  const { data, error, loading } = useApi(`/api/monthly/review?month=${month}`, [tick]);
+  const [filter, setFilter] = useState("attention");
+  const [shown, setShown] = useState(8);
+  const [client, setClient] = useState(null);
+  const [evidence, setEvidence] = useState(null);
+  const [upload, setUpload] = useState(false);
+
+  const head = (
+    <div className="page-head">
+      <div>
+        <h1 className="title">{data?.ready ? `What changed in ${data.month_name}` : "Monthly review"}</h1>
+        <div className="subtitle">
+          {data?.ready
+            ? `Compared with ${data.previous_name} · ${int(data.counts.Deteriorated + data.counts.Mixed)} clients deteriorated, ${int(data.counts.Improved)} improved and ${int(data.counts["New business"])} added new business, out of ${int(data.total_clients)}`
+            : "Month-on-month changes in the certified portfolio"}
+        </div>
+      </div>
+      <div className="actions">
+        {data?.ready && (
+          <select className="btn" value={data.month} aria-label="Reporting month" onChange={(e) => { setMonth(e.target.value); setShown(8); }}>
+            {data.months.slice(1).reverse().map((m) => <option key={m} value={m}>{monthName(m)}</option>)}
+          </select>
+        )}
+        <button className="btn" disabled={!data?.ready} onClick={() => setEvidence(data.evidence)}>Evidence / SQL</button>
+        <button className="btn dark" onClick={() => setUpload(true)}>Load a new month</button>
+      </div>
+    </div>
+  );
+
+  if (error) return <>{head}<ErrorBox error={error} /></>;
+  if (loading && !data) return <>{head}<Loading /></>;
+
+  const dirs = FILTERS.find((f) => f.id === filter).dirs;
+  const clients = (data?.clients || []).filter((c) => dirs.includes(c.direction));
+  return (
+    <>
+      <div className="eyebrow blue">Monthly review</div>
+      {head}
+      {!data.ready && (
+        <div className="card">
+          <h3>Not enough history yet</h3>
+          <p className="muted">At least two reporting months are needed. Use <b>Load a new month</b> to add one.</p>
+        </div>
+      )}
+      {data.ready && (
+        <>
+          <div className="grid g4">
+            {data.kpis.map((k) => <KpiCard key={k.kpi_id} k={k} prev={short(data.previous)} />)}
+          </div>
+
+          <div className="grid g-main mt" style={{ alignItems: "start" }}>
+            <div>
+              <div className="section-title" style={{ marginTop: 6 }}>Clients that changed in {data.month_name}</div>
+              <div className="seg" style={{ marginTop: 0 }}>
+                {FILTERS.map((f) => (
+                  <button key={f.id} className={filter === f.id ? "active" : ""} onClick={() => { setFilter(f.id); setShown(8); }}>
+                    {f.label} · {f.dirs.reduce((s, d) => s + (data.counts[d] || 0), 0)}
+                  </button>
+                ))}
+              </div>
+              {clients.slice(0, shown).map((c) => (
+                <ClientRow key={c.client_name} c={c} onOpen={() => setClient(c)} />
+              ))}
+              {clients.length === 0 && <div className="empty">No clients in this group this month.</div>}
+              {clients.length > shown && (
+                <button className="btn" onClick={() => setShown((n) => n + 10)}>Show {Math.min(10, clients.length - shown)} more clients</button>
+              )}
+            </div>
+            <div style={{ display: "grid", gap: 14, marginTop: 52 }}>
+              <Takeaways title="Recommended next steps" color="blue" items={data.next_steps} numbered />
+              <Takeaways title="What needs attention" color="red" items={data.went_wrong} />
+              <Takeaways title="What went well" color="green" items={data.went_right} />
+              <div className="small muted">
+                These summaries follow fixed rules applied to the certified figures, so the same data always gives the same wording.
+              </div>
+            </div>
+          </div>
+
+          <PortfolioTrend months={data.months} />
+        </>
+      )}
+
+      {client && (
+        <ClientDrawer c={client} month={data.month} onClose={() => setClient(null)}
+                      onProfile={() => client.client_id && nav("clients", { step: "profile", client: client.client_id })}
+                      onEvidence={setEvidence} />
+      )}
+      {evidence && <EvidenceDrawer items={evidence} onClose={() => setEvidence(null)} />}
+      {upload && <UploadModal months={data?.months || []} onClose={() => setUpload(false)}
+                              onStarted={() => { invalidate("/api/monthly"); setTick((t) => t + 1); }} />}
+    </>
+  );
+}
+
+function KpiCard({ k, prev }) {
+  const t = KPI_TEXT[k.kpi_id] || { label: k.kpi_name, foot: "" };
+  const color = k.assessment === "Improving" ? "green" : k.assessment === "Deteriorating" ? "red" : "grey";
+  const diff = k.change || 0;
+  const sign = diff > 0 ? "+" : diff < 0 ? "−" : "";
+  const diffTxt = k.unit === "USD M" ? musd(Math.abs(diff)) : int(Math.abs(Math.round(diff)));
+  return (
+    <div className="card">
+      <div className="kpi-label">
+        <span>{t.label} <Info text={t.foot} align="left" /></span>
+        <Tag color={color}>{diff === 0 ? "No change" : `${sign}${diffTxt}`}</Tag>
+      </div>
+      <div className={`kpi-value ${color === "red" ? "red" : ""}`}>{fmtKpi(k.value, k.unit)}</div>
+      <div className="kpi-foot">{fmtKpi(k.previous_value, k.unit)} in {prev}</div>
+    </div>
+  );
+}
+
+function Takeaways({ title, color, items, numbered }) {
+  return (
+    <div className="card">
+      <div className={`eyebrow ${color}`} style={{ marginTop: 0 }}>{title}</div>
+      <ol style={{ margin: "8px 0 0", paddingLeft: numbered ? 18 : 0, listStyle: numbered ? "decimal" : "none" }}>
+        {items.map((s, i) => (
+          <li key={i} style={{ fontSize: 13.5, lineHeight: 1.5, marginBottom: 8, display: numbered ? "list-item" : "flex", gap: 8 }}>
+            {!numbered && <span className={`dot ${color}`} style={{ marginTop: 7, flex: "none" }} />}
+            <span>{s}</span>
+          </li>
+        ))}
+      </ol>
+    </div>
+  );
+}
+
+function ClientRow({ c, onOpen }) {
+  const d = DIRECTION[c.direction];
+  const facts = [
+    c.to_past_due && { t: `${c.to_past_due} into Past Due`, cls: "red" },
+    c.to_watchlist && { t: `${c.to_watchlist} onto Watchlist`, cls: "amber" },
+    c.downgrades && { t: `${c.downgrades} rating downgrade${c.downgrades > 1 ? "s" : ""}`, cls: "amber" },
+    c.recoveries && { t: `${c.recoveries} recover${c.recoveries > 1 ? "ies" : "y"}`, cls: "green" },
+    c.growth && { t: `${c.growth} new-business step${c.growth > 1 ? "s" : ""}`, cls: "blue" },
+  ].filter(Boolean);
+  return (
+    <div className="ew-card" style={{ cursor: "pointer" }} onClick={onOpen}>
+      <div className="row1">
+        <div className="name">
+          {c.client_name} <Tag color={d.color}>{d.label}</Tag>
+        </div>
+        <div style={{ display: "flex", gap: 16, alignItems: "center" }}>
+          {c.exposure_musd > 0 && (
+            <span className="small muted">Disbursed affected <b style={{ color: "var(--ink)" }}>{musd(c.exposure_musd)}</b></span>
+          )}
+          {c.exposure_musd === 0 && c.approved_musd > 0 && (
+            <span className="small muted">Newly approved <b style={{ color: "var(--ink)" }}>{musd(c.approved_musd)}</b></span>
+          )}
+          <span className="link">View details →</span>
+        </div>
+      </div>
+      <div className="desc">{c.headline}</div>
+      <div className="stats">
+        {facts.map((f) => <span key={f.t} className={`stat ${f.cls}`}>{f.t}</span>)}
+      </div>
+    </div>
+  );
+}
+
+const AMOUNT_LABEL = {
+  PERFORMANCE_WORSENED: "Disbursed on this project", PERFORMANCE_IMPROVED: "Disbursed on this project",
+  RISK_DOWNGRADE: "Current exposure", RISK_UPGRADE: "Current exposure", REVIEW_OVERDUE: "Current exposure",
+  REVIEW_OVERDUE_CLEARED: "Current exposure", BOARD_APPROVED: "Approved", SIGNED: "Approved", NEW_PROJECT: "Proposed",
+  FIRST_DISBURSEMENT: "First disbursement", STATUS_CHANGE: "Approved",
+};
+
+const CLIENT_SERIES = [
+  { key: "exposure_musd", label: "Disbursed exposure", fmt: musd },
+  { key: "at_risk", label: "Projects Past Due or on Watchlist", fmt: int },
+  { key: "avg_rating", label: "Average risk rating", fmt: (v) => Number(v).toFixed(2) },
+];
+
+function ClientDrawer({ c, month, onClose, onProfile, onEvidence }) {
+  const { data, error, loading } = useApi(`/api/monthly/client?name=${encodeURIComponent(c.client_name)}&month=${month}`);
+  const [series, setSeries] = useState("at_risk");
+  const hist = (data?.history || []).map((h) => ({ ...h, at_risk: h.past_due + h.watchlist, label: short(h.month) }));
+  const now = hist.find((h) => h.month === month);
+  const before = hist[hist.findIndex((h) => h.month === month) - 1];
+  const s = CLIENT_SERIES.find((x) => x.key === series);
+  const d = DIRECTION[c.direction];
+  const delta = (key, fmt = int) => {
+    if (!now || !before) return "";
+    const v = (now[key] || 0) - (before[key] || 0);
+    return v === 0 ? "no change" : `${v > 0 ? "+" : "−"}${fmt(Math.abs(v))} vs ${short(before.month)}`;
+  };
+  return (
+    <Drawer title={c.client_name} onClose={onClose}>
+      <div style={{ display: "flex", gap: 8, alignItems: "center", marginBottom: 14 }}>
+        <Tag color={d.color}>{d.label} in {monthName(month)}</Tag>
+        {c.client_id && <span className="small muted">{c.client_id}</span>}
+      </div>
+      {error && <ErrorBox error={error} />}
+      {loading && <Loading />}
+      {now && (
+        <>
+          <div className="mini-grid">
+            <div className="mini"><div className="k">Past Due</div><div className="v big">{int(now.past_due)}</div><div className="k">{delta("past_due")}</div></div>
+            <div className="mini"><div className="k">Watchlist</div><div className="v big">{int(now.watchlist)}</div><div className="k">{delta("watchlist")}</div></div>
+            <div className="mini"><div className="k">Disbursed exposure</div><div className="v big">{musd(now.exposure_musd)}</div><div className="k">{delta("exposure_musd", musd)}</div></div>
+            <div className="mini"><div className="k">Avg risk rating</div><div className="v big">{now.avg_rating ? Number(now.avg_rating).toFixed(1) : "–"}</div><div className="k">{int(now.active)} active projects</div></div>
+          </div>
+
+          <div className="card-head mt" style={{ marginBottom: 0 }}>
+            <h3 style={{ margin: 0 }}>Month by month</h3>
+            <select className="btn small" value={series} onChange={(e) => setSeries(e.target.value)} aria-label="Measure">
+              {CLIENT_SERIES.map((x) => <option key={x.key} value={x.key}>{x.label}</option>)}
+            </select>
+          </div>
+          <StepLine data={hist} xKey="label" yKey={series} format={s.fmt} height={160} />
+
+          <h3 style={{ margin: "18px 0 8px" }}>What changed in {monthName(month)}</h3>
+          <div className="activity">
+            {data.events.map((e, i) => (
+              <div key={i}>
+                <span className={`dot ${e.impact === "Negative" ? "red" : e.impact === "Positive" ? "green" : "blue"}`} style={{ marginTop: 6, flex: "none" }} />
+                <span>
+                  <b style={{ fontWeight: 600 }}>{e.project_name}</b> · {e.text}
+                  {e.amount_musd && AMOUNT_LABEL[e.change_type] ? <small>{AMOUNT_LABEL[e.change_type]}: {musd(e.amount_musd)}</small> : null}
+                </span>
+              </div>
+            ))}
+          </div>
+          <div style={{ display: "flex", gap: 8, marginTop: 16 }}>
+            {c.client_id && <button className="btn dark" onClick={onProfile}>Open client profile</button>}
+            <button className="btn" onClick={() => onEvidence(data.evidence)}>Evidence / SQL</button>
+          </div>
+        </>
+      )}
+    </Drawer>
+  );
+}
+
+const TREND = [
+  { id: "R01", label: "Past Due" },
+  { id: "R02", label: "Watchlist" },
+  { id: "R04", label: "Expected credit loss" },
+  { id: "M01", label: "Overdue reviews" },
+];
+
+function PortfolioTrend({ months }) {
+  const { data } = useApi("/api/monthly/series");
+  const [kpi, setKpi] = useState("R01");
+  const line = (data?.rows || []).filter((r) => r.kpi_id === kpi).map((r) => ({ ...r, label: short(r.month_label) }));
+  const unit = line[0]?.unit;
+  return (
+    <div className="card mt">
+      <div className="card-head">
+        <h3>Portfolio trend · {monthName(months[0])} to {monthName(months[months.length - 1])}</h3>
+        <div className="toggle">
+          {TREND.map((t) => (
+            <button key={t.id} className={kpi === t.id ? "active" : ""} onClick={() => setKpi(t.id)}>{t.label}</button>
+          ))}
+        </div>
+      </div>
+      {line.length > 0 ? <StepLine data={line} xKey="label" yKey="value" format={(v) => fmtKpi(v, unit)} height={180} /> : <Loading />}
+    </div>
+  );
+}
+
+function UploadModal({ months, onClose, onStarted }) {
+  const { toast } = useApp();
+  const [month, setMonth] = useState("");
+  const [files, setFiles] = useState([]);
+  const [busy, setBusy] = useState(false);
+  const [done, setDone] = useState(null);
+  const runs = useApi("/api/monthly/runs", [done]);
+  const valid = /^20\d\d-(0[1-9]|1[0-2])$/.test(month);
+
+  const submit = async () => {
+    setBusy(true);
+    try {
+      const payload = await Promise.all([...files].map((f) => new Promise((res, rej) => {
+        const r = new FileReader();
+        r.onload = () => res({ name: f.name, content_base64: String(r.result).split(",")[1] });
+        r.onerror = rej;
+        r.readAsDataURL(f);
+      })));
+      const out = await post("/api/monthly/upload", { month, files: payload });
+      setDone(out);
+      onStarted();
+      invalidate("/api/monthly/runs");
+    } catch (e) {
+      toast(`Upload failed: ${e.message}`);
+    } finally {
+      setBusy(false);
+    }
+  };
+  const last = runs.data?.[0];
+  return (
+    <Modal title="Load a new month" onClose={onClose}
+           actions={<button className="btn dark" disabled={busy || !valid || !files.length} onClick={submit}>{busy ? "Uploading…" : "Upload and process"}</button>}>
+      <p className="small muted" style={{ marginTop: 0 }}>
+        Add the month's projects and monitoring files. They are checked against the data contracts, certified and added to the
+        history in about 10–15 minutes. Uploading a month again replaces only that month.
+      </p>
+      <div style={{ display: "grid", gap: 10 }}>
+        <input placeholder="Reporting month, e.g. 2026-11" value={month} onChange={(e) => setMonth(e.target.value.trim())} />
+        <input type="file" accept=".csv" multiple onChange={(e) => setFiles(e.target.files || [])} />
+      </div>
+      {month && !valid && <div className="error mt">Use the format 2026-11.</div>}
+      {valid && months.includes(month) && (
+        <div className="notice mt"><span>⚠</span><span>{monthName(month)} is already loaded. These files will replace it.</span></div>
+      )}
+      {done && <div className="notice mt"><span>✓</span><span>Files received. Processing has started; this page updates when it finishes.</span></div>}
+      {last && (
+        <div className="small muted mt">
+          Latest processing run: <Tag color={last.state === "SUCCESS" ? "green" : last.state === "FAILED" ? "red" : "blue"}>{last.state === "SUCCESS" ? "Completed" : last.state === "FAILED" ? "Stopped: check the file" : "In progress"}</Tag>{" "}
+          {last.started_ms ? new Date(last.started_ms).toLocaleString() : ""}
+        </div>
+      )}
+      <div className="small muted mt">Months loaded: {months.map(monthName).join(", ") || "none"}</div>
+    </Modal>
+  );
+}

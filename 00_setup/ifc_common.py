@@ -18,6 +18,20 @@ import yaml
 CONFIG_RELATIVE = Path("config") / "pipeline_config.yml"
 
 
+def read_text(path):
+    """Text of a file. On Databricks serverless, reading a workspace file sometimes fails with
+    "[Errno 5] Input/output error" for a whole run; the Workspace API still serves it, so fall back to that."""
+    try:
+        with open(path, encoding="utf-8") as f:
+            return f.read()
+    except OSError:
+        if not str(path).startswith("/Workspace/"):
+            raise
+        from databricks.sdk import WorkspaceClient
+        from databricks.sdk.service.workspace import ExportFormat
+        return WorkspaceClient().workspace.download(str(path), format=ExportFormat.AUTO).read().decode("utf-8")
+
+
 def find_repo_root(start=None):
     """Walk up from `start` (default: current directory) to the folder that holds config/pipeline_config.yml."""
     here = Path(start or os.getcwd()).resolve()
@@ -52,8 +66,7 @@ def _deep_merge(base: dict, override: dict) -> dict:
 def _read_yaml(config_path: Path) -> dict:
     """Read one config file. `extends: <file>` (relative to this file) starts from that file and overrides only the
     keys given here, so e.g. a development config can change the schema and nothing else."""
-    with open(config_path) as f:
-        cfg = yaml.safe_load(f) or {}
+    cfg = yaml.safe_load(read_text(config_path)) or {}  # read_text: falls back to the Workspace API on serverless
     parent = cfg.pop("extends", None)
     if parent:
         cfg = _deep_merge(_read_yaml((config_path.parent / parent).resolve()), cfg)
@@ -86,8 +99,7 @@ def load_contracts(contracts_dir):
     """All contracts, keyed by contract name."""
     contracts = {}
     for path in sorted(Path(contracts_dir).glob("*.yml")):
-        with open(path) as f:
-            c = yaml.safe_load(f)
+        c = yaml.safe_load(read_text(path))
         c["_path"] = str(path)
         contracts[c["contract"]["name"]] = c
     if not contracts:

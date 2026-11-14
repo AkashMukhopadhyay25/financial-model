@@ -1,0 +1,182 @@
+[
+ {
+  "question_id": "Q01",
+  "category": "Investment Amount Analysis",
+  "challenge": false,
+  "question": "Show the total IFC loan investment by region for projects approved in the last 5 years."
+ },
+ {
+  "question_id": "Q02",
+  "category": "Investment Amount Analysis",
+  "challenge": false,
+  "question": "List the top 10 projects by Total IFC investment as approved by the Board."
+ },
+ {
+  "question_id": "Q03",
+  "category": "Investment Amount Analysis",
+  "challenge": false,
+  "question": "Compare Equity vs Loan investment across industries, excluding Dropped projects."
+ },
+ {
+  "question_id": "Q04",
+  "category": "Investment Amount Analysis",
+  "challenge": false,
+  "question": "Which countries received more than $1,000M of IFC loan investment across their Active and Closed projects?"
+ },
+ {
+  "question_id": "Q05",
+  "category": "Investment Amount Analysis",
+  "challenge": false,
+  "question": "Show the trend of IFC approved investment year-over-year."
+ },
+ {
+  "question_id": "Q06",
+  "category": "Country & Region Insights",
+  "challenge": false,
+  "question": "What are the top performing regions by committed investment? Treat a project as committed once its agreements are signed, unless it was later Dropped."
+ },
+ {
+  "question_id": "Q07",
+  "category": "Country & Region Insights",
+  "challenge": false,
+  "question": "List the 10 countries with the highest number of Active projects."
+ },
+ {
+  "question_id": "Q08",
+  "category": "Country & Region Insights",
+  "challenge": false,
+  "question": "Show the IFC investment split (Loan / Equity / Guarantee / Risk Management) for East Asia & Pacific, excluding Dropped projects."
+ },
+ {
+  "question_id": "Q09",
+  "category": "Country & Region Insights",
+  "challenge": false,
+  "question": "Which 10 WB Country Codes have the longest average time between approval and signing? Only include codes with at least 10 signed projects."
+ },
+ {
+  "question_id": "Q10",
+  "category": "Timeline & Progress Monitoring",
+  "challenge": false,
+  "question": "For each industry, show the number of projects approved and the number first invested each year from 2020 to 2025."
+ },
+ {
+  "question_id": "Q11",
+  "category": "Timeline & Progress Monitoring",
+  "challenge": false,
+  "question": "Show the average time taken between: Approval → Signing → Investment for each region."
+ },
+ {
+  "question_id": "Q12",
+  "category": "Timeline & Progress Monitoring",
+  "challenge": false,
+  "question": "List Pending projects whose Projected Board Date has passed as of their As of Date but that have not yet been approved."
+ },
+ {
+  "question_id": "Q13",
+  "category": "Document & Project-Level",
+  "challenge": true,
+  "question": "Which Active projects have new renewable power generation as their main purpose? Show the count and approved amount by region."
+ },
+ {
+  "question_id": "Q14",
+  "category": "Document & Project-Level",
+  "challenge": false,
+  "question": "How many Summary of Proposed Investment documents were disclosed each year after 2020?"
+ },
+ {
+  "question_id": "Q15",
+  "category": "Document & Project-Level",
+  "challenge": false,
+  "question": "Which projects have an Environmental Category = A but are still Pending? Show the count and approved amount by region."
+ },
+ {
+  "question_id": "Q16",
+  "category": "Document & Project-Level",
+  "challenge": false,
+  "question": "Find all projects with Document Type = Environmental & Social Review Summary, broken down by Environmental Category."
+ },
+ {
+  "question_id": "Q17",
+  "category": "Department & Product Line Insights",
+  "challenge": false,
+  "question": "Show approved investment by Department for projects approved in the last 5 years."
+ },
+ {
+  "question_id": "Q18",
+  "category": "Department & Product Line Insights",
+  "challenge": false,
+  "question": "Compare Product Line categories (Loan, Equity, Guarantee, Risk Management) across regions, excluding Dropped projects."
+ },
+ {
+  "question_id": "Q19",
+  "category": "Department & Product Line Insights",
+  "challenge": false,
+  "question": "Which industries receive the largest risk management investments, and what share of each industry's investment is risk management?"
+ },
+ {
+  "question_id": "Q20",
+  "category": "Department & Product Line Insights",
+  "challenge": false,
+  "question": "Show the number of projects approved by each Department yearly from 2020 to 2025."
+ },
+ {
+  "question_id": "Q21",
+  "category": "Status & Risk-Based",
+  "challenge": false,
+  "question": "Find all Dropped projects with more than $250M originally approved investment."
+ },
+ {
+  "question_id": "Q22",
+  "category": "Status & Risk-Based",
+  "challenge": false,
+  "question": "List all Active projects whose first investment came more than 2 years after Board approval."
+ },
+ {
+  "question_id": "Q23",
+  "category": "Status & Risk-Based",
+  "challenge": false,
+  "question": "What percentage of projects are Active, Closed, Pending, and Dropped in each region?"
+ },
+ {
+  "question_id": "Q24",
+  "category": "Text & Semantic Search",
+  "challenge": true,
+  "question": "What is the total new renewable generation capacity (MW) of Active and Closed projects, by region, and how many of these projects do not state a capacity?"
+ },
+ {
+  "question_id": "Q25",
+  "category": "Text & Semantic Search",
+  "challenge": true,
+  "question": "Summarize IFC's financing for micro, small and medium enterprises, excluding Dropped projects: number of projects, approved amount, top 5 countries, and the main groups of businesses targeted."
+ },
+ {
+  "question_id": "Q26",
+  "category": "Text & Semantic Search",
+  "challenge": true,
+  "question": "Which projects’ descriptions describe a different financing product than the one recorded in Product Line? Show the count by recorded Product Line and list the projects."
+ },
+ {
+  "question_id": "Q27",
+  "category": "Complex Multi-Metric Analysis",
+  "challenge": false,
+  "question": "Show a bubble chart for the 15 countries with the highest approved investment (excluding Dropped): x = Loan Investment, y = Equity Investment, size = Total IFC Investment."
+ },
+ {
+  "question_id": "Q28",
+  "category": "Complex Multi-Metric Analysis",
+  "challenge": false,
+  "question": "Which projects have a Board-approved total that differs from the sum of their product allocations (Loan + Equity + Guarantee + Risk Management) by more than $1M?"
+ },
+ {
+  "question_id": "Q29",
+  "category": "Complex Multi-Metric Analysis",
+  "challenge": false,
+  "question": "List multi-product projects (more than one product with a non-zero allocation) and their totals."
+ },
+ {
+  "question_id": "Q30",
+  "category": "Complex Multi-Metric Analysis",
+  "challenge": false,
+  "question": "Provide a heatmap of region vs industry based on total approved investment, excluding Dropped projects."
+ }
+]

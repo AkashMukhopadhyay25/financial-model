@@ -58,9 +58,7 @@ reporting:
 ai:
   # Any chat model under Serving works; check the exact name in your workspace.
   llm_endpoint: databricks-meta-llama-3-3-70b-instruct
-  # false = rule-based text features only (no model calls). Off for the first run in a new workspace: results come
-  # from the imported cache (legacy_llm_cache_table) and nothing is sent to the model.
-  run_llm_extraction: false
+  run_llm_extraction: true          # false = rule-based text features only (no model calls)
   # Rows sent to the model per run. Keep 5 for smoke tests. Set to empty (null) for the full run
   # ONLY with explicit approval: the full run takes ~60 min on a pay-per-token endpoint.
   llm_extraction_limit: 5
@@ -77,7 +75,7 @@ serving:
   sql_warehouse_id: a7792da7c24287a3
   # From the Genie space URL: .../genie/rooms/<id>. Left empty on purpose: the space is rebuilt on the
   # merged tables in phase 8, then its ID goes here.
-  genie_space_id:
+  genie_space_id: 01f1dfb2b45c126bb81182a497d5866f   # "IFC Certified Investment Portfolio" in dbc-ba139e62-9140
   # Unity Catalog model name (created in {catalog}.{schema}) for the CFO Decision Advisor agent.
   uc_model_name: cfo_decision_advisor
 
@@ -96,6 +94,15 @@ business:
     risk_rating: 0.4
     distress: 0.4
     closed_loss: 0.2
+  early_warning:                          # A22: emerging-risk signals per client (clients with Active projects)
+    min_watchlist_projects: 2             # "Multiple Watchlist projects"
+    min_active_rating_5_6: 1              # "Internal risk ratings 5-6": Active projects rated 5 or 6
+    min_review_overdue: 1                 # "Long time since last review": Active projects overdue (mon_flag_review_overdue)
+    min_past_due: 1                       # "Existing Past Due projects"
+    concentration_share: 0.5              # "Concentration in one country": top country's share of current exposure
+    concentration_min_active: 3           # ... only for clients with at least this many Active projects
+    high_priority_min_signals: 3          # HIGH priority = at least this many signals
+    medium_priority_min_signals: 2        # MEDIUM = at least this many; otherwise REVIEW
 
 # --- Portfolio-level checks (01_data/06_dq_checks.py) ---------------------------------------------------------
 dq_checks:

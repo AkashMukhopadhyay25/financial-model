@@ -1,0 +1,179 @@
+import React, { useState } from "react";
+import { useApp } from "../App.jsx";
+import { AskBar } from "../Genie.jsx";
+import { ago, date, int, musd } from "../format.js";
+import { ErrorBox, EvidenceDrawer, Info, Loading, OkIcon, SplitBar, Stripe, Tag, useApi } from "../ui.jsx";
+
+const STORIES = [
+  { page: "portfolio", eyebrow: "WS1 · Portfolio analytics", color: "blue", q: "What does IFC's portfolio look like?", d: "Explore metrics and answer recurring questions in plain language." },
+  { page: "risk", eyebrow: "WS2 · Integrated risk & exposure", color: "red", q: "Where is IFC exposed, and what are the potential losses?", d: "Join project and monitoring records to answer the two Board questions." },
+  { page: "clients", eyebrow: "WS3 · Client intelligence", color: "green", q: "Which client relationships should IFC prioritize or reconsider?", d: "Support client recommendations and quantify affected exposure." },
+  { page: "early-warning", eyebrow: "Early warning intelligence", color: "amber", q: "What could become a problem before it becomes Past Due?", d: "Flag emerging risk signals for human investigation." },
+];
+
+export default function Overview() {
+  const { nav, openLibrary } = useApp();
+  const { data, error, loading } = useApi("/api/overview");
+  const [evidence, setEvidence] = useState(false);
+  const [text, setText] = useState("");
+
+  const route = (q) => {
+    const t = q.trim();
+    if (/^\/?investigate/i.test(t)) return nav("early-warning");
+    if (/^\/?board/i.test(t)) return nav("briefing");
+    nav("portfolio", { q: t.replace(/^\/portfolio question\s*/i, ""), t: Date.now() });
+  };
+
+  const k = data?.kpis;
+  const a = data?.alerts || {};
+  const maxAlert = Math.max(Number(k?.clients) || 0, 1); // alert bars = share of all clients
+  const STATUS_COLOR = { Active: "#1f9d55", Pending: "#2f66f6", Closed: "#9aa1b3", Dropped: "#c9302c" };
+  const BAND = { CONTINUE: ["Continue", "#1f9d55"], MONITOR: ["Monitor", "#2f66f6"], REDUCE_OR_REVIEW: ["Review", "#e29a12"] };
+  const byStatus = (key) => ["Active", "Pending", "Closed", "Dropped"].map((st) => ({
+    label: st, color: STATUS_COLOR[st], value: Number((data?.status_mix || []).find((x) => x.status === st)?.[key] || 0) }));
+  const byBand = Object.entries(BAND).map(([b, [label, color]]) => ({
+    label, color, value: Number((data?.client_bands || []).find((x) => x.band === b)?.clients || 0) }));
+  return (
+    <>
+      <div className="page-head" style={{ marginTop: 22 }}>
+        <div>
+          <h1 className="title">Executive overview</h1>
+        </div>
+        <div className="actions">
+          <button className="btn" onClick={() => nav("briefing")}>Export / briefing</button>
+          <button className="btn dark" onClick={() => nav("early-warning")}>Investigate an alert</button>
+        </div>
+      </div>
+
+      <div id="ask" style={{ marginBottom: 14 }}>
+        <AskBar
+          value={text}
+          onChange={setText}
+          placeholder="Ask a portfolio question, investigate an alert or prepare a Board briefing"
+          onAsk={route}
+          variant="hero"
+          extraChip={
+            <>
+              <button className="chip" onClick={() => document.querySelector("#ask input")?.focus()}>/portfolio question</button>
+              <button className="chip" onClick={() => nav("early-warning")}>/investigate alert</button>
+              <button className="chip" onClick={() => nav("briefing")}>/Board briefing</button>
+              <button className="chip plain" onClick={() => openLibrary()}>Browse 30-question library</button>
+            </>
+          }
+        />
+      </div>
+      {error && <ErrorBox error={error} />}
+      {loading && <Loading />}
+      {k && (
+        <div className="grid g3">
+          <Kpi label="Approved investment" tag={`As of ${date(k.reporting_date)}`} tagColor="blue" value={musd(k.approved_musd, { digits: 1 })} bar={<SplitBar segments={byStatus("approved_musd")} format={(v) => musd(v)} legend />}
+               info={`Board-approved total, every status (A03, A08), as of ${date(k.reporting_date)}.`} onClick={() => setEvidence(true)} />
+          <Kpi label="Projects" tag={`${int(k.active_projects)} Active`} tagColor="green" value={int(k.projects)} bar={<SplitBar segments={byStatus("projects")} legend />}
+               info={`${int(k.active_projects)} Active. Counted by project URL (A01).`} onClick={() => nav("portfolio")} />
+          <Kpi label="Clients" tag={`${int(byBand.find((b) => b.label === "Review")?.value || 0)} to review`} tagColor="amber" value={int(k.clients)} bar={<SplitBar segments={byBand} legend />}
+               info="Distinct clients with monitored projects, split by client band (A15)." onClick={() => nav("clients", { step: "directory" })} />
+        </div>
+      )}
+
+      <div className="grid g3 mt">
+        <div className="card">
+          <div className="card-head">
+            <h3>Priority risk alerts {k && <Info align="left" text={`Clients with early-warning signals (A22). Bars show the share of all ${int(k.clients)} clients. Separately, ${int(k.projects_needing_review)} projects carry data-quality flags (${int(k.projects_high_severity)} high); they stay in every total.`} />}</h3>
+            <button className="icon-btn" aria-label="Open early warning" onClick={() => nav("early-warning")}>↗</button>
+          </div>
+          <AlertRow label="High priority" n={a.HIGH} max={maxAlert} color="var(--red)" />
+          <AlertRow label="Requiring review" n={a.MEDIUM} max={maxAlert} color="var(--amber)" />
+          <AlertRow label="Monitoring reminders" n={a.REVIEW} max={maxAlert} color="var(--blue)" />
+        </div>
+        <div className="card" style={{ background: "linear-gradient(180deg,#fff,#f6f8fc)" }}>
+          <h3 style={{ marginBottom: 12 }}>Recent portfolio activity</h3>
+          <div className="activity">
+            {(data?.activity || []).map((x) => (
+              <div key={x.label}>
+                <OkIcon />
+                <span>
+                  {x.label}
+                  <small>{ago(x.at)}</small>
+                </span>
+              </div>
+            ))}
+            {data && !data.activity?.length && <div className="muted small">No activity logged yet.</div>}
+          </div>
+        </div>
+        <RiskCard r={data?.risk} onOpen={() => nav("risk")} />
+      </div>
+
+
+      <div className="section-title" style={{ marginTop: 22 }}>One connected product story</div>
+      <div className="grid g4">
+        {STORIES.map((s) => (
+          <div key={s.page} className="card story" onClick={() => nav(s.page)}>
+            <div className={`eyebrow ${s.color}`}>{s.eyebrow}</div>
+            <h4>{s.q}</h4>
+          </div>
+        ))}
+      </div>
+      {evidence && <EvidenceDrawer items={data.evidence} onClose={() => setEvidence(false)} />}
+    </>
+  );
+}
+
+function Kpi({ label, tag, tagColor, value, info, onClick, bar }) {
+  return (
+    <div className="card" style={{ cursor: "pointer" }} onClick={onClick}>
+      <div className="kpi-label">
+        <span>{label} <Info text={info} align="left" /></span> <span className={`tag ${tagColor}`}>{tag}</span>
+      </div>
+      <div className="kpi-value">{value}</div>
+      {bar}
+    </div>
+  );
+}
+
+function AlertRow({ label, n, max, color }) {
+  return (
+    <div className="alert-row">
+      <div className="top">
+        <span>{label}</span>
+        <b>{n ?? "–"}</b>
+      </div>
+      <Stripe value={(n || 0) / max} color={color} />
+    </div>
+  );
+}
+
+// Credit risk at a glance: the WS2 Board answer (expected credit loss and the exposure behind it). Opens Risk & exposure.
+function RiskCard({ r, onOpen }) {
+  // The bar is the disbursed exposure; its solid red part is the expected credit loss in the headline.
+  const pd = r?.past_due_disbursed_musd || 0, wl = r?.watchlist_disbursed_musd || 0, ecl = r?.expected_credit_loss_musd || 0;
+  const exposure = pd + wl;
+  const segs = [
+    { cls: "ecl", v: ecl, t: `Expected loss ${musd(ecl)}: 60% of Past Due disbursed` },
+    { cls: "pd", v: Math.max(0, pd - ecl), t: `Rest of Past Due ${musd(pd - ecl)}: disbursed, not expected to be lost` },
+    { cls: "wl", v: wl, t: `Watchlist ${musd(wl)}: disbursed, no provision` },
+  ];
+  return (
+    <div className="copilot risk-card" onClick={onOpen} role="button" tabIndex={0} onKeyDown={(e) => e.key === "Enter" && onOpen()}>
+      <div>
+        <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+          <Tag>Credit risk at a glance</Tag>
+          <span className="small" style={{ opacity: 0.85 }}>Open ↗</span>
+        </div>
+        <div className="risk-label">Expected credit loss</div>
+        <div className="risk-value">{r ? musd(ecl) : "…"}</div>
+        <div className="risk-sub">{exposure ? `${Math.round((100 * ecl) / exposure)}% of ${musd(exposure)} disbursed exposure` : ""}</div>
+      </div>
+      <div>
+        <div className="risk-split">
+          {segs.map((x) => <div key={x.cls} style={{ flex: x.v || 0.001 }} className={x.cls} title={x.t} />)}
+        </div>
+        <div className="risk-legend">
+          <span title={segs[0].t}><i className="ecl" />Loss<em className="amt">&nbsp;{musd(ecl)}</em></span>
+          <span title={segs[1].t}><i className="pd" />Past Due rest<em className="amt">&nbsp;{musd(pd - ecl)}</em></span>
+          <span title={segs[2].t}><i className="wl" />Watchlist<em className="amt">&nbsp;{musd(wl)}</em></span>
+        </div>
+        <div className="risk-foot">{r ? `${int(r.projects)} Category A projects · ${int(r.clients)} clients` : ""}</div>
+      </div>
+    </div>
+  );
+}

@@ -7,7 +7,7 @@
 # MAGIC
 # MAGIC | Table | What it holds | How it is built |
 # MAGIC |---|---|---|
-# MAGIC | `ref_assumptions` | Business definitions A01–A21 applied to every answer | Rebuilt each run. Thresholds come from `config/pipeline_config.yml`; counts quoted in the text come from the validated tables, so the wording never drifts from the data. |
+# MAGIC | `ref_assumptions` | Business definitions A01–A22 applied to every answer | Rebuilt each run. Thresholds come from `config/pipeline_config.yml`; counts quoted in the text come from the validated tables, so the wording never drifts from the data. |
 # MAGIC | `ref_region_mapping` | Region labels restated to the data-dictionary value (A06) | Rebuilt each run **from the projects contract's `standardize` block**, the one source of truth Stage 3 also uses. |
 # MAGIC | `ref_product_vocabulary` | Financing instruments named in descriptions → Product Line (Q26) | Rebuilt each run. |
 # MAGIC | `ref_text_feature_overrides` | Reviewer decisions on flagged text attributes (human in the loop) | **Created only if missing. Never replaced or emptied**: it holds human decisions. |
@@ -67,9 +67,9 @@ def read_facts() -> dict:
 
 # COMMAND ----------
 
-# MAGIC %md ## Assumptions A01–A21
+# MAGIC %md ## Assumptions A01–A22
 # MAGIC A01–A17 are the teammate's definitions, updated where the merged pipeline changed them (A03, A06, A07, A08,
-# MAGIC A11, A15, A17). A18–A21 are new: review overdue, Board date passed, quarantine vs flag, data contracts.
+# MAGIC A11, A15, A17). A18–A22 are new: review overdue, Board date passed, quarantine vs flag, data contracts, early-warning signals.
 
 # COMMAND ----------
 
@@ -82,6 +82,7 @@ def build_assumptions(cfg: dict, f: dict) -> list:
     q28 = biz["q28_allocation_threshold_musd"]
     ecl = biz["ecl_loss_rate"]
     rod = thr["review_overdue_days"]
+    ew = biz["early_warning"]
     exemptions = thr.get("review_exemptions") or []
     rep = fmt_date(f["reporting_date"])
     restated = "; ".join(f'"{k}" ({v} projects)' for k, v in sorted(f["restated"].items())) or "none in the current data"
@@ -213,6 +214,17 @@ def build_assumptions(cfg: dict, f: dict) -> list:
          "explicit and versioned.",
          f"schema_gate.allow_column_reorder = {cfg['schema_gate']['allow_column_reorder']}; contract versions: "
          + ", ".join(f"{k} {v['contract']['version']}" for k, v in sorted(CONTRACTS.items()))),
+        ("A22", "Early-warning signals",
+         "For every client with Active projects, five transparent signals are checked (certified_early_warning): "
+         f"{ew['min_watchlist_projects']}+ Watchlist projects; {ew['min_active_rating_5_6']}+ Active projects rated 5-6; "
+         f"{ew['min_review_overdue']}+ Active projects overdue for review (A18); {ew['min_past_due']}+ Past Due projects; "
+         f"{ew['concentration_share']:.0%}+ of current exposure in one country (clients with "
+         f"{ew['concentration_min_active']}+ Active projects). Priority: HIGH = {ew['high_priority_min_signals']}+ signals "
+         f"(escalate), MEDIUM = {ew['medium_priority_min_signals']} (updated review), otherwise REVIEW (investigation). "
+         "Industry concentration is not a signal: every client operates in a single industry in this data.",
+         "Signals point an analyst to where to look; they are not a prediction of default and never trigger an automatic "
+         "investment decision.",
+         "business.early_warning"),
     ]
 
 
@@ -220,7 +232,7 @@ def build_assumptions(cfg: dict, f: dict) -> list:
 
 FACTS = read_facts()
 ASSUMPTIONS = build_assumptions(CFG, FACTS)
-assert [a[0] for a in ASSUMPTIONS] == [f"A{i:02d}" for i in range(1, 22)], "Assumption IDs must be A01..A21 in order"
+assert [a[0] for a in ASSUMPTIONS] == [f"A{i:02d}" for i in range(1, 23)], "Assumption IDs must be A01..A22 in order"
 
 from pyspark.sql.types import StringType, StructField, StructType  # noqa: E402
 
@@ -229,7 +241,7 @@ _schema = StructType([StructField(c, StringType()) for c in
 spark.createDataFrame(ASSUMPTIONS, _schema).write.mode("overwrite").option("overwriteSchema", "true") \
     .saveAsTable(T("ref_assumptions"))
 spark.sql(f"COMMENT ON TABLE {T('ref_assumptions')} IS "
-          "'Business definitions and assumptions (A01-A21) applied consistently across every answer, Genie and the agent. "
+          "'Business definitions and assumptions (A01-A22) applied consistently across every answer, Genie and the agent. "
           "Thresholds come from pipeline_config.yml; counts are computed from the validated tables.'")
 print(f"ref_assumptions: {len(ASSUMPTIONS)} rows")
 
