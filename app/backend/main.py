@@ -16,7 +16,7 @@ from fastapi.responses import FileResponse, JSONResponse
 from fastapi.staticfiles import StaticFiles
 from pydantic import BaseModel, Field
 
-from . import genie, queries
+from . import genie, monthly, queries
 from .settings import get_settings
 
 log = logging.getLogger("ifc_app")
@@ -115,6 +115,55 @@ def briefing():
 @app.get("/api/assumptions")
 def assumptions():
     return queries.assumptions()
+
+
+@app.get("/api/monthly/status")
+def monthly_status():
+    return monthly.status()
+
+
+@app.get("/api/monthly/compare")
+def monthly_compare(a: str, b: str, dimension: str = "Portfolio"):
+    try:
+        return monthly.compare(a, b, dimension)
+    except ValueError as e:
+        raise HTTPException(400, str(e))
+
+
+@app.get("/api/monthly/series")
+def monthly_series():
+    return monthly.series()
+
+
+@app.get("/api/monthly/changes")
+def monthly_changes(a: str, b: str, change_type: str = ""):
+    try:
+        return monthly.changes(a, b, change_type)
+    except ValueError as e:
+        raise HTTPException(400, str(e))
+
+
+class UploadFile64(BaseModel):
+    name: str = Field(min_length=1, max_length=200)
+    content_base64: str
+
+
+class MonthUpload(BaseModel):
+    month: str
+    files: list[UploadFile64]
+
+
+@app.post("/api/monthly/upload")
+def monthly_upload(body: MonthUpload):
+    try:
+        return monthly.upload(body.month, [f.model_dump() for f in body.files])
+    except ValueError as e:
+        raise HTTPException(400, str(e))
+
+
+@app.get("/api/monthly/runs")
+def monthly_runs():
+    return monthly.runs()
 
 
 class AskBody(BaseModel):
