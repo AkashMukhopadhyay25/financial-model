@@ -16,7 +16,13 @@ const KPI_TEXT = {
   R04: { label: "Expected credit loss", foot: "60% of disbursed on Past Due projects (A11)" },
   M01: { label: "Overdue monitoring reviews", foot: "Active projects past their review deadline (A18)" },
 };
-const monthName = (m) => (m ? new Date(`${m}-01T00:00:00`).toLocaleString("en-US", { month: "long", year: "numeric" }) : "");
+const FILTERS = [
+  { id: "attention", label: "Needs attention", dirs: ["Deteriorated", "Mixed"] },
+  { id: "improved", label: "Improved", dirs: ["Improved"] },
+  { id: "growth", label: "New business", dirs: ["New business"] },
+  { id: "all", label: "All changes", dirs: ["Deteriorated", "Mixed", "Improved", "New business"] },
+];
+const monthName =(m) => (m ? new Date(`${m}-01T00:00:00`).toLocaleString("en-US", { month: "long", year: "numeric" }) : "");
 const short = (m) => (m ? new Date(`${m}-01T00:00:00`).toLocaleString("en-US", { month: "short" }) : "");
 
 function fmtKpi(v, unit) {
@@ -29,7 +35,7 @@ export default function Monthly({ params }) {
   const [month, setMonth] = useState(params.month || "");
   const [tick, setTick] = useState(0);
   const { data, error, loading } = useApi(`/api/monthly/review?month=${month}`, [tick]);
-  const [filter, setFilter] = useState("All");
+  const [filter, setFilter] = useState("attention");
   const [shown, setShown] = useState(8);
   const [client, setClient] = useState(null);
   const [evidence, setEvidence] = useState(null);
@@ -41,7 +47,7 @@ export default function Monthly({ params }) {
         <h1 className="title">{data?.ready ? `What changed in ${data.month_name}` : "Monthly review"}</h1>
         <div className="subtitle">
           {data?.ready
-            ? `Compared with ${data.previous_name} · ${int(data.changed_clients)} of ${int(data.total_clients)} clients had a material change`
+            ? `Compared with ${data.previous_name} · ${int(data.counts.Deteriorated + data.counts.Mixed)} clients deteriorated, ${int(data.counts.Improved)} improved and ${int(data.counts["New business"])} added new business, out of ${int(data.total_clients)}`
             : "Month-on-month changes in the certified portfolio"}
         </div>
       </div>
@@ -60,7 +66,8 @@ export default function Monthly({ params }) {
   if (error) return <>{head}<ErrorBox error={error} /></>;
   if (loading && !data) return <>{head}<Loading /></>;
 
-  const clients = (data?.clients || []).filter((c) => filter === "All" || c.direction === filter);
+  const dirs = FILTERS.find((f) => f.id === filter).dirs;
+  const clients = (data?.clients || []).filter((c) => dirs.includes(c.direction));
   return (
     <>
       <div className="eyebrow blue">Monthly review</div>
@@ -77,33 +84,33 @@ export default function Monthly({ params }) {
             {data.kpis.map((k) => <KpiCard key={k.kpi_id} k={k} prev={short(data.previous)} />)}
           </div>
 
-          <div className="grid g3 mt">
-            <Takeaways title="What went well" color="green" items={data.went_right} />
-            <Takeaways title="What needs attention" color="red" items={data.went_wrong} />
-            <Takeaways title="Recommended next steps" color="blue" items={data.next_steps} numbered />
+          <div className="grid g-main mt" style={{ alignItems: "start" }}>
+            <div>
+              <div className="section-title" style={{ marginTop: 6 }}>Clients that changed in {data.month_name}</div>
+              <div className="seg" style={{ marginTop: 0 }}>
+                {FILTERS.map((f) => (
+                  <button key={f.id} className={filter === f.id ? "active" : ""} onClick={() => { setFilter(f.id); setShown(8); }}>
+                    {f.label} · {f.dirs.reduce((s, d) => s + (data.counts[d] || 0), 0)}
+                  </button>
+                ))}
+              </div>
+              {clients.slice(0, shown).map((c) => (
+                <ClientRow key={c.client_name} c={c} onOpen={() => setClient(c)} />
+              ))}
+              {clients.length === 0 && <div className="empty">No clients in this group this month.</div>}
+              {clients.length > shown && (
+                <button className="btn" onClick={() => setShown((n) => n + 10)}>Show {Math.min(10, clients.length - shown)} more clients</button>
+              )}
+            </div>
+            <div style={{ display: "grid", gap: 14, marginTop: 52 }}>
+              <Takeaways title="Recommended next steps" color="blue" items={data.next_steps} numbered />
+              <Takeaways title="What needs attention" color="red" items={data.went_wrong} />
+              <Takeaways title="What went well" color="green" items={data.went_right} />
+              <div className="small muted">
+                These summaries follow fixed rules applied to the certified figures, so the same data always gives the same wording.
+              </div>
+            </div>
           </div>
-          <div className="small muted" style={{ marginTop: 8 }}>
-            Summaries are generated by fixed rules from the certified figures, so the same data always gives the same wording.
-          </div>
-
-          <div className="section-title">Clients that changed in {data.month_name}</div>
-          <div className="seg" style={{ marginTop: 0 }}>
-            {["All", "Deteriorated", "Mixed", "Improved", "New business"].map((f) => {
-              const n = f === "All" ? data.changed_clients : data.counts[f];
-              return n || f === "All" ? (
-                <button key={f} className={filter === f ? "active" : ""} onClick={() => { setFilter(f); setShown(8); }}>
-                  {f} · {n}
-                </button>
-              ) : null;
-            })}
-          </div>
-          {clients.slice(0, shown).map((c) => (
-            <ClientRow key={c.client_name} c={c} onOpen={() => setClient(c)} />
-          ))}
-          {clients.length === 0 && <div className="empty">No clients in this group this month.</div>}
-          {clients.length > shown && (
-            <button className="btn" onClick={() => setShown((n) => n + 10)}>Show more clients ({clients.length - shown} more)</button>
-          )}
 
           <PortfolioTrend months={data.months} />
         </>
@@ -188,6 +195,13 @@ function ClientRow({ c, onOpen }) {
   );
 }
 
+const AMOUNT_LABEL = {
+  PERFORMANCE_WORSENED: "Disbursed on this project", PERFORMANCE_IMPROVED: "Disbursed on this project",
+  RISK_DOWNGRADE: "Current exposure", RISK_UPGRADE: "Current exposure", REVIEW_OVERDUE: "Current exposure",
+  REVIEW_OVERDUE_CLEARED: "Current exposure", BOARD_APPROVED: "Approved", SIGNED: "Approved", NEW_PROJECT: "Proposed",
+  FIRST_DISBURSEMENT: "First disbursement", STATUS_CHANGE: "Approved",
+};
+
 const CLIENT_SERIES = [
   { key: "exposure_musd", label: "Disbursed exposure", fmt: musd },
   { key: "at_risk", label: "Projects Past Due or on Watchlist", fmt: int },
@@ -239,7 +253,7 @@ function ClientDrawer({ c, month, onClose, onProfile, onEvidence }) {
                 <span className={`dot ${e.impact === "Negative" ? "red" : e.impact === "Positive" ? "green" : "blue"}`} style={{ marginTop: 6, flex: "none" }} />
                 <span>
                   <b style={{ fontWeight: 600 }}>{e.project_name}</b> · {e.text}
-                  {e.amount_musd ? <small>{musd(e.amount_musd)} concerned</small> : null}
+                  {e.amount_musd && AMOUNT_LABEL[e.change_type] ? <small>{AMOUNT_LABEL[e.change_type]}: {musd(e.amount_musd)}</small> : null}
                 </span>
               </div>
             ))}

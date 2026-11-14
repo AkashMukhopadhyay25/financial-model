@@ -144,6 +144,8 @@ CREDIT_POS = {"PERFORMANCE_IMPROVED", "RISK_UPGRADE"}
 GROWTH = {"NEW_PROJECT", "BOARD_APPROVED", "SIGNED", "FIRST_DISBURSEMENT"}
 MATERIAL = CREDIT_NEG | CREDIT_POS | GROWTH | {"STATUS_CHANGE"}
 HEADLINE_KPIS = ["R01", "R02", "R04", "M01"]
+SEVERITY = {"PERFORMANCE_WORSENED": 1, "RISK_DOWNGRADE": 2, "STATUS_CHANGE": 3, "PERFORMANCE_IMPROVED": 4, "RISK_UPGRADE": 5,
+            "BOARD_APPROVED": 6, "SIGNED": 7, "FIRST_DISBURSEMENT": 7, "NEW_PROJECT": 8}
 
 
 def month_name(m: str) -> str:
@@ -233,12 +235,14 @@ FROM {M(HIST)} WHERE date_format(reporting_month, 'yyyy-MM') = :m GROUP BY clien
         if (t in CREDIT_NEG or t in CREDIT_POS) and e["project_name"] not in c["_proj"]:
             c["_proj"].add(e["project_name"])
             c["exposure_musd"] += float(e["amount_musd"] or 0)
-        c["events"].append({"project_name": e["project_name"], "text": describe(e), "impact": e["impact"]})
+        c["events"].append({"project_name": e["project_name"], "text": describe(e), "impact": e["impact"],
+                            "rank": SEVERITY.get(t, 9) - (1 if e.get("to_value") == "Past Due" else 0)})
 
     rank = {"Deteriorated": 0, "Mixed": 1, "Improved": 2, "New business": 3}
     out = []
     for c in clients.values():
         c.pop("_proj")
+        c["events"].sort(key=lambda ev: ev["rank"])
         c["direction"] = ("Deteriorated" if c["neg"] > c["pos"] else "Improved" if c["pos"] > c["neg"]
                           else "Mixed" if c["neg"] else "New business")
         want = "Positive" if c["direction"] in ("Improved", "New business") else "Negative"
