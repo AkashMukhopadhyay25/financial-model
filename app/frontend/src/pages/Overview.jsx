@@ -144,7 +144,14 @@ function AlertRow({ label, n, max, color }) {
 
 // Credit risk at a glance: the WS2 Board answer (expected credit loss and the exposure behind it). Opens Risk & exposure.
 function RiskCard({ r, onOpen }) {
-  const pd = r?.past_due_disbursed_musd || 0, wl = r?.watchlist_disbursed_musd || 0;
+  // The bar is the disbursed exposure; its solid red part is the expected credit loss in the headline.
+  const pd = r?.past_due_disbursed_musd || 0, wl = r?.watchlist_disbursed_musd || 0, ecl = r?.expected_credit_loss_musd || 0;
+  const exposure = pd + wl;
+  const segs = [
+    { cls: "ecl", v: ecl, t: `Expected loss ${musd(ecl)}: 60% of Past Due disbursed` },
+    { cls: "pd", v: Math.max(0, pd - ecl), t: `Rest of Past Due ${musd(pd - ecl)}: disbursed, not expected to be lost` },
+    { cls: "wl", v: wl, t: `Watchlist ${musd(wl)}: disbursed, no provision` },
+  ];
   return (
     <div className="copilot risk-card" onClick={onOpen} role="button" tabIndex={0} onKeyDown={(e) => e.key === "Enter" && onOpen()}>
       <div>
@@ -153,16 +160,17 @@ function RiskCard({ r, onOpen }) {
           <span className="small" style={{ opacity: 0.85 }}>Open ↗</span>
         </div>
         <div className="risk-label">Expected credit loss</div>
-        <div className="risk-value">{r ? musd(r.expected_credit_loss_musd) : "…"}</div>
+        <div className="risk-value">{r ? musd(ecl) : "…"}</div>
+        <div className="risk-sub">{exposure ? `${Math.round((100 * ecl) / exposure)}% of ${musd(exposure)} disbursed exposure` : ""}</div>
       </div>
       <div>
         <div className="risk-split">
-          <div style={{ flex: pd || 1 }} className="pd" />
-          <div style={{ flex: wl || 1 }} className="wl" />
+          {segs.map((x) => <div key={x.cls} style={{ flex: x.v || 0.001 }} className={x.cls} title={x.t} />)}
         </div>
         <div className="risk-legend">
-          <span><i className="pd" />Past Due {musd(pd)} · 60% loss</span>
-          <span><i className="wl" />Watchlist {musd(wl)}</span>
+          <span title={segs[0].t}><i className="ecl" />Loss<em className="amt">&nbsp;{musd(ecl)}</em></span>
+          <span title={segs[1].t}><i className="pd" />Past Due rest<em className="amt">&nbsp;{musd(pd - ecl)}</em></span>
+          <span title={segs[2].t}><i className="wl" />Watchlist<em className="amt">&nbsp;{musd(wl)}</em></span>
         </div>
         <div className="risk-foot">{r ? `${int(r.projects)} Category A projects · ${int(r.clients)} clients` : ""}</div>
       </div>

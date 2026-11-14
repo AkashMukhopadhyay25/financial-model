@@ -383,3 +383,11 @@ textarea.note { width: 100%; border: 1px solid var(--line); border-radius: 10px;
 @media (max-width: 1180px) { .splitbar-legend { gap: 8px; font-size: 10.5px; } }
 .splitbar-legend em.pct { font-style: normal; }
 @media (max-width: 1240px) and (min-width: 981px) { .splitbar-legend em.pct { display: none; } }
+
+/* credit-risk bar: solid = expected loss, light = rest of Past Due, amber = Watchlist */
+.risk-split .ecl, .risk-legend i.ecl { background: #ff5a4e; }
+.risk-split .pd, .risk-legend i.pd { background: repeating-linear-gradient(90deg, rgba(255,107,94,.75) 0 3px, rgba(255,107,94,.3) 3px 5px); }
+.risk-card .risk-sub { font-size: 12.5px; opacity: .8; margin-top: 2px; }
+.risk-legend { flex-wrap: nowrap; white-space: nowrap; gap: 12px; font-size: 11.5px; }
+.risk-legend em.amt { font-style: normal; }
+@media (max-width: 1240px) and (min-width: 981px) { .risk-legend em.amt { display: none; } }
