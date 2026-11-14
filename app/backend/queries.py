@@ -128,7 +128,8 @@ def portfolio(filters: dict) -> dict:
     P = T("certified_investment_portfolio")
     where, params = portfolio_where(filters)
     kpi_sql = f"""SELECT count(*) AS projects, round(sum(total_approved_musd), 2) AS approved_musd,
-       count_if(status = 'Active') AS active_projects, count(DISTINCT client_id) AS clients
+       count_if(status = 'Active') AS active_projects, count(DISTINCT client_id) AS clients,
+       max(reporting_date) AS reporting_date
 FROM {P}
 WHERE {where}"""
     region_sql = f"""SELECT region, count(*) AS projects, round(sum(total_approved_musd), 2) AS approved_musd

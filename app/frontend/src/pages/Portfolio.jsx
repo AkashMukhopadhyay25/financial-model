@@ -2,8 +2,8 @@ import React, { useCallback, useEffect, useMemo, useState } from "react";
 import { useApp } from "../App.jsx";
 import { get } from "../api.js";
 import { AskBar, GenieThread, useGenie } from "../Genie.jsx";
-import { int, musd } from "../format.js";
-import { BarChart, Check, DataTable, DqTag, ErrorBox, EvidenceDrawer, Info, Loading, MiniBars, SqlBlock, StatusTag, StepLine, Tag, useApi } from "../ui.jsx";
+import { date, int, musd } from "../format.js";
+import { BarChart, Check, DataTable, DqTag, ErrorBox, EvidenceDrawer, Info, Loading, MiniBars, SqlBlock, StatusTag, Tag, useApi, YearColumns } from "../ui.jsx";
 
 const FILTERS = [
   ["region", "Region"], ["country", "Country"], ["industry", "Industry"], ["department", "Department"],
@@ -101,10 +101,12 @@ export default function Portfolio({ params }) {
           </div>
           <div className="card">
             <div className="card-head">
-              <h3>Approved investment trend</h3>
+              <h3>Approved investment trend <Info align="left" text="Board-approved amount by approval year. Hover a column for its value. The hatched last column is a partial year: it runs only to the reporting date." /></h3>
               <Tag>By approval year</Tag>
             </div>
-            <StepLine data={trend} xKey="year" yKey="approved_musd" />
+            <YearColumns data={trend} xKey="year" yKey="approved_musd" format={(v) => musd(v, { digits: v >= 1000 && v % 1000 === 0 ? 0 : 1 })}
+                         partialYear={k?.reporting_date && !String(k.reporting_date).slice(5).startsWith("12-31") ? String(k.reporting_date).slice(0, 4) : null}
+                         partialLabel={k?.reporting_date ? `to ${date(k.reporting_date).replace(/ \d{4}$/, "")}` : ""} />
           </div>
         </div>
       )}

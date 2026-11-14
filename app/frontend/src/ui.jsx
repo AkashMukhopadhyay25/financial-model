@@ -309,6 +309,72 @@ export function StepLine({ data, xKey, yKey, format = musd, height = 220 }) {
   );
 }
 
+// Column chart by year: value axis with gridlines, every year labelled, hover label above the column.
+// `partialFrom`: the year that is still in progress (drawn hatched, labelled with `partialLabel`).
+export function YearColumns({ data, xKey, yKey, format = musd, height = 230, partialYear, partialLabel, color = "#2f66f6" }) {
+  const [hover, setHover] = useState(null);
+  if (!data?.length) return <div className="empty">No data</div>;
+  const W = 560, H = height, left = 46, top = 30, bottom = 26;
+  const plotH = H - top - bottom, plotW = W - left;
+  const vals = data.map((d) => Number(d[yKey]) || 0);
+  const max = Math.max(...vals) || 1;
+  const step = niceStep(max / 4);
+  const yMax = Math.ceil(max / step) * step;
+  const ticks = Array.from({ length: Math.round(yMax / step) + 1 }, (_, i) => i * step);
+  const slot = plotW / data.length, bw = Math.min(30, slot * 0.62);
+  const y = (v) => top + plotH - (v / yMax) * plotH;
+  const fullVals = vals.filter((_, i) => String(data[i][xKey]) !== String(partialYear));
+  const peak = vals.indexOf(Math.max(...fullVals));
+  const active = hover ?? peak;
+  const ax = left + (active + 0.5) * slot;
+  const isPartial = (i) => String(data[i][xKey]) === String(partialYear);
+  const tip = `${data[active][xKey]}${isPartial(active) && partialLabel ? ` (${partialLabel})` : ""} · ${format(vals[active])}`;
+  const tipW = Math.max(90, tip.length * 6.6);
+  return (
+    <div className="chart">
+      <svg viewBox={`0 0 ${W} ${H}`} role="img" onMouseLeave={() => setHover(null)}>
+        <defs>
+          <pattern id="yc-hatch" width="6" height="6" patternUnits="userSpaceOnUse" patternTransform="rotate(45)">
+            <rect width="6" height="6" fill={color} opacity=".18" />
+            <rect width="2.5" height="6" fill={color} opacity=".55" />
+          </pattern>
+        </defs>
+        {ticks.map((t) => (
+          <g key={t}>
+            <line x1={left} x2={W} y1={y(t)} y2={y(t)} stroke="#eef0f5" />
+            <text x={left - 8} y={y(t) + 4} textAnchor="end">{t === 0 ? "0" : format(t)}</text>
+          </g>
+        ))}
+        {data.map((d, i) => {
+          const x = left + i * slot + (slot - bw) / 2;
+          const h = Math.max(1, y(0) - y(vals[i]));
+          return (
+            <g key={i} onMouseEnter={() => setHover(i)} style={{ cursor: "pointer" }}>
+              <rect x={left + i * slot} y={top} width={slot} height={plotH} fill="transparent" />
+              <rect x={x} y={y(vals[i])} width={bw} height={h} rx="5"
+                    fill={isPartial(i) ? "url(#yc-hatch)" : color} opacity={isPartial(i) ? 1 : i === active ? 1 : 0.32} />
+              <text x={left + (i + 0.5) * slot} y={H - 8} textAnchor="middle" fontWeight={i === active ? 600 : 400}>
+                {`'${String(d[xKey]).slice(-2)}`}
+              </text>
+            </g>
+          );
+        })}
+        <g pointerEvents="none">
+          <rect x={Math.min(W - tipW, Math.max(left, ax - tipW / 2))} y={Math.max(0, y(vals[active]) - 28)} width={tipW} height="21" rx="10" fill="#0f1222" />
+          <text className="tip" x={Math.min(W - tipW / 2, Math.max(left + tipW / 2, ax))} y={Math.max(0, y(vals[active]) - 28) + 14.5}
+                textAnchor="middle" style={{ fill: "#fff", fontSize: 11.5 }}>{tip}</text>
+        </g>
+      </svg>
+    </div>
+  );
+}
+
+function niceStep(raw) {
+  const p = Math.pow(10, Math.floor(Math.log10(raw || 1)));
+  const n = raw / p;
+  return (n <= 1 ? 1 : n <= 2 ? 2 : n <= 5 ? 5 : 10) * p;
+}
+
 export function MiniBars({ data, xKey, yKey, color = "#2f66f6", format = (v) => int(v) }) {
   const [hover, setHover] = useState(null);
   if (!data?.length) return null;
