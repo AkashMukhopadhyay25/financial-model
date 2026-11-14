@@ -49,6 +49,7 @@ What our stages do (already built):
   - `07_snapshot_month` replaces that month's rows in `certified_investment_portfolio_history`.
   - `08_trends` builds `kpi_monthly`, `kpi_month_over_month`, `kpi_latest_scorecard`, `project_month_changes` and `compare_months()`. KPIs live in `trends` in the config.
   - Dev runs use `config/pipeline_config_monthly_dev.yml` (`extends` the main config; schema `portfolio_monthly_dev`). Demo months come from `test_files/make_demo_months`.
+  - **New workspace (2026-11-14):** the generated demo files are committed in `test_files/demo_months/` (README there: story, correction test, job `run_monthly_pipeline` 824387683291203, schema `workspace.portfolio_monthly_dev`, app access). The app page is **Monthly review** (`app/frontend/src/pages/Monthly.jsx`, `app/backend/monthly.py`); the live app deploys from the Git folder `/Users/ritvik.kohli@rotman.utoronto.ca/financial-model-app`.
 
 ## Key data facts
 - **Project Number is NOT unique** (3,559 distinct / 5,000). Joining on it inflates monitoring 3,768 → 6,477. **Join key = `project_url`.** Count projects by URL.
