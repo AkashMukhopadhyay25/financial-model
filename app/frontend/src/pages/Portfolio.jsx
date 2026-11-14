@@ -14,7 +14,6 @@ export default function Portfolio({ params }) {
   const { openLibrary, openAssumptions } = useApp();
   const genie = useGenie();
   const [filters, setFilters] = useState({});
-  const [category, setCategory] = useState(null);
   const [lib, setLib] = useState([]);
   const [evidence, setEvidence] = useState(false);
   const [genieSql, setGenieSql] = useState(null);
@@ -31,10 +30,8 @@ export default function Portfolio({ params }) {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [params.q, params.t]);
 
-  const categories = [...new Set(lib.map((q) => q.category))];
-  const suggestions = (category ? lib.filter((q) => q.category === category) : lib.filter((q) => ["Q01", "Q18", "Q04"].includes(q.question_id)))
-    .slice(0, category ? 6 : 3)
-    .map((q) => ({ label: q.question.length > 34 && !category ? q.question.slice(0, 32) + " …" : q.question, question: q.question }));
+  const suggestions = lib.filter((q) => ["Q01", "Q18", "Q04"].includes(q.question_id))
+    .map((q) => ({ label: q.question.length > 34 ? q.question.slice(0, 32) + " …" : q.question, question: q.question }));
   const onSql = useCallback((s) => setGenieSql(s), []);
 
   const k = data?.kpis;
@@ -46,7 +43,6 @@ export default function Portfolio({ params }) {
       <div className="page-head">
         <div>
           <h1 className="title">Portfolio analytics</h1>
-          <div className="subtitle">Ask a question or explore portfolio performance</div>
         </div>
         <div className="actions">
           <button className="btn" onClick={() => setEvidence(true)}>Evidence / SQL</button>
@@ -59,19 +55,14 @@ export default function Portfolio({ params }) {
         placeholder="Ask about IFC's portfolio…"
         busy={genie.busy}
         onAsk={genie.ask}
-        right={<span className="pill" style={{ boxShadow: "none" }}>Powered by Genie · governed data</span>}
+        variant="hero"
+        right={<span className="hero-pill">Powered by Genie · governed data</span>}
         chips={suggestions}
         extraChip={<button className="chip plain" onClick={() => openLibrary()}>Browse 30-question library</button>}
       />
       <GenieThread genie={genie} onOpenCertified={openLibrary} onSql={onSql} />
+      <div style={{ height: 14 }} />
 
-      <div className="seg">
-        {categories.map((c) => (
-          <button key={c} className={category === c ? "active" : ""} onClick={() => setCategory(category === c ? null : c)}>
-            {c.endsWith("Analysis") || c.endsWith("Insights") || c.endsWith("Monitoring") ? c : `${c} Queries`}
-          </button>
-        ))}
-      </div>
 
       <div className="filters">
         <span className="lbl">
