@@ -375,3 +375,11 @@ textarea.note { width: 100%; border: 1px solid var(--line); border-radius: 10px;
 .splitbar > span:only-child { border-radius: 999px; }
 .splitbar-legend { display: flex; flex-wrap: wrap; gap: 4px 12px; margin-top: 8px; font-size: 11.5px; color: var(--ink-2); }
 .splitbar-legend i { width: 8px; height: 8px; border-radius: 50%; display: inline-block; margin-right: 5px; }
+
+/* split-bar key on one line: tighter spacing, never wraps */
+.splitbar-legend { flex-wrap: nowrap; gap: 10px; font-size: 11px; white-space: nowrap; overflow: hidden; }
+.splitbar-legend span { display: inline-flex; align-items: center; }
+.splitbar-legend i { width: 7px; height: 7px; margin-right: 4px; }
+@media (max-width: 1180px) { .splitbar-legend { gap: 8px; font-size: 10.5px; } }
+.splitbar-legend em.pct { font-style: normal; }
+@media (max-width: 1240px) and (min-width: 981px) { .splitbar-legend em.pct { display: none; } }

@@ -64,7 +64,7 @@ export function SplitBar({ segments, format = (v) => int(v), legend = false, hei
       {legend && (
         <div className="splitbar-legend">
           {segs.map((x) => (
-            <span key={x.label}><i style={{ background: x.color }} />{x.label} {Math.round((100 * x.value) / total)}%</span>
+            <span key={x.label} title={`${x.label}: ${format(x.value)}`}><i style={{ background: x.color }} />{x.label}<em className="pct">&nbsp;{Math.round((100 * x.value) / total)}%</em></span>
           ))}
         </div>
       )}
