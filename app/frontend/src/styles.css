@@ -352,3 +352,5 @@ textarea.note { width: 100%; border: 1px solid var(--line); border-radius: 10px;
 }
 .ask-hero .chip:hover { background: rgba(255, 255, 255, .24); filter: none; }
 .ask-hero .chip-label { color: rgba(255, 255, 255, .75); }
+/* Monthly review */
+.dot.red { background: var(--red); } .dot.green { background: var(--green); } .dot.blue { background: var(--blue); } .dot.amber { background: var(--amber); }

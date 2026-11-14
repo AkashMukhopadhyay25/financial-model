@@ -135,3 +135,217 @@ def runs() -> list:
         out.append({"run_id": r.run_id, "started_ms": r.start_time, "state": state,
                     "message": st.state_message if st else "", "url": r.run_page_url})
     return out
+
+
+# ---------------------------------------------------------------- monthly review (client-centred)
+HIST = "certified_investment_portfolio_history"
+CREDIT_NEG = {"PERFORMANCE_WORSENED", "RISK_DOWNGRADE"}
+CREDIT_POS = {"PERFORMANCE_IMPROVED", "RISK_UPGRADE"}
+GROWTH = {"NEW_PROJECT", "BOARD_APPROVED", "SIGNED", "FIRST_DISBURSEMENT"}
+MATERIAL = CREDIT_NEG | CREDIT_POS | GROWTH | {"STATUS_CHANGE"}
+HEADLINE_KPIS = ["R01", "R02", "R04", "M01"]
+SEVERITY = {"PERFORMANCE_WORSENED": 1, "RISK_DOWNGRADE": 2, "STATUS_CHANGE": 3, "PERFORMANCE_IMPROVED": 4, "RISK_UPGRADE": 5,
+            "BOARD_APPROVED": 6, "SIGNED": 7, "FIRST_DISBURSEMENT": 7, "NEW_PROJECT": 8}
+
+
+def month_name(m: str) -> str:
+    import calendar
+    return f"{calendar.month_name[int(m[5:7])]} {m[:4]}" if m else ""
+
+
+def _money(v) -> str:
+    v = float(v or 0)
+    return f"${v / 1000:,.2f}B" if abs(v) >= 1000 else f"${v:,.0f}M"
+
+
+def _plural(n: int, word: str) -> str:
+    return f"{n} {word}{'' if n == 1 else 's'}"
+
+
+def _amt(rows) -> float:
+    return sum(float(e.get("amount_musd") or 0) for e in rows)
+
+
+def describe(e: dict) -> str:
+    """One plain-English sentence for a project change."""
+    t, f, to = e["change_type"], e.get("from_value"), e.get("to_value")
+    texts = {
+        "PERFORMANCE_WORSENED": f"Repayment status moved from {f or 'Performing'} to {to}",
+        "PERFORMANCE_IMPROVED": f"Repayment status recovered from {f} to {to}",
+        "RISK_DOWNGRADE": f"Internal risk rating worsened from {f} to {to}",
+        "RISK_UPGRADE": f"Internal risk rating improved from {f} to {to}",
+        "NEW_PROJECT": "New project added to the pipeline",
+        "BOARD_APPROVED": "Approved by the Board",
+        "SIGNED": "Investment agreement signed",
+        "FIRST_DISBURSEMENT": "First disbursement made",
+        "STATUS_CHANGE": f"Project status changed from {f} to {to}",
+        "DISBURSED": f"Further disbursement of {_money(e.get('amount_musd'))}",
+        "REVIEW_OVERDUE": f"Monitoring review now overdue ({to} days since the last review)",
+        "REVIEW_OVERDUE_CLEARED": "Overdue monitoring review completed",
+    }
+    return texts.get(t, t.replace("_", " ").capitalize())
+
+
+def _months() -> list:
+    return [r["month_label"] for r in try_q(f"SELECT DISTINCT month_label FROM {M('kpi_monthly')} ORDER BY month_label")]
+
+
+def review(month: str = "") -> dict:
+    months = _months()
+    if len(months) < 2:
+        return {"months": months, "ready": False}
+    month = month if month in months[1:] else months[-1]
+    prev = months[months.index(month) - 1]
+    p = {"m": month}
+
+    kpi_sql = f"""SELECT kpi_id, kpi_name, unit, better, previous_value, value, change, change_pct, assessment
+FROM {M('kpi_month_over_month')}
+WHERE dimension = 'Portfolio' AND month_label = :m"""
+    kpis = {r["kpi_id"]: r for r in q(kpi_sql, p)}
+    events_sql = f"""SELECT client_name, project_name, region, industry, change_type, impact, from_value, to_value, amount_musd
+FROM {M('project_month_changes')}
+WHERE date_format(reporting_month, 'yyyy-MM') = :m"""
+    events = q(events_sql, p)
+    ids_sql = f"""SELECT client_name, max(client_id) AS client_id
+FROM {M(HIST)} WHERE date_format(reporting_month, 'yyyy-MM') = :m GROUP BY client_name"""
+    ids = {r["client_name"]: r["client_id"] for r in q(ids_sql, p)}
+
+    clients = {}
+    for e in events:
+        t = e["change_type"]
+        if t not in MATERIAL:
+            continue
+        c = clients.setdefault(e["client_name"], {
+            "client_name": e["client_name"], "client_id": ids.get(e["client_name"]), "neg": 0, "pos": 0, "growth": 0,
+            "to_past_due": 0, "to_watchlist": 0, "downgrades": 0, "recoveries": 0, "exposure_musd": 0.0,
+            "approved_musd": 0.0, "events": [], "_proj": set()})
+        if t in CREDIT_NEG or (t == "STATUS_CHANGE" and e.get("to_value") == "Dropped"):
+            c["neg"] += 1
+            if t == "PERFORMANCE_WORSENED":
+                c["to_past_due" if e["to_value"] == "Past Due" else "to_watchlist"] += 1
+            elif t == "RISK_DOWNGRADE":
+                c["downgrades"] += 1
+        elif t in CREDIT_POS:
+            c["pos"] += 1
+            c["recoveries"] += 1
+        else:
+            c["growth"] += 1
+            if t == "BOARD_APPROVED":
+                c["approved_musd"] += float(e["amount_musd"] or 0)
+        if (t in CREDIT_NEG or t in CREDIT_POS) and e["project_name"] not in c["_proj"]:
+            c["_proj"].add(e["project_name"])
+            c["exposure_musd"] += float(e["amount_musd"] or 0)
+        c["events"].append({"project_name": e["project_name"], "text": describe(e), "impact": e["impact"],
+                            "rank": SEVERITY.get(t, 9) - (1 if e.get("to_value") == "Past Due" else 0)})
+
+    rank = {"Deteriorated": 0, "Mixed": 1, "Improved": 2, "New business": 3}
+    out = []
+    for c in clients.values():
+        c.pop("_proj")
+        c["events"].sort(key=lambda ev: ev["rank"])
+        c["direction"] = ("Deteriorated" if c["neg"] > c["pos"] else "Improved" if c["pos"] > c["neg"]
+                          else "Mixed" if c["neg"] else "New business")
+        want = "Positive" if c["direction"] in ("Improved", "New business") else "Negative"
+        first = next((ev for ev in c["events"] if ev["impact"] == want), c["events"][0])
+        c["headline"] = f"{first['project_name']}: {first['text'][0].lower()}{first['text'][1:]}"
+        out.append(c)
+    out.sort(key=lambda c: (rank[c["direction"]], -c["exposure_musd"], -c["approved_musd"]))
+
+    return {"ready": True, "months": months, "month": month, "previous": prev, "month_name": month_name(month),
+            "previous_name": month_name(prev), "total_clients": len(ids), "changed_clients": len(out),
+            "counts": {d: sum(1 for c in out if c["direction"] == d) for d in rank},
+            "kpis": [kpis[k] for k in HEADLINE_KPIS if k in kpis], "clients": out,
+            **_narrative(kpis, events, out, prev),
+            "evidence": {"measures": kpi_sql.replace(":m", f"'{month}'"), "project_changes": events_sql.replace(":m", f"'{month}'")}}
+
+
+def _narrative(kpis: dict, events: list, clients: list, prev: str) -> dict:
+    """Rules-based summary: every sentence is computed from the certified figures (no model-written text)."""
+    pn = month_name(prev).split()[0]
+    by = lambda t: [e for e in events if e["change_type"] == t]
+    worse, better, downs = by("PERFORMANCE_WORSENED"), by("PERFORMANCE_IMPROVED"), by("RISK_DOWNGRADE")
+    approved, signed, first = by("BOARD_APPROVED"), by("SIGNED"), by("FIRST_DISBURSEMENT")
+    to_pd = [e for e in worse if e["to_value"] == "Past Due"]
+    to_wl = [e for e in worse if e["to_value"] == "Watchlist"]
+    det = [c for c in clients if c["direction"] == "Deteriorated"]
+    k = lambda i: kpis.get(i) or {}
+
+    def moved(kid, label, money=False):
+        r = k(kid)
+        a, b = r["previous_value"], r["value"]
+        fmt = _money if money else (lambda v: f"{v:,.0f}")
+        return f"{label} {'fell' if b < a else 'rose'} from {fmt(a)} to {fmt(b)}."
+
+    right, wrong, steps = [], [], []
+    if worse:
+        wrong.append(f"{_plural(len(worse), 'project')} slipped in repayment status: {len(to_wl)} onto the Watchlist "
+                     f"and {len(to_pd)} into Past Due ({_money(_amt(worse))} disbursed).")
+    if better:
+        right.append(f"{_plural(len(better), 'project')} recovered their repayment status ({_money(_amt(better))} disbursed).")
+    for kid, label, money in [("M01", "Overdue monitoring reviews", False), ("R01", "Past Due projects", False),
+                              ("R02", "Watchlist projects", False), ("R04", "Expected credit loss", True)]:
+        if k(kid).get("previous_value") is None:
+            continue
+        if k(kid).get("assessment") == "Improving":
+            right.append(moved(kid, label, money))
+        elif k(kid).get("assessment") == "Deteriorating":
+            wrong.append(moved(kid, label, money))
+    if approved or signed or first:
+        bits = [f"{len(approved)} Board approvals ({_money(_amt(approved))})" if approved else "",
+                f"{len(signed)} signings" if signed else "", f"{len(first)} first disbursements" if first else ""]
+        right.append("New business moved forward: " + ", ".join(b for b in bits if b) + ".")
+    if downs:
+        wrong.append(f"{_plural(len(downs), 'project')} had their internal risk rating downgraded.")
+    if len(worse) >= 4:
+        by_ind = {}
+        for e in worse:
+            by_ind[e["industry"]] = by_ind.get(e["industry"], 0) + 1
+        ind, n = max(by_ind.items(), key=lambda x: x[1])
+        if n / len(worse) >= 0.4:
+            wrong.append(f"The slippage is concentrated in {ind}: {n} of the {len(worse)} projects.")
+
+    if to_pd:
+        names = sorted({e["client_name"] for e in to_pd}, key=lambda n: -_amt([e for e in to_pd if e["client_name"] == n]))
+        steps.append(f"Refer the {_plural(len(names), 'client')} with a project newly in Past Due to the Credit Risk "
+                     f"Committee, starting with {' and '.join(names[:2])}.")
+    if to_wl:
+        steps.append(f"Agree recovery plans for the {_plural(len(to_wl), 'project')} newly on the Watchlist before they "
+                     "fall into Past Due.")
+    if det:
+        steps.append(f"Start with the largest deterioration: {det[0]['client_name']} ({_money(det[0]['exposure_musd'])} "
+                     "of disbursed capital affected).")
+    if k("M01").get("value"):
+        steps.append(f"Clear the {k('M01')['value']:,.0f} overdue monitoring reviews, highest risk ratings first.")
+    if not wrong:
+        wrong.append(f"No material deterioration compared with {pn}.")
+    if not right:
+        right.append(f"No material improvement compared with {pn}.")
+    if not steps:
+        steps.append("No action needed beyond routine monitoring.")
+    return {"went_right": right[:4], "went_wrong": wrong[:4], "next_steps": steps[:4]}
+
+
+def client_month(client_name: str, month: str) -> dict:
+    hist_sql = f"""SELECT date_format(reporting_month, 'yyyy-MM') AS month, count(*) AS projects,
+       count_if(status = 'Active') AS active, count_if(performance_status = 'Past Due') AS past_due,
+       count_if(performance_status = 'Watchlist') AS watchlist,
+       round(sum(coalesce(current_disbursed_exposure_musd, 0)), 2) AS exposure_musd,
+       round(sum(coalesce(expected_credit_loss_musd, 0)), 2) AS ecl_musd,
+       round(avg(CASE WHEN status = 'Active' THEN internal_risk_rating END), 2) AS avg_rating,
+       count_if(mon_flag_review_overdue) AS reviews_overdue
+FROM {M(HIST)}
+WHERE client_name = :c
+GROUP BY 1 ORDER BY 1"""
+    ev_sql = f"""SELECT project_name, change_type, impact, from_value, to_value, amount_musd
+FROM {M('project_month_changes')}
+WHERE client_name = :c AND date_format(reporting_month, 'yyyy-MM') = :m
+  AND change_type NOT IN ('DATA_ISSUE_NEW', 'DATA_ISSUE_RESOLVED')
+ORDER BY CASE impact WHEN 'Negative' THEN 1 WHEN 'Positive' THEN 2 ELSE 3 END, abs(amount_musd) DESC NULLS LAST"""
+    hist = q(hist_sql, {"c": client_name})
+    for h in hist:
+        h["month_name"] = month_name(h["month"])
+    events = [{**e, "text": describe(e)} for e in q(ev_sql, {"c": client_name, "m": month})]
+    lit = "'" + client_name.replace("'", "''") + "'"
+    return {"client_name": client_name, "history": hist, "events": events,
+            "evidence": {"client_history": hist_sql.replace(":c", lit),
+                         "client_changes": ev_sql.replace(":c", lit).replace(":m", f"'{month}'")}}

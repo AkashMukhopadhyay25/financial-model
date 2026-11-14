@@ -17,7 +17,7 @@ export const PAGES = [
   { id: "risk", label: "Risk & exposure", el: Risk },
   { id: "clients", label: "Client intelligence", el: Clients },
   { id: "early-warning", label: "Early warning", el: EarlyWarning },
-  { id: "monthly", label: "Monthly trends", el: Monthly },
+  { id: "monthly", label: "Monthly review", el: Monthly },
   { id: "briefing", label: "Board briefing", el: Briefing },
 ];
 
