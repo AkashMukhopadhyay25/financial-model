@@ -43,7 +43,6 @@ export default function Overview() {
       <div className="page-head" style={{ marginTop: 22 }}>
         <div>
           <h1 className="title">Executive overview</h1>
-          <div className="subtitle">A single starting point for the CFO Office</div>
         </div>
         <div className="actions">
           <button className="btn" onClick={() => nav("briefing")}>Export / briefing</button>
