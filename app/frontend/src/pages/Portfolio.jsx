@@ -115,8 +115,8 @@ export default function Portfolio({ params }) {
         <div className="grid g-main mt">
           <div className="card">
             <div className="card-head">
-              <h3>Results table</h3>
-              <span className="small muted">Top 25 projects by Board-approved amount</span>
+              <h3>Top 25 projects</h3>
+              <Tag color="blue">By Board-approved amount</Tag>
             </div>
             <DataTable
               rows={data.projects}
