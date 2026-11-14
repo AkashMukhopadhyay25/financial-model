@@ -332,3 +332,23 @@ textarea.note { width: 100%; border: 1px solid var(--line); border-radius: 10px;
 
 .mini-grid { grid-template-columns: repeat(4, minmax(0, 1fr)); }
 @media (max-width: 640px) { .mini-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); } }
+
+/* ---------- hero ask bar (Overview) ---------- */
+.ask.ask-hero {
+  position: relative; overflow: hidden; border: 0; padding: 26px 26px 22px; border-radius: 22px; color: #fff;
+  background: radial-gradient(420px 260px at 100% 0%, rgba(255, 140, 70, .9), transparent 70%),
+              radial-gradient(600px 360px at 20% 140%, #0b1a5c, transparent 70%),
+              linear-gradient(130deg, #3d63f5 0%, #1c3bb8 50%, #0d1b4c 100%);
+  box-shadow: 0 18px 50px rgba(28, 59, 184, .28);
+}
+.ask-hero .ask-head { color: #fff; font-family: var(--display); font-size: 22px; font-weight: 500; margin: 0 2px 16px; }
+.ask-hero .ask-row { border: 0; border-radius: 16px; padding: 8px 8px 8px 18px; box-shadow: 0 8px 24px rgba(5, 12, 50, .25); }
+.ask-hero .ask-row input { font-size: 15px; padding: 10px 0; }
+.ask-hero .ask-row .btn.dark { padding: 10px 20px; font-size: 14px; background: var(--blue); border-color: var(--blue); }
+.ask-hero .ask-row .btn.dark:hover { background: #2556d9; }
+.ask-hero .chips { margin-top: 14px; }
+.ask-hero .chip, .ask-hero .chip.plain {
+  background: rgba(255, 255, 255, .14); border: 1px solid rgba(255, 255, 255, .28); color: #fff; backdrop-filter: blur(4px);
+}
+.ask-hero .chip:hover { background: rgba(255, 255, 255, .24); filter: none; }
+.ask-hero .chip-label { color: rgba(255, 255, 255, .75); }

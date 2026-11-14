@@ -10,7 +10,7 @@ const LEVEL = {
 };
 
 // The ask bar used across pages. `onAsk` lets a page route the question elsewhere (e.g. Overview -> Portfolio analytics).
-export function AskBar({ prompt = "What would you like to explore next?", placeholder, chips = [], extraChip, onAsk, busy, right, value, onChange }) {
+export function AskBar({ prompt = "What would you like to explore next?", placeholder, chips = [], extraChip, onAsk, busy, right, value, onChange, variant }) {
   const [own, setOwn] = useState("");
   const text = value ?? own;
   const setText = onChange ?? setOwn;
@@ -19,10 +19,10 @@ export function AskBar({ prompt = "What would you like to explore next?", placeh
     if (t.length > 1) onAsk(t);
   };
   return (
-    <div className="ask">
+    <div className={`ask${variant === "hero" ? " ask-hero" : ""}`}>
       <div className="ask-head">
         <span style={{ display: "flex", gap: 8, alignItems: "center" }}>
-          <SparkIcon color="#2f66f6" /> {prompt}
+          <SparkIcon color={variant === "hero" ? "#fff" : "#2f66f6"} size={variant === "hero" ? 16 : 12} /> {prompt}
         </span>
         {right}
       </div>

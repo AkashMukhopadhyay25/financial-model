@@ -50,6 +50,23 @@ export default function Overview() {
         </div>
       </div>
 
+      <div id="ask" style={{ marginBottom: 14 }}>
+        <AskBar
+          value={text}
+          onChange={setText}
+          placeholder="Ask a portfolio question, investigate an alert or prepare a Board briefing"
+          onAsk={route}
+          variant="hero"
+          extraChip={
+            <>
+              <button className="chip" onClick={() => document.querySelector("#ask input")?.focus()}>/portfolio question</button>
+              <button className="chip" onClick={() => nav("early-warning")}>/investigate alert</button>
+              <button className="chip" onClick={() => nav("briefing")}>/Board briefing</button>
+              <button className="chip plain" onClick={() => openLibrary()}>Browse 30-question library</button>
+            </>
+          }
+        />
+      </div>
       {error && <ErrorBox error={error} />}
       {loading && <Loading />}
       {k && (
@@ -102,24 +119,8 @@ export default function Overview() {
         </div>
       </div>
 
-      <div className="mt" id="ask">
-        <AskBar
-          value={text}
-          onChange={setText}
-          placeholder="Ask a portfolio question, investigate an alert or prepare a Board briefing"
-          onAsk={route}
-          extraChip={
-            <>
-              <button className="chip" onClick={() => document.querySelector("#ask input")?.focus()}>/portfolio question</button>
-              <button className="chip" onClick={() => nav("early-warning")}>/investigate alert</button>
-              <button className="chip" onClick={() => nav("briefing")}>/Board briefing</button>
-              <button className="chip plain" onClick={() => openLibrary()}>Browse 30-question library</button>
-            </>
-          }
-        />
-      </div>
 
-      <div className="section-title">One connected product story</div>
+      <div className="section-title" style={{ marginTop: 22 }}>One connected product story</div>
       <div className="grid g4">
         {STORIES.map((s) => (
           <div key={s.page} className="card story" onClick={() => nav(s.page)}>
