@@ -3,7 +3,7 @@
 # MAGIC # run_monthly_pipeline — one click: new uploads → monthly history → trends
 # MAGIC
 # MAGIC **To add data:** put the month's files in the landing volume under `incoming/YYYY-MM/`
-# MAGIC (Catalog → `ifc_challenge` → your schema → Volumes → `landing` → `incoming` → create folder `2026-10` → Upload).
+# MAGIC (Catalog → `workspace` → your schema → Volumes → `landing` → `incoming` → create folder `2026-10` → Upload).
 # MAGIC Then run this notebook (**Run all**). To correct a month, upload the corrected file into the same month folder and
 # MAGIC run again: that month is replaced, every other month stays as it was.
 # MAGIC

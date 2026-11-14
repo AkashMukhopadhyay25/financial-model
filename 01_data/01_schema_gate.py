@@ -63,7 +63,48 @@ def _repo_root():
                             f"Tried: {[str(s) for s in starts]}")
 
 
-REPO_ROOT = _repo_root()
+def _mirror_repo():
+    """Serverless workaround: some workspaces cannot read workspace files next to the running notebook
+    (OSError [Errno 5]). Copy the repo's code, config, contracts and data to local disk through the Workspace API."""
+    import base64
+    from databricks.sdk import WorkspaceClient
+    from databricks.sdk.service.workspace import ExportFormat, ObjectType
+    nb = dbutils.notebook.entry_point.getDbutils().notebook().getContext().notebookPath().get()  # noqa: F821
+    ws_root = nb[len("/Workspace"):] if nb.startswith("/Workspace/") else nb
+    ws_root = ws_root.rsplit("/", 2)[0]          # notebooks sit one folder below the repo root
+    local = Path("/tmp/ifc_repo_mirror")
+    w = WorkspaceClient()
+    for sub in ["00_setup", "config", "contracts", "data"]:
+        for obj in w.workspace.list(f"{ws_root}/{sub}", recursive=True):
+            if obj.object_type != ObjectType.FILE or obj.path.lower().endswith((".pdf", ".xlsx")):
+                continue
+            dest = local / obj.path[len(ws_root) + 1:]
+            dest.parent.mkdir(parents=True, exist_ok=True)
+            dest.write_bytes(base64.b64decode(w.workspace.export(obj.path, format=ExportFormat.AUTO).content))
+    os.environ["IFC_WS_REPO_ROOT"] = "/Workspace" + ws_root
+    print(f"Workspace files not readable here; using a copy of {ws_root} at {local}")
+    return local
+
+
+def _readable_repo_root():
+    try:
+        root = _repo_root()
+        with open(root / "00_setup" / "ifc_common.py") as f:
+            f.read(1)
+        return root
+    except OSError:
+        return _mirror_repo()
+
+
+def _local_path(p):
+    """Map a /Workspace path inside the repo to the local copy (no-op when the repo is read in place)."""
+    ws = os.environ.get("IFC_WS_REPO_ROOT")
+    if p and ws and str(p).startswith(ws):
+        return str(REPO_ROOT) + str(p)[len(ws):]
+    return p
+
+
+REPO_ROOT = _readable_repo_root()
 if str(REPO_ROOT / "00_setup") not in sys.path:
     sys.path.insert(0, str(REPO_ROOT / "00_setup"))
 from ifc_common import T, load_config, load_contracts, load_order, resolve_config_path  # noqa: E402
@@ -74,7 +115,7 @@ try:
     _widget = dbutils.widgets.get("config_path")  # noqa: F821
 except NameError:
     _widget = None
-CONFIG_PATH = resolve_config_path(_widget, REPO_ROOT)
+CONFIG_PATH = resolve_config_path(_local_path(_widget), REPO_ROOT)
 
 try:  # running on Databricks
     spark  # noqa: F821  (provided by the Databricks runtime)

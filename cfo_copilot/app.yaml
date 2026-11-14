@@ -13,3 +13,8 @@ env:
     valueFrom: "sql-warehouse"
   - name: IFC_GENIE_SPACE_ID
     valueFrom: "genie-space"
+  # Monthly history (01_data/run_monthly_pipeline): schema with kpi_monthly etc., and the job the Upload tab starts.
+  - name: IFC_MONTHLY_SCHEMA
+    value: "portfolio_monthly_dev"
+  - name: IFC_MONTHLY_JOB_ID
+    valueFrom: "monthly-job"
