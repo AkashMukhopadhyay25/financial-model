@@ -2,7 +2,7 @@ import React, { useEffect, useState } from "react";
 import { useApp } from "../App.jsx";
 import { flagReview, get } from "../api.js";
 import { int, musd, pct } from "../format.js";
-import { Check, DataTable, DqTag, ErrorBox, EvidenceDrawer, Loading, Modal, StatusTag, Stripe, Tag, useApi } from "../ui.jsx";
+import { Check, DataTable, DqTag, ErrorBox, EvidenceDrawer, Info, Loading, Modal, Stats, StatusTag, Stripe, Tag, useApi } from "../ui.jsx";
 
 const STEPS = [
   ["directory", "Client directory"],
@@ -85,7 +85,14 @@ function BoardRecommendation({ selected, onSelect, onCompare }) {
               </div>
               <div className="amt">{musd(r.exposure_affected_musd)}</div>
               <Stripe value={1} color={l.bar} />
-              <div className="why">{r.evidence_summary}</div>
+              <div className="why">
+                <Stats items={[
+                  { label: "Past Due", value: r.n_past_due, color: "red" },
+                  { label: "Watchlist", value: r.n_watchlist, color: "amber" },
+                  { label: "Active", value: r.n_active },
+                  { label: "health", value: r.health_score != null ? Math.round(r.health_score) : null, color: r.recommendation === "CONTINUE" ? "green" : "" },
+                ]} />
+              </div>
               <button className="link" onClick={(e) => { e.stopPropagation(); onSelect(r.client_id); }}>Open Client 360°</button>
             </div>
           );
@@ -122,8 +129,7 @@ function HumanReview({ clientId, name }) {
     <div className="copilot mt" style={{ cursor: "default", minHeight: 0 }}>
       <div>
         <Tag>Human review</Tag>
-        <h2 style={{ fontSize: 22, margin: "14px 0 8px" }}>Recommendations support, rather than replace, decision-making.</h2>
-        <p>Do not recommend reducing a whole client relationship based on one troubled project alone.</p>
+        <h2 style={{ fontSize: 22, margin: "14px 0 0" }}>Recommendations support, not replace, decisions.</h2>
       </div>
       {!open ? (
         <button className="btn" onClick={() => setOpen(true)} disabled={!clientId}>Flag for review</button>
@@ -159,7 +165,6 @@ function Profile({ id, full }) {
   const s = data.scorecard;
   const band = BAND[s.band] || BAND.MONITOR;
   const disb = s.current_disbursed_exposure_musd || 0, und = s.undisbursed_commitment_musd || 0;
-  const mixText = (m, n = 3) => m.slice(0, n).map((x) => `${x.label ?? "Not reported"} (${x.projects})`).join(", ");
   const climate = data.mix.climate.find((x) => x.label === true || x.label === "true");
   return (
     <>
@@ -167,7 +172,7 @@ function Profile({ id, full }) {
         <div className="card-head">
           <div>
             <h3 style={{ fontSize: 22, fontWeight: 500 }}>Client 360° · {s.client_name}</h3>
-            <div className="card-sub">{s.client_id} · projects • exposure • risk • geography • industry</div>
+            <div className="card-sub">{s.client_id} · {s.primary_industry} · {s.primary_region} <Info align="left" text={s.band_evidence} /></div>
           </div>
           <Tag color={band.color} caps>{band.label}</Tag>
         </div>
@@ -185,29 +190,24 @@ function Profile({ id, full }) {
           {s.expected_credit_loss_musd > 0 && <span><i style={{ background: "var(--red)" }} />ECL {musd(s.expected_credit_loss_musd)}</span>}
         </div>
         <div className="mini-grid mt">
-          <Mini k="Project count" v={int(s.n_projects)} big />
-          <Mini k="Project status" v={mixText(data.mix.status)} />
-          <Mini k="Risk ratings" v={`Avg Active ${s.avg_risk_rating_active ?? "–"} · max ${s.max_risk_rating_active ?? "–"}`} />
-          <Mini k="Geography" v={`${s.primary_region} · ${int(s.n_countries)} countries`} />
-          <Mini k="Industry" v={s.primary_industry} />
-          <Mini k="Product mix" v={mixText(data.mix.product, 4)} />
-          <Mini k="Climate classification" v={`${climate ? climate.projects : 0} of ${s.n_projects} climate-related`} />
-          <Mini k="Monitoring context" v={`Max ${s.max_days_since_review_active ?? "–"} days since review · ${s.n_review_overdue_active} overdue`} />
-          <Mini k="Performance" v={mixText(data.mix.performance, 4)} />
-          <Mini k="Health score" v={`${s.health_score} / 100`} />
-          <Mini k="Distressed share" v={pct(s.distress_share, 1)} />
-          <Mini k="Data quality" v={`${s.n_projects_needing_review} projects flagged (${s.n_high_severity_flags} high)`} />
+          <Mini k="Projects" v={int(s.n_projects)} big />
+          <Mini k="Active" v={int(s.n_active)} big />
+          <Mini k="Health score" v={Math.round(s.health_score)} big />
+          <Mini k="Distressed" v={pct(s.distress_share, 0)} big />
+          <Mini k="Max risk rating" v={s.max_risk_rating_active ?? "–"} big />
+          <Mini k="Reviews overdue" v={int(s.n_review_overdue_active)} big />
+          <Mini k="Countries" v={int(s.n_countries)} big />
+          <Mini k="Climate-related" v={climate ? climate.projects : 0} big />
         </div>
-        <div className="small muted mt">{s.band_evidence}</div>
         {data.recommendation && (
           <div className="notice" style={{ background: "var(--blue-soft)", borderColor: "#cbd9ff", color: "var(--ink)" }}>
-            <span>✦</span><span><b>WS3 recommendation:</b> {data.recommendation.suggested_action}</span>
+            <span>✦</span><span><b>{data.recommendation.recommendation === "CONTINUE" ? "Continue to invest" : "Reduce / review"}</b> <Info align="left" text={data.recommendation.suggested_action} /></span>
           </div>
         )}
         {data.early_warning && (
           <div className="notice">
             <span>⚠</span>
-            <span><b>Early warning ({data.early_warning.priority}):</b> {data.early_warning.triggered_by}. Suggested: {data.early_warning.suggested_action}.</span>
+            <span><b>Early warning · {data.early_warning.priority.toLowerCase()} priority</b> <Info align="left" text={`${data.early_warning.triggered_by}. Suggested: ${data.early_warning.suggested_action}.`} /></span>
           </div>
         )}
         <div className="actions mt">
@@ -266,7 +266,7 @@ function Directory({ initial, onOpen, compareIds, setCompareIds, onCompare }) {
       <div className="card-head" style={{ flexWrap: "wrap" }}>
         <div>
           <h3>Client directory</h3>
-          <div className="card-sub">Ranked by exposure affected. Tick up to 4 clients to compare.</div>
+          <div className="card-sub">Tick up to 4 to compare</div>
         </div>
         <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
           <input className="note" style={{ minHeight: 0, width: 220 }} placeholder="Search name or ID" value={search} onChange={(e) => setSearch(e.target.value)} />
@@ -347,7 +347,7 @@ function Compare({ ids, onPick }) {
       <div className="card-head">
         <div>
           <h3>Client comparison</h3>
-          <div className="card-sub">Same criteria for every client (A15). Figures from certified_client_scorecard.</div>
+          <div className="card-sub">Same criteria for every client (A15)</div>
         </div>
         <button className="btn small" onClick={onPick}>Change clients</button>
       </div>

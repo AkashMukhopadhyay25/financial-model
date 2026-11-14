@@ -3,7 +3,7 @@ import { useApp } from "../App.jsx";
 import { flagReview, invalidate } from "../api.js";
 import { AskBar, GenieThread, useGenie } from "../Genie.jsx";
 import { date, int, musd } from "../format.js";
-import { ErrorBox, EvidenceDrawer, Loading, Tag, useApi } from "../ui.jsx";
+import { ErrorBox, EvidenceDrawer, Info, Loading, Stats, Tag, useApi } from "../ui.jsx";
 
 const PRIORITY = { HIGH: { label: "High priority", color: "red" }, MEDIUM: { label: "Medium priority", color: "amber" }, REVIEW: { label: "Review", color: "teal" } };
 const SIG_COLOR = {
@@ -66,21 +66,19 @@ export default function EarlyWarning() {
                 <div className="kpi-value">{int(data.alerts.length)}</div>
                 <DotPyramid color="#2f66f6" />
               </div>
-              <div className="kpi-foot">{counts.HIGH} high · {counts.MEDIUM} medium · {counts.REVIEW} review</div>
+              <Stats items={[{ label: "high", value: counts.HIGH, color: "red" }, { label: "medium", value: counts.MEDIUM, color: "amber" }, { label: "review", value: counts.REVIEW, color: "blue" }]} />
             </div>
             <div className="card">
-              <div className="kpi-label">Projects to review</div>
+              <div className="kpi-label"><span>Projects to review <Info align="left" text="Active projects of flagged clients that are Watchlist, Past Due, rated 5-6 or overdue for review." /></span></div>
               <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
                 <div className="kpi-value" style={{ color: "#a86a00" }}>{int(data.projects_to_review)}</div>
                 <DotPyramid color="#e29a12" />
               </div>
-              <div className="kpi-foot">Active projects of flagged clients that are Watchlist, Past Due, rated 5-6 or overdue for review</div>
             </div>
             <div className="copilot" style={{ cursor: "default", minHeight: 0 }}>
               <div>
                 <Tag>Guardrail</Tag>
                 <h2 style={{ fontSize: 22, margin: "14px 0 8px" }}>These are risk signals, not proof of future default.</h2>
-                <p>The agent explains concerns and recommends human investigation.</p>
               </div>
             </div>
           </div>
@@ -90,7 +88,6 @@ export default function EarlyWarning() {
               <div style={{ display: "flex", justifyContent: "space-between", alignItems: "baseline", gap: 10, flexWrap: "wrap" }}>
                 <div className="section-title" style={{ margin: "0 0 10px" }}>Emerging risk alerts</div>
                 <span className="small muted">
-                  Grouped by review priority using transparent rules ·{" "}
                   <label><input type="checkbox" checked={showReviewed} onChange={(e) => setShowReviewed(e.target.checked)} /> show reviewed</label>
                 </span>
               </div>
@@ -109,15 +106,21 @@ export default function EarlyWarning() {
                     </div>
                   </div>
                   <div className="desc">
-                    {describe(a)} · exposure affected {musd(a.exposure_affected_musd)} · {a.primary_industry}, {a.primary_region}
+                    <Stats items={[
+                      { label: "exposure", value: musd(a.exposure_affected_musd) },
+                      { label: "Past Due", value: a.n_past_due, color: "red" },
+                      { label: "Watchlist", value: a.n_watchlist, color: "amber" },
+                      { label: "rated 5-6", value: a.n_active_rating_5_6, color: "red" },
+                      { label: "reviews overdue", value: a.n_review_overdue_active, color: "blue" },
+                      a.sig_country_concentration ? { label: `in ${a.top_country}`, value: `${Math.round(a.top_country_exposure_share * 100)}%` } : null,
+                    ]} />
                   </div>
                   <div className="trig">
-                    Triggered by
                     {signals.filter((s) => a[s.column]).map((s) => (
                       <Tag key={s.column} color={SIG_COLOR[s.column]}>{s.label}</Tag>
                     ))}
+                    <span className="sugg" style={{ marginTop: 0, marginLeft: "auto" }}>→ {a.suggested_action}</span>
                   </div>
-                  <div className="sugg">→ Suggested action: {a.suggested_action.toLowerCase()}</div>
                 </div>
               ))}
               {!alerts.length && <div className="card empty">No alerts match the selected indicators.</div>}
@@ -128,8 +131,7 @@ export default function EarlyWarning() {
               )}
             </div>
             <div className="card" style={{ alignSelf: "start", background: "linear-gradient(180deg,#fff,#fff8ef)" }}>
-              <h3>Risk indicators</h3>
-              <div className="card-sub">Potential indicators in the supplied data · tick to filter</div>
+              <h3>Risk indicators <Info align="left" text="Tick to filter the alerts. Suggested actions are investigation, updated review or escalation, never automatic investment decisions. Thresholds: assumption A22." /></h3>
               <div className="checklist mt">
                 {signals.map((s) => (
                   <label key={s.column} className="check" style={{ cursor: "pointer", alignItems: "center" }}>
@@ -139,9 +141,6 @@ export default function EarlyWarning() {
                   </label>
                 ))}
               </div>
-              <p className="small muted" style={{ marginBottom: 0 }}>
-                Suggested actions are investigation, updated review or escalation — not automatic investment decisions. Thresholds: assumption A22.
-              </p>
             </div>
           </div>
 
@@ -167,15 +166,6 @@ export default function EarlyWarning() {
   );
 }
 
-function describe(a) {
-  const parts = [];
-  if (a.n_past_due) parts.push(`${a.n_past_due} Past Due`);
-  if (a.n_watchlist) parts.push(`${a.n_watchlist} Watchlist`);
-  if (a.n_active_rating_5_6) parts.push(`${a.n_active_rating_5_6} Active rated 5-6`);
-  if (a.n_review_overdue_active) parts.push(`${a.n_review_overdue_active} reviews overdue (max ${a.max_days_since_review_active} days)`);
-  if (a.sig_country_concentration) parts.push(`${Math.round(a.top_country_exposure_share * 100)}% of exposure in ${a.top_country}`);
-  return parts.join(" + ") || "Signal triggered";
-}
 
 function DotPyramid({ color }) {
   const cols = [1, 2, 4, 5, 4, 2, 1];

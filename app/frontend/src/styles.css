@@ -309,3 +309,26 @@ textarea.note { width: 100%; border: 1px solid var(--line); border-radius: 10px;
   .topbar, .subbar, .no-print, .actions { display: none !important; }
   .card { box-shadow: none; break-inside: avoid; }
 }
+
+/* ---------- decluttering helpers ---------- */
+.info { position: relative; display: inline-flex; color: #9aa1b3; cursor: help; vertical-align: middle; margin-left: 4px; flex: none; }
+.info:hover, .info:focus { color: var(--ink-2); outline: none; }
+.info-pop {
+  display: none; position: absolute; top: 20px; z-index: 30; width: 260px; background: var(--ink); color: #fff;
+  font-size: 12px; font-weight: 400; line-height: 1.45; padding: 9px 11px; border-radius: 10px; box-shadow: 0 10px 30px rgba(0,0,0,.18);
+  text-transform: none; letter-spacing: 0; white-space: normal; text-align: left;
+}
+.info-right .info-pop { right: -8px; }
+.info-left .info-pop { left: -8px; }
+.info:hover .info-pop, .info:focus .info-pop { display: block; }
+.stats { display: flex; flex-wrap: wrap; gap: 6px; }
+.stat { font-size: 12px; color: var(--ink-2); background: var(--line-2); border-radius: 8px; padding: 4px 9px; white-space: nowrap; }
+.stat b { font-weight: 600; color: var(--ink); }
+.stat.red { background: var(--red-soft); color: var(--red); } .stat.red b { color: var(--red); }
+.stat.amber { background: var(--amber-soft); color: var(--amber-ink); } .stat.amber b { color: var(--amber-ink); }
+.stat.blue { background: var(--blue-soft); color: var(--blue); } .stat.blue b { color: var(--blue); }
+.stat.green { background: var(--green-soft); color: var(--green); } .stat.green b { color: var(--green); }
+.check { align-items: center; }
+
+.mini-grid { grid-template-columns: repeat(4, minmax(0, 1fr)); }
+@media (max-width: 640px) { .mini-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); } }

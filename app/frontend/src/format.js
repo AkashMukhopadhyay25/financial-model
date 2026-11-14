@@ -34,7 +34,8 @@ export function ago(v) {
   if (Number.isNaN(s)) return "";
   if (s < 3600) return `${Math.max(1, Math.round(s / 60))} min ago`;
   if (s < 86400) return `${Math.round(s / 3600)} h ago`;
-  return `${Math.round(s / 86400)} days ago`;
+  const d = Math.round(s / 86400);
+  return d === 1 ? "1 day ago" : `${d} days ago`;
 }
 
 export const title = (s) => (s || "").replace(/_/g, " ").replace(/\b\w/g, (c) => c.toUpperCase());

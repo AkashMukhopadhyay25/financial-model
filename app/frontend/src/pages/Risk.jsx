@@ -1,7 +1,7 @@
 import React, { useState } from "react";
 import { useApp } from "../App.jsx";
 import { int, musd, musdFull } from "../format.js";
-import { Check, DataTable, Dots, DqTag, ErrorBox, EvidenceDrawer, Loading, Stripe, Tag, useApi } from "../ui.jsx";
+import { Check, DataTable, Dots, DqTag, ErrorBox, EvidenceDrawer, Info, Loading, Stats, Stripe, Tag, useApi } from "../ui.jsx";
 
 export default function Risk({ params }) {
   const { nav, openAssumptions } = useApp();
@@ -52,41 +52,34 @@ export default function Risk({ params }) {
           <div>
             <div style={{ fontSize: 13, opacity: 0.9 }}>Expected credit loss</div>
             <h2 style={{ margin: "8px 0 6px", fontSize: 38 }}>{musd(tot.expected_credit_loss_musd)}</h2>
-            <p>{Math.round(data.ecl_loss_rate * 100)}% applied to Past Due disbursements only (A11)</p>
+            <p>{Math.round(data.ecl_loss_rate * 100)}% of Past Due disbursed (A11)</p>
           </div>
         </div>
       </div>
 
       <div className="card mt" style={{ background: "linear-gradient(180deg,#fffaf3,#fff)" }}>
         <div className="card-head">
-          <h3>Exposure breakdown</h3>
-          <span className="small muted">Past Due and Watchlist disbursements, shown separately</span>
+          <h3>Exposure breakdown <Info align="left" text={`Disbursed exposure is not expected credit loss: the ${Math.round(data.ecl_loss_rate * 100)}% loss applies to Past Due only, not Watchlist (A11). A further ${musd(tot.undisbursed_commitment_musd)} is approved but undisbursed (A10).`} /></h3>
+          <Tag color="amber">ECL ≠ exposure</Tag>
         </div>
         <div style={{ display: "flex", gap: 6 }}>
           <div style={{ flex: pdD || 1 }}>
             <div style={{ fontFamily: "var(--display)", fontSize: 18 }}>≈ {musd(pdD)}</div>
             <div className="split-bar"><div style={{ flex: 1, background: "repeating-linear-gradient(90deg,#c9302c 0 3px,transparent 3px 6px)" }} /></div>
-            <div className="legend"><span><i style={{ background: "var(--red)" }} />Past Due disbursed · {Math.round(data.ecl_loss_rate * 100)}% loss applied</span></div>
+            <div className="legend"><span><i style={{ background: "var(--red)" }} />Past Due · {Math.round(data.ecl_loss_rate * 100)}% loss</span></div>
           </div>
           <div style={{ flex: wlD || 1 }}>
             <div style={{ fontFamily: "var(--display)", fontSize: 18 }}>≈ {musd(wlD)}</div>
             <div className="split-bar"><div style={{ flex: 1, background: "repeating-linear-gradient(90deg,#e29a12 0 9px,transparent 9px 12px)" }} /></div>
-            <div className="legend"><span><i style={{ background: "var(--amber)" }} />Watchlist disbursed · no loss applied</span></div>
+            <div className="legend"><span><i style={{ background: "var(--amber)" }} />Watchlist · no loss</span></div>
           </div>
-        </div>
-        <div className="notice">
-          <span>⚠</span>
-          <span>
-            <b>Important:</b> Disbursed exposure is not the same as expected credit loss. The {Math.round(data.ecl_loss_rate * 100)}% loss assumption applies only to
-            Past Due projects, not Watchlist projects. A further {musd(tot.undisbursed_commitment_musd)} is approved but not yet disbursed on these projects (A10).
-          </span>
         </div>
       </div>
 
       <div className="grid g-main mt">
         <div className="card">
           <div className="card-head" style={{ flexWrap: "wrap" }}>
-            <h3><span className="dot" style={{ marginRight: 8 }} />Projects requiring attention</h3>
+            <h3><span className="dot" style={{ marginRight: 8 }} />Projects requiring attention <Info align="left" text={`${int(tot.projects)} projects across ${int(tot.clients)} clients, all Active, Category A. Approved ${musdFull(tot.approved_musd)}; disbursed ${musdFull(tot.disbursed_capital_tied_up_musd)}; ECL ${musdFull(tot.expected_credit_loss_musd)}.`} /></h3>
             <div style={{ display: "flex", gap: 8, alignItems: "center" }}>
               <div className="toggle">
                 {["All", "Past Due", "Watchlist"].map((t) => (
@@ -114,22 +107,17 @@ export default function Risk({ params }) {
               { key: "project_name", label: "Project", strong: true },
               { key: "client_name", label: "Client" },
               { key: "country", label: "Country" },
-              { key: "environmental_category", label: "Category" },
               { key: "performance_status", label: "Status", render: (v) => <Tag color={v === "Past Due" ? "red" : "amber"}>{v}</Tag> },
               { key: "internal_risk_rating", label: "Rating", num: true },
               { key: "approved_musd", label: "Approved", num: true, render: (v) => musd(v) },
               { key: "disbursed_musd", label: "Disbursed", num: true, render: (v) => musd(v) },
               { key: "needs_review", label: "DQ", render: (v, r) => <DqTag needs={v} severity={r.dq_max_severity} /> },
-              { key: "client_id", label: "", render: (v) => <button className="link" onClick={() => nav("clients", { step: "profile", client: v })}>Open client</button> },
+              { key: "client_id", label: "", render: (v) => <button className="link" style={{ whiteSpace: "nowrap" }} onClick={() => nav("clients", { step: "profile", client: v })}>Client →</button> },
             ]}
           />
-          <div className="small muted mt">
-            {int(tot.projects)} projects across {int(tot.clients)} clients, all Active. Approved {musdFull(tot.approved_musd)}; disbursed {musdFull(tot.disbursed_capital_tied_up_musd)}; ECL {musdFull(tot.expected_credit_loss_musd)}.
-          </div>
         </div>
         <div className="card" style={{ background: "linear-gradient(180deg,#fff,#f4f7fd)", alignSelf: "start" }}>
           <h3>Methodology / data quality</h3>
-          <div className="card-sub">How the Board answers were built</div>
           <div className="progress-line mt">
             <Stripe value={done / data.checks.length} color="var(--green)" /> {done} of {data.checks.length} checked
           </div>
@@ -138,9 +126,7 @@ export default function Risk({ params }) {
               <Check key={c.name} ok={c.ok} warn={!c.ok} detail={c.detail}>{c.name}</Check>
             ))}
           </div>
-          <div className="small muted mt">
-            {int(data.data_quality.rows_needing_review)} of {int(data.data_quality.rows_in_scope)} projects in scope carry open data-quality flags ({int(data.data_quality.rows_high_severity)} high).
-          </div>
+          <div className="mt"><Stats items={[{ label: "of " + int(data.data_quality.rows_in_scope) + " flagged", value: int(data.data_quality.rows_needing_review), color: "amber" }, { label: "high", value: int(data.data_quality.rows_high_severity), color: "red" }]} /></div>
           <button className="btn mt" style={{ width: "100%" }} onClick={() => setEvidence(true)}>View SQL / evidence</button>
         </div>
       </div>

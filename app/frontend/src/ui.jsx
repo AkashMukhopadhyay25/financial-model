@@ -71,10 +71,35 @@ export function Check({ ok, warn, children, detail }) {
           "!"
         ) : null}
       </span>
-      <div>
-        {children}
-        {detail && <small>{detail}</small>}
-      </div>
+      <div style={{ flex: 1 }}>{children}</div>
+      {detail && <Info text={detail} />}
+    </div>
+  );
+}
+
+// Small (i) icon: the explanation shows on hover / focus instead of taking space on the page.
+export function Info({ text, align = "right" }) {
+  return (
+    <span className={`info info-${align}`} tabIndex={0} aria-label={typeof text === "string" ? text : "More information"}>
+      <svg width="13" height="13" viewBox="0 0 14 14" aria-hidden>
+        <circle cx="7" cy="7" r="6.2" fill="none" stroke="currentColor" strokeWidth="1.2" />
+        <path d="M7 6.2v3.8M7 4.1v.1" stroke="currentColor" strokeWidth="1.4" strokeLinecap="round" />
+      </svg>
+      <span className="info-pop" role="tooltip">{text}</span>
+    </span>
+  );
+}
+
+// Compact "label value" chips used instead of sentences.
+export function Stats({ items }) {
+  const shown = items.filter((i) => i && i.value !== null && i.value !== undefined && i.value !== 0 && i.value !== "0");
+  return (
+    <div className="stats">
+      {shown.map((i) => (
+        <span key={i.label} className={`stat ${i.color || ""}`}>
+          <b>{i.value}</b> {i.label}
+        </span>
+      ))}
     </div>
   );
 }

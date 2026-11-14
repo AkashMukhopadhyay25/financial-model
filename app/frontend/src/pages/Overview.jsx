@@ -2,7 +2,7 @@ import React, { useEffect, useState } from "react";
 import { useApp } from "../App.jsx";
 import { AskBar } from "../Genie.jsx";
 import { ago, date, int, musd } from "../format.js";
-import { ErrorBox, EvidenceDrawer, Loading, OkIcon, Stripe, Tag, useApi } from "../ui.jsx";
+import { ErrorBox, EvidenceDrawer, Info, Loading, OkIcon, Stripe, Tag, useApi } from "../ui.jsx";
 
 const STORIES = [
   { page: "portfolio", eyebrow: "WS1 · Portfolio analytics", color: "blue", q: "What does IFC's portfolio look like?", d: "Explore metrics and answer recurring questions in plain language." },
@@ -13,8 +13,8 @@ const STORIES = [
 
 const SLIDES = [
   { h: "Ask the CFO Copilot", p: "Ask a portfolio question, investigate an alert or prepare a Board briefing." },
-  { h: "Same question, same answer", p: "Every answer is checked against the certified answer and carries its SQL, assumptions and data-quality caveat." },
-  { h: "Humans stay in charge", p: "Recommendations and alerts support decisions; flag anything for review and it is logged." },
+  { h: "Same question, same answer", p: "Every answer shows its SQL and data-quality caveat." },
+  { h: "Humans stay in charge", p: "Flag anything for review; it is logged." },
 ];
 
 export default function Overview() {
@@ -55,39 +55,33 @@ export default function Overview() {
       {k && (
         <div className="grid g3">
           <Kpi label="Approved investment" tag="Portfolio snapshot" tagColor="blue" value={musd(k.approved_musd, { digits: 1 })} color="var(--blue)"
-               foot={`Board-approved total, all statuses (A03, A08) · as of ${date(k.reporting_date)}`} onClick={() => setEvidence(true)} />
+               info={`Board-approved total, every status (A03, A08), as of ${date(k.reporting_date)}.`} onClick={() => setEvidence(true)} />
           <Kpi label="Projects" tag="Portfolio snapshot" tagColor="green" value={int(k.projects)} color="var(--green)"
-               foot={`${int(k.active_projects)} Active · counted by project URL (A01)`} onClick={() => nav("portfolio")} />
+               info={`${int(k.active_projects)} Active. Counted by project URL (A01).`} onClick={() => nav("portfolio")} />
           <Kpi label="Clients" tag="Portfolio snapshot" tagColor="pink" value={int(k.clients)} color="var(--pink)"
-               foot="Distinct clients with monitored projects" onClick={() => nav("clients", { step: "directory" })} />
+               info="Distinct clients with monitored projects." onClick={() => nav("clients", { step: "directory" })} />
         </div>
       )}
 
       <div className="grid g3 mt">
         <div className="card">
           <div className="card-head">
-            <h3>Priority risk alerts</h3>
+            <h3>Priority risk alerts {k && <Info align="left" text={`Clients with early-warning signals (A22). Separately, ${int(k.projects_needing_review)} projects carry data-quality flags (${int(k.projects_high_severity)} high); they stay in every total.`} />}</h3>
             <button className="icon-btn" aria-label="Open early warning" onClick={() => nav("early-warning")}>↗</button>
           </div>
           <AlertRow label="High priority" n={a.HIGH} max={maxAlert} color="var(--red)" />
           <AlertRow label="Requiring review" n={a.MEDIUM} max={maxAlert} color="var(--amber)" />
           <AlertRow label="Monitoring reminders" n={a.REVIEW} max={maxAlert} color="var(--blue)" />
-          {k && (
-            <div className="small muted">
-              {int(k.projects_needing_review)} projects carry open data-quality flags ({int(k.projects_high_severity)} high); they stay in every total.
-            </div>
-          )}
         </div>
         <div className="card" style={{ background: "linear-gradient(180deg,#fff,#f6f8fc)" }}>
-          <h3>Recent portfolio activity</h3>
-          <div className="card-sub" style={{ marginBottom: 12 }}>Data refreshes, completed reviews and briefing updates</div>
+          <h3 style={{ marginBottom: 12 }}>Recent portfolio activity</h3>
           <div className="activity">
             {(data?.activity || []).map((x) => (
               <div key={x.label}>
                 <OkIcon />
                 <span>
                   {x.label}
-                  <small>{date(x.at)} · {ago(x.at)}</small>
+                  <small>{ago(x.at)}</small>
                 </span>
               </div>
             ))}
@@ -131,7 +125,6 @@ export default function Overview() {
           <div key={s.page} className="card story" onClick={() => nav(s.page)}>
             <div className={`eyebrow ${s.color}`}>{s.eyebrow}</div>
             <h4>{s.q}</h4>
-            <p>{s.d}</p>
           </div>
         ))}
       </div>
@@ -140,15 +133,14 @@ export default function Overview() {
   );
 }
 
-function Kpi({ label, tag, tagColor, value, color, foot, onClick }) {
+function Kpi({ label, tag, tagColor, value, color, info, onClick }) {
   return (
     <div className="card" style={{ cursor: "pointer" }} onClick={onClick}>
       <div className="kpi-label">
-        {label} <span className={`tag ${tagColor}`}>{tag}</span>
+        <span>{label} <Info text={info} align="left" /></span> <span className={`tag ${tagColor}`}>{tag}</span>
       </div>
       <div className="kpi-value">{value}</div>
       <Stripe value={1} color={color} />
-      <div className="kpi-foot mt">{foot}</div>
     </div>
   );
 }

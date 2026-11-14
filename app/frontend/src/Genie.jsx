@@ -1,6 +1,6 @@
 import React, { useEffect, useRef, useState } from "react";
 import { askGenie, get, post } from "./api.js";
-import { BarChart, DataTable, SparkIcon, SqlBlock, Tag } from "./ui.jsx";
+import { BarChart, DataTable, Info, SparkIcon, SqlBlock, Tag } from "./ui.jsx";
 import { int } from "./format.js";
 
 const LEVEL = {
@@ -131,8 +131,7 @@ function GenieAnswer({ turn, onAsk, onOpenCertified, onSql, latest }) {
 
       {r.certified_match && (
         <div className="certified">
-          <b>Certified answer available · {r.certified_match.question_id}.</b> This matches “{r.certified_match.question}”.
-          The certified figure in <code>answers_register</code> is the reference; Genie's answer should agree with it.{" "}
+          <b>Certified answer {r.certified_match.question_id}</b> <Info align="left" text={`Matches “${r.certified_match.question}”. The certified figure in answers_register is the reference.`} />{" "}
           <button className="link" onClick={() => onOpenCertified?.(r.certified_match.question_id)}>Open certified answer</button>
         </div>
       )}
@@ -156,13 +155,14 @@ function GenieAnswer({ turn, onAsk, onOpenCertified, onSql, latest }) {
         </div>
       )}
 
-      <div className={`trust ${r.trust?.color || "red"}`}>
-        <b>Data-quality caveat (computed by the app, not by Genie)</b>
-        <ul>
-          {(r.trust?.reasons || []).map((x, i) => (
-            <li key={i}>{x}</li>
-          ))}
-        </ul>
+      <div className={`trust ${r.trust?.color || "red"}`} style={{ display: "flex", alignItems: "center", gap: 8 }}>
+        <b>Data quality</b>
+        <span style={{ flex: 1 }}>
+          {r.trust?.counts
+            ? `${int(r.trust.counts.rows_needing_review)} of ${int(r.trust.counts.rows_in_scope)} projects flagged · ${int(r.trust.counts.rows_high_severity)} high · included in the figures`
+            : (r.trust?.reasons || [])[0]}
+        </span>
+        <Info text={`Computed by the app, not by Genie. ${(r.trust?.reasons || []).join(" ")}`} />
       </div>
 
       {r.sql && (
