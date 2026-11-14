@@ -84,8 +84,15 @@ FROM {P}"""
                "GROUP BY status ORDER BY projects DESC")
     alerts = q(f"SELECT priority, count(*) AS clients FROM {T('certified_early_warning')} GROUP BY priority")
     by_p = {a["priority"]: int(a["clients"]) for a in alerts}
+    # Credit risk at a glance: the WS2 Board figures (same scope and measures as the certified WS2 answers)
+    risk_sql = f"""SELECT count(*) AS projects, count(DISTINCT client_id) AS clients,
+       round(sum(CASE WHEN performance_status = 'Past Due' THEN disbursed_musd ELSE 0 END), 2) AS past_due_disbursed_musd,
+       round(sum(CASE WHEN performance_status = 'Watchlist' THEN disbursed_musd ELSE 0 END), 2) AS watchlist_disbursed_musd,
+       round(sum(expected_credit_loss_musd), 2) AS expected_credit_loss_musd
+FROM {P}
+WHERE {WS2_SCOPE}"""
     return {"kpis": kpis, "status_mix": status, "alerts": {k: by_p.get(k, 0) for k in ("HIGH", "MEDIUM", "REVIEW")},
-            "activity": activity(), "evidence": {"kpis": kpi_sql}}
+            "risk": q(risk_sql)[0], "activity": activity(), "evidence": {"kpis": kpi_sql, "credit_risk": risk_sql}}
 
 
 def activity() -> list:

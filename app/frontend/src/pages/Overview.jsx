@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from "react";
+import React, { useState } from "react";
 import { useApp } from "../App.jsx";
 import { AskBar } from "../Genie.jsx";
 import { ago, date, int, musd } from "../format.js";
@@ -11,22 +11,11 @@ const STORIES = [
   { page: "early-warning", eyebrow: "Early warning intelligence", color: "amber", q: "What could become a problem before it becomes Past Due?", d: "Flag emerging risk signals for human investigation." },
 ];
 
-const SLIDES = [
-  { h: "Ask the CFO Copilot", p: "Ask a portfolio question, investigate an alert or prepare a Board briefing." },
-  { h: "Same question, same answer", p: "Every answer shows its SQL and data-quality caveat." },
-  { h: "Humans stay in charge", p: "Flag anything for review; it is logged." },
-];
-
 export default function Overview() {
   const { nav, openLibrary } = useApp();
   const { data, error, loading } = useApi("/api/overview");
-  const [slide, setSlide] = useState(0);
   const [evidence, setEvidence] = useState(false);
   const [text, setText] = useState("");
-  useEffect(() => {
-    const t = setInterval(() => setSlide((s) => (s + 1) % SLIDES.length), 6000);
-    return () => clearInterval(t);
-  }, []);
 
   const route = (q) => {
     const t = q.trim();
@@ -105,18 +94,7 @@ export default function Overview() {
             {data && !data.activity?.length && <div className="muted small">No activity logged yet.</div>}
           </div>
         </div>
-        <div className="copilot" onClick={() => document.querySelector("#ask input")?.focus()}>
-          <div>
-            <Tag>✦ CFO Copilot</Tag>
-            <h2>{SLIDES[slide].h}</h2>
-            <p>{SLIDES[slide].p}</p>
-          </div>
-          <div className="progress">
-            {SLIDES.map((_, i) => (
-              <span key={i} className={i === slide ? "on" : ""} onClick={(e) => { e.stopPropagation(); setSlide(i); }} />
-            ))}
-          </div>
-        </div>
+        <RiskCard r={data?.risk} onOpen={() => nav("risk")} />
       </div>
 
 
@@ -154,6 +132,34 @@ function AlertRow({ label, n, max, color }) {
         <b>{n ?? "–"}</b>
       </div>
       <Stripe value={(n || 0) / max} color={color} />
+    </div>
+  );
+}
+
+// Credit risk at a glance: the WS2 Board answer (expected credit loss and the exposure behind it). Opens Risk & exposure.
+function RiskCard({ r, onOpen }) {
+  const pd = r?.past_due_disbursed_musd || 0, wl = r?.watchlist_disbursed_musd || 0;
+  return (
+    <div className="copilot risk-card" onClick={onOpen} role="button" tabIndex={0} onKeyDown={(e) => e.key === "Enter" && onOpen()}>
+      <div>
+        <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+          <Tag>Credit risk at a glance</Tag>
+          <span className="small" style={{ opacity: 0.85 }}>Open ↗</span>
+        </div>
+        <div className="risk-label">Expected credit loss</div>
+        <div className="risk-value">{r ? musd(r.expected_credit_loss_musd) : "…"}</div>
+      </div>
+      <div>
+        <div className="risk-split">
+          <div style={{ flex: pd || 1 }} className="pd" />
+          <div style={{ flex: wl || 1 }} className="wl" />
+        </div>
+        <div className="risk-legend">
+          <span><i className="pd" />Past Due {musd(pd)} · 60% loss</span>
+          <span><i className="wl" />Watchlist {musd(wl)}</span>
+        </div>
+        <div className="risk-foot">{r ? `${int(r.projects)} Category A projects · ${int(r.clients)} clients` : ""}</div>
+      </div>
     </div>
   );
 }

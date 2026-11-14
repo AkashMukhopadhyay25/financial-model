@@ -354,3 +354,14 @@ textarea.note { width: 100%; border: 1px solid var(--line); border-radius: 10px;
 .ask-hero .chip-label { color: rgba(255, 255, 255, .75); }
 /* Monthly review */
 .dot.red { background: var(--red); } .dot.green { background: var(--green); } .dot.blue { background: var(--blue); } .dot.amber { background: var(--amber); }
+
+/* ---------- Overview: credit risk card (replaces the Copilot card) ---------- */
+.risk-card .risk-label { font-size: 13px; opacity: .85; margin-top: 16px; }
+.risk-card .risk-value { font-family: var(--display); font-size: 44px; font-weight: 500; letter-spacing: -.02em; line-height: 1.1; margin-top: 2px; }
+.risk-split { display: flex; gap: 4px; height: 12px; margin-top: 14px; }
+.risk-split > div { border-radius: 4px; }
+.risk-split .pd, .risk-legend i.pd { background: repeating-linear-gradient(90deg, #ff6b5e 0 3px, rgba(255,107,94,.45) 3px 5px); }
+.risk-split .wl, .risk-legend i.wl { background: repeating-linear-gradient(90deg, #ffc046 0 8px, rgba(255,192,70,.45) 8px 10px); }
+.risk-legend { display: flex; gap: 14px; flex-wrap: wrap; font-size: 12px; margin-top: 8px; opacity: .92; }
+.risk-legend i { width: 9px; height: 9px; border-radius: 3px; display: inline-block; margin-right: 6px; vertical-align: -1px; }
+.risk-foot { font-size: 12px; opacity: .75; margin-top: 10px; }
