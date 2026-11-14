@@ -8,7 +8,7 @@ environment:
 
 ai:
   # Demo months reuse existing descriptions, which are already in an LLM cache in the team schema (read-only
-  # carry-over below; llm_text_extractions is the earlier pipeline's cache, same key). New demo projects get
+  # carry-over below; llm_text_extractions is the team pipeline cache, same key). New demo projects get
   # rule-based text attributes and are flagged for review: no model calls.
   run_llm_extraction: false
-  legacy_llm_cache_table: ifc_challenge.portfolio.llm_text_extractions
+  legacy_llm_cache_table: workspace.portfolio.enriched_llm_extractions
