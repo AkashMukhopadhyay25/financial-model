@@ -32,18 +32,17 @@ export default function Risk({ params }) {
         </>
       }
     >
-      <div className="grid g4">
+      <div className="grid g3">
         <div className="card">
-          <div className="kpi-label">Past Due <Tag color="red">Category A</Tag></div>
-          <div className="kpi-value red">{int(pd.projects)}</div>
-          <SplitBar segments={[{ label: "Past Due", value: pd.projects, color: "#c9302c" }, { label: "Watchlist", value: wl.projects, color: "#e8e9ef" }]} />
-          <div className="kpi-foot mt">{Math.round((100 * pd.projects) / (tot.projects || 1))}% of {int(tot.projects)} Category A in distress</div>
-        </div>
-        <div className="card">
-          <div className="kpi-label">Watchlist <Tag color="amber">Category A</Tag></div>
-          <div className="kpi-value amber">{int(wl.projects)}</div>
-          <SplitBar segments={[{ label: "Past Due", value: pd.projects, color: "#e8e9ef" }, { label: "Watchlist", value: wl.projects, color: "#e29a12" }]} />
-          <div className="kpi-foot mt">{Math.round((100 * wl.projects) / (tot.projects || 1))}% of {int(tot.projects)} Category A in distress</div>
+          <div className="kpi-label">
+            <span>Category A in distress <Info align="left" text="Environmental Category A projects whose latest monitoring status is Past Due or Watchlist (all Active)." /></span>
+            <Tag color="red">Category A</Tag>
+          </div>
+          <div className="kpi-value">{int(tot.projects)}</div>
+          <SplitBar segments={[{ label: "Past Due", value: pd.projects, color: "#c9302c" }, { label: "Watchlist", value: wl.projects, color: "#e29a12" }]} />
+          <div className="mt">
+            <Stats items={[{ label: "Past Due", value: int(pd.projects), color: "red" }, { label: "Watchlist", value: int(wl.projects), color: "amber" }, { label: "clients", value: int(tot.clients) }]} />
+          </div>
         </div>
         <div className="card">
           <div className="kpi-label">Disbursed exposure <Tag color="blue">Past Due + Watchlist</Tag></div>
