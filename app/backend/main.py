@@ -130,6 +130,18 @@ def monthly_compare(a: str, b: str, dimension: str = "Portfolio"):
         raise HTTPException(400, str(e))
 
 
+@app.get("/api/monthly/review")
+def monthly_review(month: str = ""):
+    return monthly.review(month)
+
+
+@app.get("/api/monthly/client")
+def monthly_client(name: str, month: str):
+    if not monthly.MONTH_RE.match(month):
+        raise HTTPException(400, "Month must look like 2026-10")
+    return monthly.client_month(name, month)
+
+
 @app.get("/api/monthly/series")
 def monthly_series():
     return monthly.series()

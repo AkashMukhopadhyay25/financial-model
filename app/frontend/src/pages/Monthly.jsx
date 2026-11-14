@@ -1,231 +1,307 @@
-import React, { useEffect, useMemo, useState } from "react";
+import React, { useState } from "react";
 import { useApp } from "../App.jsx";
-import { get, invalidate, post } from "../api.js";
-import { int, musd, title } from "../format.js";
-import { DataTable, ErrorBox, EvidenceDrawer, Loading, StepLine, Tag, useApi } from "../ui.jsx";
+import { invalidate, post } from "../api.js";
+import { int, musd } from "../format.js";
+import { Drawer, ErrorBox, EvidenceDrawer, Info, Loading, Modal, StepLine, Tag, useApi } from "../ui.jsx";
 
-const ASSESS = { Improving: "green", Deteriorating: "red", Stable: "grey", Up: "blue", Down: "blue" };
+const DIRECTION = {
+  Deteriorated: { color: "red", label: "Deteriorated" },
+  Mixed: { color: "amber", label: "Mixed" },
+  Improved: { color: "green", label: "Improved" },
+  "New business": { color: "blue", label: "New business" },
+};
+const KPI_TEXT = {
+  R01: { label: "Past Due projects", foot: "Projects behind on repayments" },
+  R02: { label: "Watchlist projects", foot: "Projects showing early signs of stress" },
+  R04: { label: "Expected credit loss", foot: "60% of disbursed on Past Due projects (A11)" },
+  M01: { label: "Overdue monitoring reviews", foot: "Active projects past their review deadline (A18)" },
+};
+const monthName = (m) => (m ? new Date(`${m}-01T00:00:00`).toLocaleString("en-US", { month: "long", year: "numeric" }) : "");
+const short = (m) => (m ? new Date(`${m}-01T00:00:00`).toLocaleString("en-US", { month: "short" }) : "");
 
-function fmt(v, unit) {
+function fmtKpi(v, unit) {
   if (v === null || v === undefined) return "–";
-  if (unit === "USD M") return musd(v);
-  if (unit === "%") return `${Number(v).toFixed(1)}%`;
-  if (unit === "projects") return int(v);
-  return Number(v).toLocaleString("en-US", { maximumFractionDigits: 2 });
+  return unit === "USD M" ? musd(v) : int(Math.round(v));
 }
-const pctTxt = (v) => (v === null || v === undefined ? "–" : `${v > 0 ? "+" : ""}${Number(v).toFixed(1)}%`);
 
-export default function Monthly() {
-  const { toast } = useApp();
+export default function Monthly({ params }) {
+  const { nav } = useApp();
+  const [month, setMonth] = useState(params.month || "");
   const [tick, setTick] = useState(0);
-  const { data: st, error, loading } = useApi("/api/monthly/status", [tick]);
-  const months = st?.months || [];
-  const [a, setA] = useState("");
-  const [b, setB] = useState("");
-  const [dim, setDim] = useState("Portfolio");
+  const { data, error, loading } = useApi(`/api/monthly/review?month=${month}`, [tick]);
+  const [filter, setFilter] = useState("All");
+  const [shown, setShown] = useState(8);
+  const [client, setClient] = useState(null);
   const [evidence, setEvidence] = useState(null);
+  const [upload, setUpload] = useState(false);
 
-  useEffect(() => {
-    if (months.length >= 2 && !a) {
-      setA(months[months.length - 2]);
-      setB(months[months.length - 1]);
-    }
-  }, [months, a]);
-
-  return (
-    <>
-      <div className="eyebrow blue">Monthly history</div>
-      <div className="page-head">
-        <div>
-          <h1 className="title">Month-over-month trends</h1>
-          <div className="subtitle">Each reporting month is a certified snapshot; a corrected re-upload replaces only its own month</div>
-        </div>
-        <div className="actions">
-          <button className="btn" disabled={!st} onClick={() => setEvidence(st.evidence)}>Evidence / SQL</button>
+  const head = (
+    <div className="page-head">
+      <div>
+        <h1 className="title">{data?.ready ? `What changed in ${data.month_name}` : "Monthly review"}</h1>
+        <div className="subtitle">
+          {data?.ready
+            ? `Compared with ${data.previous_name} · ${int(data.changed_clients)} of ${int(data.total_clients)} clients had a material change`
+            : "Month-on-month changes in the certified portfolio"}
         </div>
       </div>
-      {error && <ErrorBox error={error} />}
-      {loading && !st && <Loading />}
-      {st && months.length < 2 && (
+      <div className="actions">
+        {data?.ready && (
+          <select className="btn" value={data.month} aria-label="Reporting month" onChange={(e) => { setMonth(e.target.value); setShown(8); }}>
+            {data.months.slice(1).reverse().map((m) => <option key={m} value={m}>{monthName(m)}</option>)}
+          </select>
+        )}
+        <button className="btn" disabled={!data?.ready} onClick={() => setEvidence(data.evidence)}>Evidence / SQL</button>
+        <button className="btn dark" onClick={() => setUpload(true)}>Load a new month</button>
+      </div>
+    </div>
+  );
+
+  if (error) return <>{head}<ErrorBox error={error} /></>;
+  if (loading && !data) return <>{head}<Loading /></>;
+
+  const clients = (data?.clients || []).filter((c) => filter === "All" || c.direction === filter);
+  return (
+    <>
+      <div className="eyebrow blue">Monthly review</div>
+      {head}
+      {!data.ready && (
         <div className="card">
           <h3>Not enough history yet</h3>
-          <p className="muted">
-            {months.length} month(s) loaded in <code>{st.schema}</code>. Load at least two months below, or run the
-            <code> run_monthly_pipeline</code> job.
-          </p>
+          <p className="muted">At least two reporting months are needed. Use <b>Load a new month</b> to add one.</p>
         </div>
       )}
-      {st && months.length >= 2 && a && b && (
-        <Compare months={months} a={a} b={b} dim={dim} setA={setA} setB={setB} setDim={setDim} dims={st.dimensions} onEvidence={setEvidence} />
+      {data.ready && (
+        <>
+          <div className="grid g4">
+            {data.kpis.map((k) => <KpiCard key={k.kpi_id} k={k} prev={short(data.previous)} />)}
+          </div>
+
+          <div className="grid g3 mt">
+            <Takeaways title="What went well" color="green" items={data.went_right} />
+            <Takeaways title="What needs attention" color="red" items={data.went_wrong} />
+            <Takeaways title="Recommended next steps" color="blue" items={data.next_steps} numbered />
+          </div>
+          <div className="small muted" style={{ marginTop: 8 }}>
+            Summaries are generated by fixed rules from the certified figures, so the same data always gives the same wording.
+          </div>
+
+          <div className="section-title">Clients that changed in {data.month_name}</div>
+          <div className="seg" style={{ marginTop: 0 }}>
+            {["All", "Deteriorated", "Mixed", "Improved", "New business"].map((f) => {
+              const n = f === "All" ? data.changed_clients : data.counts[f];
+              return n || f === "All" ? (
+                <button key={f} className={filter === f ? "active" : ""} onClick={() => { setFilter(f); setShown(8); }}>
+                  {f} · {n}
+                </button>
+              ) : null;
+            })}
+          </div>
+          {clients.slice(0, shown).map((c) => (
+            <ClientRow key={c.client_name} c={c} onOpen={() => setClient(c)} />
+          ))}
+          {clients.length === 0 && <div className="empty">No clients in this group this month.</div>}
+          {clients.length > shown && (
+            <button className="btn" onClick={() => setShown((n) => n + 10)}>Show more clients ({clients.length - shown} more)</button>
+          )}
+
+          <PortfolioTrend months={data.months} />
+        </>
       )}
-      {st && <Upload status={st} onDone={() => { invalidate("/api/monthly"); setTick((t) => t + 1); }} toast={toast} />}
+
+      {client && (
+        <ClientDrawer c={client} month={data.month} onClose={() => setClient(null)}
+                      onProfile={() => client.client_id && nav("clients", { step: "profile", client: client.client_id })}
+                      onEvidence={setEvidence} />
+      )}
       {evidence && <EvidenceDrawer items={evidence} onClose={() => setEvidence(null)} />}
+      {upload && <UploadModal months={data?.months || []} onClose={() => setUpload(false)}
+                              onStarted={() => { invalidate("/api/monthly"); setTick((t) => t + 1); }} />}
     </>
   );
 }
 
-function Compare({ months, a, b, dim, setA, setB, setDim, dims, onEvidence }) {
-  const cmp = useApi(`/api/monthly/compare?a=${a}&b=${b}&dimension=${encodeURIComponent(dim)}`);
-  const ser = useApi("/api/monthly/series");
-  const chg = useApi(`/api/monthly/changes?a=${a}&b=${b}`);
-  const [kpi, setKpi] = useState("R01");
-  const [ctype, setCtype] = useState("");
-  const [kpiDim, setKpiDim] = useState("");
-  const detail = useApi(ctype ? `/api/monthly/changes?a=${a}&b=${b}&change_type=${ctype}` : null);
-
-  const rows = cmp.data?.rows || [];
-  const good = rows.filter((r) => r.assessment === "Improving").sort((x, y) => Math.abs(y.change_pct || 0) - Math.abs(x.change_pct || 0));
-  const bad = rows.filter((r) => r.assessment === "Deteriorating").sort((x, y) => Math.abs(y.change_pct || 0) - Math.abs(x.change_pct || 0));
-  const kpis = useMemo(() => {
-    const m = new Map();
-    (ser.data?.rows || []).forEach((r) => m.set(r.kpi_id, { id: r.kpi_id, name: r.kpi_name, unit: r.unit }));
-    return [...m.values()];
-  }, [ser.data]);
-  const line = (ser.data?.rows || []).filter((r) => r.kpi_id === kpi);
-  const unit = kpis.find((k) => k.id === kpi)?.unit;
-  const dimKpis = [...new Set(rows.map((r) => r.kpi_name))].sort();
-  const pickedDimKpi = kpiDim || dimKpis[0];
-
-  const kpiCols = [
-    { key: "kpi_name", label: "Measure", strong: true },
-    { key: "value_a", label: a, num: true, render: (v, r) => fmt(v, r.unit) },
-    { key: "value_b", label: b, num: true, render: (v, r) => fmt(v, r.unit) },
-    { key: "change_pct", label: "Change", num: true, render: (v) => pctTxt(v) },
-  ];
-
+function KpiCard({ k, prev }) {
+  const t = KPI_TEXT[k.kpi_id] || { label: k.kpi_name, foot: "" };
+  const color = k.assessment === "Improving" ? "green" : k.assessment === "Deteriorating" ? "red" : "grey";
+  const diff = k.change || 0;
+  const sign = diff > 0 ? "+" : diff < 0 ? "−" : "";
+  const diffTxt = k.unit === "USD M" ? musd(Math.abs(diff)) : int(Math.abs(Math.round(diff)));
   return (
-    <>
-      <div className="card">
-        <div style={{ display: "flex", gap: 10, flexWrap: "wrap", alignItems: "center" }}>
-          <span className="small muted">Compare</span>
-          <select value={a} onChange={(e) => setA(e.target.value)} aria-label="From month">
-            {months.map((m) => <option key={m}>{m}</option>)}
-          </select>
-          <span className="small muted">with</span>
-          <select value={b} onChange={(e) => setB(e.target.value)} aria-label="To month">
-            {months.map((m) => <option key={m}>{m}</option>)}
-          </select>
-          <span className="small muted">by</span>
-          <select value={dim} onChange={(e) => setDim(e.target.value)} aria-label="Breakdown">
-            {dims.map((d) => <option key={d}>{d}</option>)}
-          </select>
-          <span className="small muted" style={{ marginLeft: "auto" }}>{months.length} months loaded: {months[0]} to {months[months.length - 1]}</span>
+    <div className="card">
+      <div className="kpi-label">
+        <span>{t.label} <Info text={t.foot} align="left" /></span>
+        <Tag color={color}>{diff === 0 ? "No change" : `${sign}${diffTxt}`}</Tag>
+      </div>
+      <div className={`kpi-value ${color === "red" ? "red" : ""}`}>{fmtKpi(k.value, k.unit)}</div>
+      <div className="kpi-foot">{fmtKpi(k.previous_value, k.unit)} in {prev}</div>
+    </div>
+  );
+}
+
+function Takeaways({ title, color, items, numbered }) {
+  return (
+    <div className="card">
+      <div className={`eyebrow ${color}`} style={{ marginTop: 0 }}>{title}</div>
+      <ol style={{ margin: "8px 0 0", paddingLeft: numbered ? 18 : 0, listStyle: numbered ? "decimal" : "none" }}>
+        {items.map((s, i) => (
+          <li key={i} style={{ fontSize: 13.5, lineHeight: 1.5, marginBottom: 8, display: numbered ? "list-item" : "flex", gap: 8 }}>
+            {!numbered && <span className={`dot ${color}`} style={{ marginTop: 7, flex: "none" }} />}
+            <span>{s}</span>
+          </li>
+        ))}
+      </ol>
+    </div>
+  );
+}
+
+function ClientRow({ c, onOpen }) {
+  const d = DIRECTION[c.direction];
+  const facts = [
+    c.to_past_due && { t: `${c.to_past_due} into Past Due`, cls: "red" },
+    c.to_watchlist && { t: `${c.to_watchlist} onto Watchlist`, cls: "amber" },
+    c.downgrades && { t: `${c.downgrades} rating downgrade${c.downgrades > 1 ? "s" : ""}`, cls: "amber" },
+    c.recoveries && { t: `${c.recoveries} recover${c.recoveries > 1 ? "ies" : "y"}`, cls: "green" },
+    c.growth && { t: `${c.growth} new-business step${c.growth > 1 ? "s" : ""}`, cls: "blue" },
+  ].filter(Boolean);
+  return (
+    <div className="ew-card" style={{ cursor: "pointer" }} onClick={onOpen}>
+      <div className="row1">
+        <div className="name">
+          {c.client_name} <Tag color={d.color}>{d.label}</Tag>
+        </div>
+        <div style={{ display: "flex", gap: 16, alignItems: "center" }}>
+          {c.exposure_musd > 0 && (
+            <span className="small muted">Disbursed affected <b style={{ color: "var(--ink)" }}>{musd(c.exposure_musd)}</b></span>
+          )}
+          {c.exposure_musd === 0 && c.approved_musd > 0 && (
+            <span className="small muted">Newly approved <b style={{ color: "var(--ink)" }}>{musd(c.approved_musd)}</b></span>
+          )}
+          <span className="link">View details →</span>
         </div>
       </div>
+      <div className="desc">{c.headline}</div>
+      <div className="stats">
+        {facts.map((f) => <span key={f.t} className={`stat ${f.cls}`}>{f.t}</span>)}
+      </div>
+    </div>
+  );
+}
 
-      {cmp.error && <ErrorBox error={cmp.error} />}
-      {cmp.loading && <Loading label="Comparing months…" />}
-      {cmp.data && dim === "Portfolio" && (
+const CLIENT_SERIES = [
+  { key: "exposure_musd", label: "Disbursed exposure", fmt: musd },
+  { key: "at_risk", label: "Projects Past Due or on Watchlist", fmt: int },
+  { key: "avg_rating", label: "Average risk rating", fmt: (v) => Number(v).toFixed(2) },
+];
+
+function ClientDrawer({ c, month, onClose, onProfile, onEvidence }) {
+  const { data, error, loading } = useApi(`/api/monthly/client?name=${encodeURIComponent(c.client_name)}&month=${month}`);
+  const [series, setSeries] = useState("at_risk");
+  const hist = (data?.history || []).map((h) => ({ ...h, at_risk: h.past_due + h.watchlist, label: short(h.month) }));
+  const now = hist.find((h) => h.month === month);
+  const before = hist[hist.findIndex((h) => h.month === month) - 1];
+  const s = CLIENT_SERIES.find((x) => x.key === series);
+  const d = DIRECTION[c.direction];
+  const delta = (key, fmt = int) => {
+    if (!now || !before) return "";
+    const v = (now[key] || 0) - (before[key] || 0);
+    return v === 0 ? "no change" : `${v > 0 ? "+" : "−"}${fmt(Math.abs(v))} vs ${short(before.month)}`;
+  };
+  return (
+    <Drawer title={c.client_name} onClose={onClose}>
+      <div style={{ display: "flex", gap: 8, alignItems: "center", marginBottom: 14 }}>
+        <Tag color={d.color}>{d.label} in {monthName(month)}</Tag>
+        {c.client_id && <span className="small muted">{c.client_id}</span>}
+      </div>
+      {error && <ErrorBox error={error} />}
+      {loading && <Loading />}
+      {now && (
         <>
-          <div className="grid g3 mt">
-            <div className="card"><div className="kpi-label">Measures improving</div><div className="kpi-value" style={{ color: "var(--green, #1f8a4c)" }}>{good.length}</div></div>
-            <div className="card"><div className="kpi-label">Measures deteriorating</div><div className="kpi-value red">{bad.length}</div></div>
-            <div className="card"><div className="kpi-label">Stable or neutral</div><div className="kpi-value">{rows.length - good.length - bad.length}</div></div>
+          <div className="mini-grid">
+            <div className="mini"><div className="k">Past Due</div><div className="v big">{int(now.past_due)}</div><div className="k">{delta("past_due")}</div></div>
+            <div className="mini"><div className="k">Watchlist</div><div className="v big">{int(now.watchlist)}</div><div className="k">{delta("watchlist")}</div></div>
+            <div className="mini"><div className="k">Disbursed exposure</div><div className="v big">{musd(now.exposure_musd)}</div><div className="k">{delta("exposure_musd", musd)}</div></div>
+            <div className="mini"><div className="k">Avg risk rating</div><div className="v big">{now.avg_rating ? Number(now.avg_rating).toFixed(1) : "–"}</div><div className="k">{int(now.active)} active projects</div></div>
           </div>
-          <div className="grid g2 mt">
-            <div className="card">
-              <div className="card-head"><h3>🟢 Going well</h3><button className="link" onClick={() => onEvidence({ comparison: cmp.data.evidence })}>SQL</button></div>
-              <DataTable columns={kpiCols} rows={good} empty="Nothing improved materially" />
-            </div>
-            <div className="card">
-              <div className="card-head"><h3>🔴 Needs attention</h3><button className="link" onClick={() => onEvidence({ comparison: cmp.data.evidence })}>SQL</button></div>
-              <DataTable columns={kpiCols} rows={bad} empty="Nothing deteriorated materially" />
-            </div>
+
+          <div className="card-head mt" style={{ marginBottom: 0 }}>
+            <h3 style={{ margin: 0 }}>Month by month</h3>
+            <select className="btn small" value={series} onChange={(e) => setSeries(e.target.value)} aria-label="Measure">
+              {CLIENT_SERIES.map((x) => <option key={x.key} value={x.key}>{x.label}</option>)}
+            </select>
+          </div>
+          <StepLine data={hist} xKey="label" yKey={series} format={s.fmt} height={160} />
+
+          <h3 style={{ margin: "18px 0 8px" }}>What changed in {monthName(month)}</h3>
+          <div className="activity">
+            {data.events.map((e, i) => (
+              <div key={i}>
+                <span className={`dot ${e.impact === "Negative" ? "red" : e.impact === "Positive" ? "green" : "blue"}`} style={{ marginTop: 6, flex: "none" }} />
+                <span>
+                  <b style={{ fontWeight: 600 }}>{e.project_name}</b> · {e.text}
+                  {e.amount_musd ? <small>{musd(e.amount_musd)} concerned</small> : null}
+                </span>
+              </div>
+            ))}
+          </div>
+          <div style={{ display: "flex", gap: 8, marginTop: 16 }}>
+            {c.client_id && <button className="btn dark" onClick={onProfile}>Open client profile</button>}
+            <button className="btn" onClick={() => onEvidence(data.evidence)}>Evidence / SQL</button>
           </div>
         </>
       )}
-      {cmp.data && dim !== "Portfolio" && (
-        <div className="card mt">
-          <div className="card-head">
-            <h3>{dim} breakdown</h3>
-            <select value={pickedDimKpi} onChange={(e) => setKpiDim(e.target.value)} aria-label="Measure">
-              {dimKpis.map((k) => <option key={k}>{k}</option>)}
-            </select>
-          </div>
-          <DataTable
-            columns={[
-              { key: "dimension_value", label: dim, strong: true },
-              { key: "value_a", label: a, num: true, render: (v, r) => fmt(v, r.unit) },
-              { key: "value_b", label: b, num: true, render: (v, r) => fmt(v, r.unit) },
-              { key: "change_pct", label: "Change", num: true, render: (v) => pctTxt(v) },
-              { key: "assessment", label: "Assessment", render: (v) => (v ? <Tag color={ASSESS[v]}>{v}</Tag> : "–") },
-            ]}
-            rows={rows.filter((r) => r.kpi_name === pickedDimKpi).sort((x, y) => Math.abs(y.change_pct || 0) - Math.abs(x.change_pct || 0))}
-          />
-        </div>
-      )}
-
-      <div className="card mt">
-        <div className="card-head">
-          <h3>Trend across all months</h3>
-          <select value={kpi} onChange={(e) => setKpi(e.target.value)} aria-label="Measure">
-            {kpis.map((k) => <option key={k.id} value={k.id}>{k.name}</option>)}
-          </select>
-        </div>
-        {ser.loading && <Loading />}
-        {line.length > 0 && <StepLine data={line} xKey="month_label" yKey="value" format={(v) => fmt(v, unit)} />}
-      </div>
-
-      <div className="card mt">
-        <div className="card-head">
-          <h3>Why it moved: project changes {a} → {b}</h3>
-          {chg.data && <button className="link" onClick={() => onEvidence({ summary: chg.data.evidence, ...(detail.data ? { detail: detail.data.detail_evidence } : {}) })}>SQL</button>}
-        </div>
-        {chg.loading && <Loading />}
-        {chg.error && <ErrorBox error={chg.error} />}
-        {chg.data && (
-          <DataTable
-            onRowClick={(r) => setCtype(r.change_type)}
-            columns={[
-              { key: "change_type", label: "Change", strong: true, render: (v) => title(v.toLowerCase()) },
-              { key: "impact", label: "Impact", render: (v) => <Tag color={v === "Positive" ? "green" : v === "Negative" ? "red" : "grey"}>{v}</Tag> },
-              { key: "projects", label: "Projects", num: true },
-              { key: "amount_musd", label: "Amount", num: true },
-            ]}
-            rows={chg.data.summary}
-            empty="No project changes between these months"
-          />
-        )}
-        {ctype && (
-          <div className="mt">
-            <div className="small" style={{ fontWeight: 600, marginBottom: 6 }}>
-              {title(ctype.toLowerCase())}: projects <button className="link" onClick={() => setCtype("")}>clear</button>
-            </div>
-            {detail.loading && <Loading />}
-            {detail.data && <DataTable rows={detail.data.detail} pageSize={10} />}
-          </div>
-        )}
-      </div>
-    </>
+    </Drawer>
   );
 }
 
-function Upload({ status, onDone, toast }) {
+const TREND = [
+  { id: "R01", label: "Past Due" },
+  { id: "R02", label: "Watchlist" },
+  { id: "R04", label: "Expected credit loss" },
+  { id: "M01", label: "Overdue reviews" },
+];
+
+function PortfolioTrend({ months }) {
+  const { data } = useApi("/api/monthly/series");
+  const [kpi, setKpi] = useState("R01");
+  const line = (data?.rows || []).filter((r) => r.kpi_id === kpi).map((r) => ({ ...r, label: short(r.month_label) }));
+  const unit = line[0]?.unit;
+  return (
+    <div className="card mt">
+      <div className="card-head">
+        <h3>Portfolio trend · {monthName(months[0])} to {monthName(months[months.length - 1])}</h3>
+        <div className="toggle">
+          {TREND.map((t) => (
+            <button key={t.id} className={kpi === t.id ? "active" : ""} onClick={() => setKpi(t.id)}>{t.label}</button>
+          ))}
+        </div>
+      </div>
+      {line.length > 0 ? <StepLine data={line} xKey="label" yKey="value" format={(v) => fmtKpi(v, unit)} height={180} /> : <Loading />}
+    </div>
+  );
+}
+
+function UploadModal({ months, onClose, onStarted }) {
+  const { toast } = useApp();
   const [month, setMonth] = useState("");
   const [files, setFiles] = useState([]);
   const [busy, setBusy] = useState(false);
-  const [result, setResult] = useState(null);
-  const runs = useApi(status.job_configured ? "/api/monthly/runs" : null, [result]);
+  const [done, setDone] = useState(null);
+  const runs = useApi("/api/monthly/runs", [done]);
   const valid = /^20\d\d-(0[1-9]|1[0-2])$/.test(month);
-  const loadedMonths = new Set((status.loads || []).map((l) => l.month));
 
   const submit = async () => {
     setBusy(true);
     try {
-      const payload = await Promise.all(
-        [...files].map(
-          (f) =>
-            new Promise((res, rej) => {
-              const r = new FileReader();
-              r.onload = () => res({ name: f.name, content_base64: String(r.result).split(",")[1] });
-              r.onerror = rej;
-              r.readAsDataURL(f);
-            }),
-        ),
-      );
+      const payload = await Promise.all([...files].map((f) => new Promise((res, rej) => {
+        const r = new FileReader();
+        r.onload = () => res({ name: f.name, content_base64: String(r.result).split(",")[1] });
+        r.onerror = rej;
+        r.readAsDataURL(f);
+      })));
       const out = await post("/api/monthly/upload", { month, files: payload });
-      setResult(out);
-      toast(out.run_id ? `Uploaded; pipeline run ${out.run_id} started` : "Uploaded");
+      setDone(out);
+      onStarted();
       invalidate("/api/monthly/runs");
     } catch (e) {
       toast(`Upload failed: ${e.message}`);
@@ -233,52 +309,30 @@ function Upload({ status, onDone, toast }) {
       setBusy(false);
     }
   };
-
+  const last = runs.data?.[0];
   return (
-    <div className="grid g2 mt">
-      <div className="card">
-        <div className="card-head"><h3>Load a new month</h3></div>
-        <p className="small muted" style={{ marginTop: 0 }}>
-          Upload the month's projects and monitoring CSVs. The pipeline checks them against the data contracts, certifies the month
-          and refreshes the trends (about 10–15 minutes per month). Uploading again for a loaded month replaces only that month;
-          the earlier files stay in Raw for audit.
-        </p>
-        <div style={{ display: "flex", gap: 10, flexWrap: "wrap", alignItems: "center" }}>
-          <input placeholder="Reporting month, e.g. 2026-11" value={month} onChange={(e) => setMonth(e.target.value.trim())} style={{ width: 210 }} />
-          <input type="file" accept=".csv" multiple onChange={(e) => setFiles(e.target.files || [])} />
-        </div>
-        {month && !valid && <div className="error mt">Month must look like 2026-11.</div>}
-        {valid && loadedMonths.has(month) && <div className="notice mt"><span>⚠</span><span>{month} is already loaded. Uploading replaces {month} with these files.</span></div>}
-        {!status.job_configured && <div className="notice mt"><span>ℹ</span><span>Pipeline job not configured (IFC_MONTHLY_JOB_ID): files will be uploaded but not processed.</span></div>}
-        <div className="mt">
-          <button className="btn dark" disabled={busy || !valid || !files.length} onClick={submit}>
-            {busy ? "Uploading…" : "Upload and run pipeline"}
-          </button>
-        </div>
-        {result && <p className="small mt">Uploaded {result.uploaded.join(", ")} to <code>{result.folder}</code>{result.run_id ? `; run ${result.run_id} started.` : "."}</p>}
+    <Modal title="Load a new month" onClose={onClose}
+           actions={<button className="btn dark" disabled={busy || !valid || !files.length} onClick={submit}>{busy ? "Uploading…" : "Upload and process"}</button>}>
+      <p className="small muted" style={{ marginTop: 0 }}>
+        Add the month's projects and monitoring files. They are checked against the data contracts, certified and added to the
+        history in about 10–15 minutes. Uploading a month again replaces only that month.
+      </p>
+      <div style={{ display: "grid", gap: 10 }}>
+        <input placeholder="Reporting month, e.g. 2026-11" value={month} onChange={(e) => setMonth(e.target.value.trim())} />
+        <input type="file" accept=".csv" multiple onChange={(e) => setFiles(e.target.files || [])} />
       </div>
-      <div className="card">
-        <div className="card-head">
-          <h3>Pipeline runs</h3>
-          <button className="link" onClick={() => { invalidate("/api/monthly"); onDone(); }}>Refresh</button>
+      {month && !valid && <div className="error mt">Use the format 2026-11.</div>}
+      {valid && months.includes(month) && (
+        <div className="notice mt"><span>⚠</span><span>{monthName(month)} is already loaded. These files will replace it.</span></div>
+      )}
+      {done && <div className="notice mt"><span>✓</span><span>Files received. Processing has started; this page updates when it finishes.</span></div>}
+      {last && (
+        <div className="small muted mt">
+          Latest processing run: <Tag color={last.state === "SUCCESS" ? "green" : last.state === "FAILED" ? "red" : "blue"}>{last.state === "SUCCESS" ? "Completed" : last.state === "FAILED" ? "Stopped: check the file" : "In progress"}</Tag>{" "}
+          {last.started_ms ? new Date(last.started_ms).toLocaleString() : ""}
         </div>
-        {!status.job_configured && <div className="empty">No job configured</div>}
-        {runs.data && (
-          <DataTable
-            columns={[
-              { key: "run_id", label: "Run", render: (v, r) => <a href={r.url} target="_blank" rel="noreferrer">{v}</a> },
-              { key: "started_ms", label: "Started", render: (v) => (v ? new Date(v).toLocaleString() : "–") },
-              { key: "state", label: "State", render: (v) => <Tag color={v === "SUCCESS" ? "green" : v === "FAILED" ? "red" : "blue"}>{v || "–"}</Tag> },
-            ]}
-            rows={runs.data}
-            empty="No runs yet"
-          />
-        )}
-        <div className="small" style={{ fontWeight: 600, margin: "14px 0 6px" }}>Loaded files</div>
-        <DataTable rows={status.loads} pageSize={6} empty="No months loaded" />
-        <div className="small" style={{ fontWeight: 600, margin: "14px 0 6px" }}>Latest file checks (schema gate)</div>
-        <DataTable rows={status.gate} pageSize={6} empty="No checks yet" />
-      </div>
-    </div>
+      )}
+      <div className="small muted mt">Months loaded: {months.map(monthName).join(", ") || "none"}</div>
+    </Modal>
   );
 }

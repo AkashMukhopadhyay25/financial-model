@@ -332,3 +332,6 @@ textarea.note { width: 100%; border: 1px solid var(--line); border-radius: 10px;
 
 .mini-grid { grid-template-columns: repeat(4, minmax(0, 1fr)); }
 @media (max-width: 640px) { .mini-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); } }
+
+/* Monthly review */
+.dot.red { background: var(--red); } .dot.green { background: var(--green); } .dot.blue { background: var(--blue); } .dot.amber { background: var(--amber); }
