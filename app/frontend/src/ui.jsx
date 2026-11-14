@@ -221,44 +221,67 @@ export function DqTag({ needs, severity }) {
 export function BarChart({ data, labelKey, valueKey, format = musd, height = 220, highlight = "max", color = "#2f66f6" }) {
   const [hover, setHover] = useState(null);
   if (!data?.length) return <div className="empty">No data</div>;
-  const W = 520, H = height, pad = 26, gap = 14;
-  const max = Math.max(...data.map((d) => Number(d[valueKey]) || 0)) || 1;
+  const W = 520, top = 34, H = height, gap = 14;
+  const vals = data.map((d) => Number(d[valueKey]) || 0);
+  const max = Math.max(...vals) || 1;
   const bw = (W - gap * (data.length - 1)) / data.length;
-  const hi = hover ?? (highlight === "max" ? data.findIndex((d) => Number(d[valueKey]) === max) : null);
+  const hi = hover ?? (highlight === "max" ? vals.indexOf(max) : null);
+  const maxChars = Math.max(6, Math.floor(bw / 6.2));
+  const stripe = `stripe-${color.replace("#", "")}`;
+  const barTop = (v) => H - (v / max) * (H - top);
+  const tip = hi != null ? format(vals[hi]) : "";
+  const tipW = Math.max(56, tip.length * 7.2 + 18);
+  const tipX = hi != null ? Math.min(W - tipW / 2, Math.max(tipW / 2, hi * (bw + gap) + bw / 2)) : 0;
   return (
     <div className="chart">
-      <svg viewBox={`0 0 ${W} ${H + 40}`} role="img">
+      <svg viewBox={`0 0 ${W} ${H + 44}`} role="img" onMouseLeave={() => setHover(null)}>
         <defs>
-          <pattern id={`stripe-${color.replace("#", "")}`} width="7" height="7" patternUnits="userSpaceOnUse" patternTransform="rotate(45)">
+          <pattern id={stripe} width="7" height="7" patternUnits="userSpaceOnUse" patternTransform="rotate(45)">
             <rect width="7" height="7" fill={color} opacity=".55" />
             <rect width="4" height="7" fill={color} opacity=".9" />
           </pattern>
         </defs>
         {data.map((d, i) => {
-          const v = Number(d[valueKey]) || 0;
-          const h = (v / max) * (H - pad);
           const x = i * (bw + gap);
-          const active = i === hi;
+          const lines = wrapLabel(String(d[labelKey] ?? ""), maxChars);
           return (
-            <g key={i} onMouseEnter={() => setHover(i)} onMouseLeave={() => setHover(null)}>
-              <rect x={x} y={H - h} width={bw} height={h} rx="8" fill={active ? color : `url(#stripe-${color.replace("#", "")})`} />
-              {active && (
-                <g>
-                  <rect x={Math.max(0, x + bw / 2 - 70)} y={H - h - 26} width="140" height="20" rx="10" fill="#fff" stroke="#e9ecf3" />
-                  <text className="tip" x={Math.max(70, x + bw / 2)} y={H - h - 12} textAnchor="middle">
-                    {short(d[labelKey], 14)} · {format(v)}
-                  </text>
-                </g>
-              )}
-              <text x={x + bw / 2} y={H + 18} textAnchor="middle">
-                {short(d[labelKey], Math.max(6, Math.floor(bw / 6)))}
+            <g key={i} onMouseEnter={() => setHover(i)} style={{ cursor: "pointer" }}>
+              <rect x={x} y={0} width={bw} height={H} fill="transparent" />
+              <rect x={x} y={barTop(vals[i])} width={bw} height={Math.max(1, H - barTop(vals[i]))} rx="8"
+                    fill={i === hi ? color : `url(#${stripe})`} />
+              <text x={x + bw / 2} y={H + 17} textAnchor="middle" fontWeight={i === hi ? 600 : 400}>
+                {lines.map((l, j) => (
+                  <tspan key={j} x={x + bw / 2} dy={j === 0 ? 0 : 14}>{l}</tspan>
+                ))}
               </text>
             </g>
           );
         })}
+        {hi != null && (
+          <g pointerEvents="none">
+            <rect x={tipX - tipW / 2} y={Math.max(0, barTop(vals[hi]) - 29)} width={tipW} height="22" rx="11" fill="#0f1222" />
+            <text x={tipX} y={Math.max(0, barTop(vals[hi]) - 29) + 15} textAnchor="middle" style={{ fill: "#fff", fontSize: 12, fontWeight: 600 }}>
+              {tip}
+            </text>
+          </g>
+        )}
       </svg>
     </div>
   );
+}
+
+// Split a label into at most two lines, as evenly as possible at a space; "…" only if a single word is too long.
+function wrapLabel(text, maxChars) {
+  if (text.length <= maxChars) return [text];
+  const words = text.split(" ");
+  let best = null;
+  for (let k = 1; k < words.length; k++) {
+    const a = words.slice(0, k).join(" "), b = words.slice(k).join(" ");
+    const score = Math.max(a.length, b.length);
+    if (!best || score < best.score) best = { score, lines: [a, b] };
+  }
+  const lines = best ? best.lines : [text];
+  return lines.map((l) => (l.length > maxChars + 2 ? l.slice(0, maxChars + 1) + "…" : l));
 }
 
 export function StepLine({ data, xKey, yKey, format = musd, height = 220 }) {
