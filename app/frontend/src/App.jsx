@@ -9,6 +9,7 @@ import Risk from "./pages/Risk.jsx";
 import Clients from "./pages/Clients.jsx";
 import EarlyWarning from "./pages/EarlyWarning.jsx";
 import Briefing from "./pages/Briefing.jsx";
+import Monthly from "./pages/Monthly.jsx";
 
 export const PAGES = [
   { id: "overview", label: "Overview", el: Overview },
@@ -16,6 +17,7 @@ export const PAGES = [
   { id: "risk", label: "Risk & exposure", el: Risk },
   { id: "clients", label: "Client intelligence", el: Clients },
   { id: "early-warning", label: "Early warning", el: EarlyWarning },
+  { id: "monthly", label: "Monthly trends", el: Monthly },
   { id: "briefing", label: "Board briefing", el: Briefing },
 ];
 
