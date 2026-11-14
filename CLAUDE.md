@@ -105,6 +105,7 @@ What our stages do (already built):
   - 31 blank descriptions must be counted.
 
 ## Working conventions
+- **Git and deploy (2026-11-15, user's rule):** `master` always holds the latest code. Commit changes directly to `master` and push (the user rolls back commits if needed), then deploy the app from `master`: upload `app/` (backend, `frontend/dist`, `app.yaml`) to `/Workspace/Users/pruthvi.doshi@rotman.utoronto.ca/financial-model/app` and redeploy `ifc-cfo-intelligence` (start it first if stopped). The live app is a copy, so deploy after every merge. Rebuild `frontend/dist` (`npm run build`) before committing UI changes. Teammates also push to this repo: fetch and merge first.
 - The user is new to Databricks: give exact click paths, explain plainly, keep changes small and testable.
 - **The user validates each phase on Databricks before the next.** Don't jump ahead.
 - Never drop or overwrite `ref_text_feature_overrides`, `enriched_llm_extractions` (or his `llm_text_extractions`), `answers_register`, `agent_audit_log` or `raw_*` without asking. **No full LLM extraction without explicit approval**; test with 5 rows first.
