@@ -44,6 +44,16 @@ What our stages do (already built):
   - The run **stops without replacing tables** if more than 5% of rows would be quarantined.
   - Generated SQL is saved for audit.
 
+- **Monthly history (branch `feature/monthly-history`):**
+  - Files arrive in `incoming/YYYY-MM/`; the folder is the reporting month. A file outside a month folder is held.
+  - `ops_monthly_loads` keeps one active upload per (month, source): the newest. A re-upload supersedes the earlier one, which stays in Raw.
+  - `raw_*_current` = the active load of the month being processed, normally the latest complete month.
+  - `01_data/run_monthly_pipeline` rebuilds only changed months, latest last.
+  - `07_snapshot_month` replaces that month's rows in `certified_investment_portfolio_history`.
+  - `08_trends` builds `kpi_monthly`, `kpi_month_over_month`, `kpi_latest_scorecard`, `project_month_changes` and `compare_months()`. KPIs live in `trends` in the config.
+  - Dev runs use `config/pipeline_config_monthly_dev.yml` (`extends` the main config; schema `portfolio_monthly_dev`). Demo months come from `test_files/make_demo_months`.
+  - **New workspace (2026-11-14):** the generated demo files are committed in `test_files/demo_months/` (README there: story, correction test, job `run_monthly_pipeline` 824387683291203, schema `workspace.portfolio_monthly_dev`, app access). The app page is **Monthly review** (`app/frontend/src/pages/Monthly.jsx`, `app/backend/monthly.py`); the live app deploys from the Git folder `/Users/ritvik.kohli@rotman.utoronto.ca/financial-model-app`.
+
 ## Key data facts
 - **Project Number is NOT unique** (3,559 distinct / 5,000). Joining on it inflates monitoring 3,768 → 6,477. **Join key = `project_url`.** Count projects by URL.
 - Monitoring covers every non-Dropped project (1,233 Active + 1,233 Pending + 1,302 Closed) and is internally consistent.

@@ -17,6 +17,7 @@
 # MAGIC | Column | Meaning |
 # MAGIC |---|---|
 # MAGIC | `_load_id` | Unique ID of this load |
+# MAGIC | `_reporting_month` | Reporting month (first day), from the landing folder `incoming/YYYY-MM/` |
 # MAGIC | `_loaded_at` | When it was loaded (UTC) |
 # MAGIC | `_source_file` | File name as it arrived |
 # MAGIC | `_file_sha256` | Fingerprint of the file content |
@@ -27,7 +28,13 @@
 # MAGIC of records counted independently by Python's CSV reader. If they differ (for example, a broken quote or a
 # MAGIC description with an unexpected line break), the load is stopped and nothing is written.
 # MAGIC
-# MAGIC Each table also gets a `<table>_current` view that shows only the most recent load.
+# MAGIC **Months and re-uploads.** Every load is registered in `ops_monthly_loads` with its reporting month. Per month and
+# MAGIC source exactly one load is **active**: the newest. A corrected October file therefore supersedes the earlier
+# MAGIC October load (still in Raw, marked superseded) without touching any other month.
+# MAGIC
+# MAGIC `<table>_current` shows the active load of the **latest complete month** (the highest month with an active load for
+# MAGIC every source), not simply the most recent upload, so back-filling an old month never changes what is current.
+# MAGIC `<table>_active` shows the active load of every month.
 
 # COMMAND ----------
 
@@ -68,7 +75,48 @@ def _repo_root():
                             f"Tried: {[str(s) for s in starts]}")
 
 
-REPO_ROOT = _repo_root()
+def _mirror_repo():
+    """Serverless workaround: some workspaces cannot read workspace files next to the running notebook
+    (OSError [Errno 5]). Copy the repo's code, config, contracts and data to local disk through the Workspace API."""
+    import base64
+    from databricks.sdk import WorkspaceClient
+    from databricks.sdk.service.workspace import ExportFormat, ObjectType
+    nb = dbutils.notebook.entry_point.getDbutils().notebook().getContext().notebookPath().get()  # noqa: F821
+    ws_root = nb[len("/Workspace"):] if nb.startswith("/Workspace/") else nb
+    ws_root = ws_root.rsplit("/", 2)[0]          # notebooks sit one folder below the repo root
+    local = Path("/tmp/ifc_repo_mirror")
+    w = WorkspaceClient()
+    for sub in ["00_setup", "config", "contracts", "data"]:
+        for obj in w.workspace.list(f"{ws_root}/{sub}", recursive=True):
+            if obj.object_type != ObjectType.FILE or obj.path.lower().endswith((".pdf", ".xlsx")):
+                continue
+            dest = local / obj.path[len(ws_root) + 1:]
+            dest.parent.mkdir(parents=True, exist_ok=True)
+            dest.write_bytes(base64.b64decode(w.workspace.export(obj.path, format=ExportFormat.AUTO).content))
+    os.environ["IFC_WS_REPO_ROOT"] = "/Workspace" + ws_root
+    print(f"Workspace files not readable here; using a copy of {ws_root} at {local}")
+    return local
+
+
+def _readable_repo_root():
+    try:
+        root = _repo_root()
+        with open(root / "00_setup" / "ifc_common.py") as f:
+            f.read(1)
+        return root
+    except OSError:
+        return _mirror_repo()
+
+
+def _local_path(p):
+    """Map a /Workspace path inside the repo to the local copy (no-op when the repo is read in place)."""
+    ws = os.environ.get("IFC_WS_REPO_ROOT")
+    if p and ws and str(p).startswith(ws):
+        return str(REPO_ROOT) + str(p)[len(ws):]
+    return p
+
+
+REPO_ROOT = _readable_repo_root()
 if str(REPO_ROOT / "00_setup") not in sys.path:
     sys.path.insert(0, str(REPO_ROOT / "00_setup"))
 try:
@@ -86,13 +134,15 @@ except OSError:
                  _helper, "exec"), ifc_common.__dict__)
     sys.modules["ifc_common"] = ifc_common
 from ifc_common import T, load_config, load_contracts, load_order, resolve_config_path  # noqa: E402
+from ifc_monthly import (active_sha, incomplete_months, latest_month, month_from_folder, month_label,  # noqa: E402
+                         point_current_views, register_load)
 
 try:
     dbutils.widgets.text("config_path", "", "Config path (blank = repo config)")  # noqa: F821
     _widget = dbutils.widgets.get("config_path")  # noqa: F821
 except NameError:
     _widget = None
-CONFIG_PATH = resolve_config_path(_widget, REPO_ROOT)
+CONFIG_PATH = resolve_config_path(_local_path(_widget), REPO_ROOT)
 
 try:
     spark  # noqa: F821
@@ -100,7 +150,8 @@ try:
 except NameError:
     ON_DATABRICKS = False
 
-AUDIT_COLUMNS = ["_load_id", "_loaded_at", "_source_file", "_file_sha256", "_contract_version", "_source_row_number"]
+AUDIT_COLUMNS = ["_load_id", "_reporting_month", "_loaded_at", "_source_file", "_file_sha256", "_contract_version",
+                 "_source_row_number"]
 
 # COMMAND ----------
 
@@ -146,15 +197,23 @@ def count_and_header(path: Path):
 # COMMAND ----------
 
 
-def spark_already_loaded(table: str, sha: str) -> bool:
-    if not spark.catalog.tableExists(table):  # noqa: F821
-        return False
-    return spark.sql(  # noqa: F821
-        f"SELECT 1 FROM {table} WHERE _file_sha256 = '{sha}' LIMIT 1"
-    ).count() > 0
+def spark_already_loaded(cfg: dict, month, source: str, sha: str) -> bool:
+    """True if this exact content is already the active load for the month and source."""
+    return active_sha(spark, cfg, month, source) == sha  # noqa: F821
 
 
-def spark_load(path: Path, contract: dict, table: str, audit: dict, expected_rows: int) -> int:
+def month_check(df, month) -> str:
+    """Warn (never block) when the data's latest As of Date is not in the folder's month."""
+    if "as_of_date" not in df.columns:
+        return ""
+    latest = df.selectExpr("max(try_cast(as_of_date AS DATE)) AS d").first()["d"]
+    if latest is None or (latest.year, latest.month) == (month.year, month.month):
+        return ""
+    return (f"Warning: folder month is {month_label(month)} but the latest As of Date in the file is {latest}. "
+            "Check that the file was put in the right month folder.")
+
+
+def spark_load(path: Path, contract: dict, table: str, audit: dict, expected_rows: int):
     from pyspark.sql import functions as F
     from pyspark.sql.window import Window
 
@@ -185,17 +244,13 @@ def spark_load(path: Path, contract: dict, table: str, audit: dict, expected_row
 
     for k in ["_load_id", "_source_file", "_file_sha256", "_contract_version"]:
         df = df.withColumn(k, F.lit(audit[k]))
+    df = df.withColumn("_reporting_month", F.lit(audit["_reporting_month"]).cast("date"))
     df = df.withColumn("_loaded_at", F.lit(audit["_loaded_at"]).cast("timestamp"))
 
-    df.write.mode("append").saveAsTable(table)
-
-    spark.sql(f"""
-        CREATE OR REPLACE VIEW {table}_current
-        COMMENT 'Most recent load of {table}. Use this for current-state analysis.'
-        AS SELECT * FROM {table}
-        WHERE _loaded_at = (SELECT MAX(_loaded_at) FROM {table})
-    """)
-    return parsed_rows
+    message = month_check(df, audit["_month"])
+    # mergeSchema: a Raw table created before monthly folders existed gets the _reporting_month column added.
+    df.write.mode("append").option("mergeSchema", "true").saveAsTable(table)
+    return parsed_rows, message
 
 
 # COMMAND ----------
@@ -226,11 +281,12 @@ def local_load(cfg: dict, path: Path, contract: dict, table: str, audit: dict, e
     df.columns = [c["target"] for c in contract["schema"]]
     df["_source_row_number"] = range(1, len(df) + 1)
     for k, v in audit.items():
-        df[k] = v
+        if not k.startswith("_month"):
+            df[k] = v
     out = local_table_path(cfg, table)
     out.parent.mkdir(parents=True, exist_ok=True)
     df.to_csv(out, mode="a", header=not out.exists(), index=False)
-    return len(df)
+    return len(df), ""
 
 
 # COMMAND ----------
@@ -239,7 +295,7 @@ def local_load(cfg: dict, path: Path, contract: dict, table: str, audit: dict, e
 
 # COMMAND ----------
 
-LOG_FIELDS = ["load_id", "loaded_at", "source", "source_file", "file_sha256", "contract_version",
+LOG_FIELDS = ["load_id", "loaded_at", "reporting_month", "source", "source_file", "file_sha256", "contract_version",
               "target_table", "status", "rows_loaded", "message", "moved_to"]
 
 
@@ -253,7 +309,7 @@ def write_load_log(cfg: dict, records: list):
                              for f in LOG_FIELDS])
         table = T(cfg, "ops_raw_load_log")
         spark.createDataFrame([[r[f] for f in LOG_FIELDS] for r in records], schema) \
-            .write.mode("append").saveAsTable(table)  # noqa: F821
+            .write.mode("append").option("mergeSchema", "true").saveAsTable(table)  # noqa: F821
     else:
         p = Path(cfg["environment"]["landing_root"]) / "_raw_load_log.jsonl"
         with open(p, "a") as f:
@@ -275,51 +331,84 @@ def run_load_raw(config_path: str = CONFIG_PATH) -> list:
     lz = cfg["landing_zone"]
     records = []
 
-    for source in load_order(contracts):
-        contract = contracts[source]
-        table = T(cfg, contract["targets"]["raw"])
-        src_dir = root / lz["accepted"] / source
-        if not src_dir.exists():
-            continue
+    accepted = root / lz["accepted"]
+    month_dirs = sorted(d for d in accepted.iterdir() if d.is_dir() and month_from_folder(d.name)) \
+        if accepted.exists() else []
 
-        for path in sorted(p for p in src_dir.iterdir() if p.is_file() and not p.name.startswith(".")):
-            now = datetime.now(timezone.utc)
-            audit = {
-                "_load_id": str(uuid.uuid4()),
-                "_loaded_at": now.isoformat(),
-                "_source_file": original_name(path),
-                "_file_sha256": file_sha256(path),
-                "_contract_version": str(contract["contract"]["version"]),
-            }
-            rec = {"load_id": audit["_load_id"], "loaded_at": audit["_loaded_at"], "source": source,
-                   "source_file": audit["_source_file"], "file_sha256": audit["_file_sha256"],
-                   "contract_version": audit["_contract_version"], "target_table": table,
-                   "status": None, "rows_loaded": 0, "message": "", "moved_to": None}
-
-            already = (spark_already_loaded(table, audit["_file_sha256"]) if ON_DATABRICKS
-                       else local_already_loaded(cfg, table, audit["_file_sha256"]))
-            dest_dir = root / lz["loaded"] / source
-            dest_dir.mkdir(parents=True, exist_ok=True)
-
-            if already:
-                rec["status"] = "SKIPPED"
-                rec["message"] = "This file content is already in the Raw table."
-                rec["moved_to"] = str(shutil.move(str(path), str(dest_dir / path.name)))
-                records.append(rec)
+    # Months oldest first; within a month, projects before monitoring; within a source, files in arrival order
+    # (the gate prefixes a timestamp), so the newest upload of a month is loaded last and ends up active.
+    for month_dir in month_dirs:
+        month = month_from_folder(month_dir.name)
+        for source in load_order(contracts):
+            contract = contracts[source]
+            table = T(cfg, contract["targets"]["raw"])
+            src_dir = month_dir / source
+            if not src_dir.exists():
                 continue
 
-            try:
-                _, expected = count_and_header(path)
-                rows = (spark_load(path, contract, table, audit, expected) if ON_DATABRICKS
-                        else local_load(cfg, path, contract, table, audit, expected))
-                rec["status"], rec["rows_loaded"] = "LOADED", rows
-                rec["message"] = f"{rows} rows appended; row count reconciled."
-                rec["moved_to"] = str(shutil.move(str(path), str(dest_dir / path.name)))
-            except Exception as e:  # leave the file in accepted/ so it can be retried
-                rec["status"], rec["message"] = "FAILED", f"{type(e).__name__}: {e}"
-            records.append(rec)
+            for path in sorted(p for p in src_dir.iterdir() if p.is_file() and not p.name.startswith(".")):
+                now = datetime.now(timezone.utc)
+                audit = {
+                    "_load_id": str(uuid.uuid4()),
+                    "_reporting_month": month.isoformat(),
+                    "_loaded_at": now.isoformat(),
+                    "_source_file": original_name(path),
+                    "_file_sha256": file_sha256(path),
+                    "_contract_version": str(contract["contract"]["version"]),
+                    "_month": month,
+                }
+                rec = {"load_id": audit["_load_id"], "loaded_at": audit["_loaded_at"],
+                       "reporting_month": month_label(month), "source": source,
+                       "source_file": audit["_source_file"], "file_sha256": audit["_file_sha256"],
+                       "contract_version": audit["_contract_version"], "target_table": table,
+                       "status": None, "rows_loaded": 0, "message": "", "moved_to": None}
+
+                already = (spark_already_loaded(cfg, month, source, audit["_file_sha256"]) if ON_DATABRICKS
+                           else local_already_loaded(cfg, table, audit["_file_sha256"]))
+                dest_dir = root / lz["loaded"] / month_dir.name / source
+                dest_dir.mkdir(parents=True, exist_ok=True)
+
+                if already:
+                    rec["status"] = "SKIPPED"
+                    rec["message"] = f"Identical to the active {source} load for {month_label(month)}."
+                    rec["moved_to"] = str(shutil.move(str(path), str(dest_dir / path.name)))
+                    records.append(rec)
+                    continue
+
+                try:
+                    _, expected = count_and_header(path)
+                    rows, warning = (spark_load(path, contract, table, audit, expected) if ON_DATABRICKS
+                                     else local_load(cfg, path, contract, table, audit, expected))
+                    replaced = active_sha(spark, cfg, month, source) if ON_DATABRICKS else None  # noqa: F821
+                    if ON_DATABRICKS:
+                        register_load(spark, cfg, {  # noqa: F821
+                            "load_id": audit["_load_id"], "reporting_month": month, "source": source,
+                            "source_file": audit["_source_file"], "file_sha256": audit["_file_sha256"],
+                            "rows_loaded": rows, "loaded_at": audit["_loaded_at"], "check_message": warning})
+                    rec["status"], rec["rows_loaded"] = ("LOADED_WITH_WARNING" if warning else "LOADED"), rows
+                    rec["message"] = (f"{rows} rows appended; row count reconciled. "
+                                      + (f"Replaces the earlier {source} file for {month_label(month)} "
+                                         "(kept in Raw, marked superseded). " if replaced else "")
+                                      + warning).strip()
+                    rec["moved_to"] = str(shutil.move(str(path), str(dest_dir / path.name)))
+                except Exception as e:  # leave the file in accepted/ so it can be retried
+                    rec["status"], rec["message"] = "FAILED", f"{type(e).__name__}: {e}"
+                records.append(rec)
+
+    # Files left in the old layout accepted/<source>/ (before month folders) cannot be given a month.
+    for source in contracts:
+        legacy = accepted / source
+        if legacy.exists() and any(p.is_file() for p in legacy.iterdir()):
+            print(f"Note: {legacy} holds files without a month. Move them to incoming/YYYY-MM/ and re-run the gate.")
 
     write_load_log(cfg, records)
+    if ON_DATABRICKS:
+        sources = load_order(contracts)
+        latest = latest_month(spark, cfg, sources)  # noqa: F821
+        for m, missing in incomplete_months(spark, cfg, sources).items():  # noqa: F821
+            print(f"Month {month_label(m)} is incomplete (no {', '.join(missing)} file yet); it is not processed.")
+        if latest:
+            point_current_views(spark, cfg, contracts, latest)  # noqa: F821
     return records
 
 

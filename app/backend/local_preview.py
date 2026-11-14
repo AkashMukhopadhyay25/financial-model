@@ -30,14 +30,16 @@ REPO = Path(__file__).resolve().parents[2]
 PREVIEW_DIR = REPO / "app" / ".preview"
 DB_PATH = PREVIEW_DIR / "preview.duckdb"
 SOURCE_FILES = ["synthetic_ifc_projects_5000.csv", "synthetic_project_monitoring.csv"]
+PREVIEW_MONTH = "2026-06"  # reporting month of the first delivery (latest As of Date 2026-06-30)
 
 
 def _run_stages_1_to_3(work: Path, cfg: dict) -> Path:
     """Schema gate, raw load and validation on the source files; returns the SQLite database path."""
     landing = work / "landing"
-    (landing / "incoming").mkdir(parents=True)
+    month_dir = landing / "incoming" / PREVIEW_MONTH  # the schema gate requires a month folder (incoming/YYYY-MM/)
+    month_dir.mkdir(parents=True)
     for f in SOURCE_FILES:
-        shutil.copy(REPO / "data" / f, landing / "incoming" / f)
+        shutil.copy(REPO / "data" / f, month_dir / f)
     cfg = json.loads(json.dumps(cfg))
     cfg["environment"]["landing_root"] = str(landing)
     cfg["environment"]["contracts_dir"] = str(REPO / "contracts")

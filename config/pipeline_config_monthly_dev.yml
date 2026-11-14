@@ -1,0 +1,14 @@
+# Development config for the monthly-history feature: everything comes from pipeline_config.yml except the keys below.
+# Use it by setting the notebook widget `config_path` to this file's full workspace path (run_monthly_pipeline passes
+# it on to every stage). Nothing in the team schema `portfolio` is written; the team's LLM cache is only read.
+extends: pipeline_config.yml
+
+environment:
+  schema: portfolio_monthly_dev     # separate schema (own landing volume) so the team's tables are never touched
+
+ai:
+  # Demo months reuse existing descriptions, which are already in an LLM cache in the team schema (read-only
+  # carry-over below; llm_text_extractions is the team pipeline cache, same key). New demo projects get
+  # rule-based text attributes and are flagged for review: no model calls.
+  run_llm_extraction: false
+  legacy_llm_cache_table: workspace.portfolio.enriched_llm_extractions
