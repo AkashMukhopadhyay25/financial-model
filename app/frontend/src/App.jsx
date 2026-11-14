@@ -94,10 +94,8 @@ function Header() {
     <>
       <div className="topbar">
         <div className="brand" onClick={() => nav("overview")}>
-          <span className="brand-logo">IFC</span>
-          <span>
-            IFC <span className="sep">|</span> CFO Intelligence
-          </span>
+          <BellwetherMark size={32} />
+          <span className="wordmark">Bellwether</span>
         </div>
         <nav className="nav" aria-label="Pages">
           {PAGES.map((p) => (
@@ -194,5 +192,31 @@ function AlertsBox({ ov, onClose }) {
         <span>Projects with open data-quality issues</span><b>{ov?.kpis?.projects_needing_review ?? "–"}</b>
       </div>
     </div>
+  );
+}
+
+// Bellwether mark: a lowercase "b" with a single signal arc, on the app's blue gradient (same art as public/favicon.svg).
+export function BellwetherMark({ size = 32 }) {
+  return (
+    <svg width={size} height={size} viewBox="0 0 48 48" aria-hidden className="brand-mark">
+      <defs>
+        <linearGradient id="bw-base" x1="0" y1="0" x2="1" y2="1">
+          <stop offset="0" stopColor="#5b86f7" />
+          <stop offset=".55" stopColor="#2d45c4" />
+          <stop offset="1" stopColor="#2f8f9a" />
+        </linearGradient>
+        <radialGradient id="bw-glow" cx="1" cy="0" r=".75">
+          <stop offset="0" stopColor="#ef8a4c" stopOpacity=".95" />
+          <stop offset="1" stopColor="#ef8a4c" stopOpacity="0" />
+        </radialGradient>
+      </defs>
+      <rect width="48" height="48" rx="12" fill="url(#bw-base)" />
+      <rect width="48" height="48" rx="12" fill="url(#bw-glow)" />
+      <g fill="none" stroke="#fff" strokeLinecap="round">
+        <path d="M15.5 9.5V33" strokeWidth="4.4" />
+        <circle cx="22.6" cy="26.4" r="7.1" strokeWidth="4.4" />
+        <path d="M31.2 9.2a10 10 0 0 1 4.6 6.6" strokeWidth="2.8" />
+      </g>
+    </svg>
   );
 }

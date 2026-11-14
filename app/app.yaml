@@ -1,4 +1,4 @@
-# Databricks App: IFC | CFO Intelligence (FastAPI backend + React frontend, built files in frontend/dist).
+# Databricks App: Bellwether (IFC CFO Office portfolio intelligence) (FastAPI backend + React frontend, built files in frontend/dist).
 # Create the app with source code path = this app/ folder. Setup steps: app/README.md.
 command: ["uvicorn", "backend.main:app", "--host", "0.0.0.0", "--port", "8000"]
 env:

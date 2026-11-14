@@ -1,5 +1,5 @@
 """
-IFC | CFO Intelligence: FastAPI backend for the Databricks App.
+Bellwether (IFC CFO Office portfolio intelligence): FastAPI backend for the Databricks App.
 
   /api/*       JSON for the React frontend (every response carries its SQL evidence)
   /            the built React app (app/frontend/dist)
@@ -20,7 +20,7 @@ from . import genie, monthly, queries
 from .settings import get_settings
 
 log = logging.getLogger("ifc_app")
-app = FastAPI(title="IFC CFO Intelligence", docs_url="/api/docs", openapi_url="/api/openapi.json")
+app = FastAPI(title="Bellwether", docs_url="/api/docs", openapi_url="/api/openapi.json")
 DIST = Path(__file__).resolve().parents[1] / "frontend" / "dist"
 
 
