@@ -66,11 +66,11 @@ export default function Overview() {
       {loading && <Loading />}
       {k && (
         <div className="grid g3">
-          <Kpi label="Approved investment" tag="Portfolio snapshot" tagColor="blue" value={musd(k.approved_musd, { digits: 1 })} bar={<SplitBar segments={byStatus("approved_musd")} format={(v) => musd(v)} legend />}
+          <Kpi label="Approved investment" tag={`As of ${date(k.reporting_date)}`} tagColor="blue" value={musd(k.approved_musd, { digits: 1 })} bar={<SplitBar segments={byStatus("approved_musd")} format={(v) => musd(v)} legend />}
                info={`Board-approved total, every status (A03, A08), as of ${date(k.reporting_date)}.`} onClick={() => setEvidence(true)} />
-          <Kpi label="Projects" tag="Portfolio snapshot" tagColor="green" value={int(k.projects)} bar={<SplitBar segments={byStatus("projects")} legend />}
+          <Kpi label="Projects" tag={`${int(k.active_projects)} Active`} tagColor="green" value={int(k.projects)} bar={<SplitBar segments={byStatus("projects")} legend />}
                info={`${int(k.active_projects)} Active. Counted by project URL (A01).`} onClick={() => nav("portfolio")} />
-          <Kpi label="Clients" tag="Portfolio snapshot" tagColor="pink" value={int(k.clients)} bar={<SplitBar segments={byBand} legend />}
+          <Kpi label="Clients" tag={`${int(byBand.find((b) => b.label === "Review")?.value || 0)} to review`} tagColor="amber" value={int(k.clients)} bar={<SplitBar segments={byBand} legend />}
                info="Distinct clients with monitored projects, split by client band (A15)." onClick={() => nav("clients", { step: "directory" })} />
         </div>
       )}
