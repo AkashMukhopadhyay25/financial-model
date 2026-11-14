@@ -310,15 +310,22 @@ export function StepLine({ data, xKey, yKey, format = musd, height = 220 }) {
 }
 
 export function MiniBars({ data, xKey, yKey, color = "#2f66f6", format = (v) => int(v) }) {
+  const [hover, setHover] = useState(null);
   if (!data?.length) return null;
   const values = data.map((d) => Number(d[yKey]) || 0);
   const max = Math.max(...values) || 1;
+  const active = hover ?? data.length - 1;
   return (
-    <div>
-      <div style={{ display: "flex", gap: 4, alignItems: "flex-end", height: 28 }}>
+    <div className="minibars" onMouseLeave={() => setHover(null)}>
+      <div className="minibars-tip" style={{ left: `${Math.min(84, Math.max(16, ((active + 0.5) / data.length) * 100))}%` }}>
+        <b>{data[active][xKey]}</b> {format(values[active])}
+      </div>
+      <div style={{ display: "flex", gap: 4, alignItems: "flex-end", height: 34 }}>
         {data.map((d, i) => (
-          <div key={i} title={`${d[xKey]}: ${format(values[i])}`}
-               style={{ flex: 1, height: `${Math.max(4, (values[i] / max) * 100)}%`, borderRadius: 3, background: color, opacity: i === data.length - 1 ? 1 : 0.35 }} />
+          <div key={i} className="minibar" onMouseEnter={() => setHover(i)} tabIndex={0} onFocus={() => setHover(i)}
+               aria-label={`${d[xKey]}: ${format(values[i])}`}>
+            <div style={{ height: `${Math.max(4, (values[i] / max) * 100)}%`, background: color, opacity: i === active ? 1 : 0.35 }} />
+          </div>
         ))}
       </div>
       <div style={{ display: "flex", justifyContent: "space-between", fontSize: 10.5, color: "var(--muted)", marginTop: 4 }}>
