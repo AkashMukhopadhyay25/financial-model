@@ -93,8 +93,19 @@ FROM {P}
 WHERE {WS2_SCOPE}"""
     return {"kpis": kpis, "status_mix": status, "alerts": {k: by_p.get(k, 0) for k in ("HIGH", "MEDIUM", "REVIEW")},
             "risk": q(risk_sql)[0],
+            "data_refreshed_at": data_refreshed_at(),
             "client_bands": try_q(f"SELECT band, count(*) AS clients FROM {T('certified_client_scorecard')} GROUP BY band"),
             "activity": activity(), "evidence": {"kpis": kpi_sql, "credit_risk": risk_sql}}
+
+
+def data_refreshed_at():
+    """When portfolio data was last loaded (ops_raw_load_log); the local preview uses its build time."""
+    for sql in (f"SELECT max(loaded_at) AS at FROM {T('ops_raw_load_log')}",
+                f"SELECT max(built_at) AS at FROM {T('ops_preview_info')}"):
+        r = try_q(sql)
+        if r and r[0].get("at"):
+            return str(r[0]["at"])
+    return None
 
 
 def activity() -> list:

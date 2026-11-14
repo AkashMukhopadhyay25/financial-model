@@ -227,4 +227,5 @@ if DIST.is_dir():
         f = DIST / path
         if path and f.is_file() and DIST in f.resolve().parents:
             return FileResponse(f)
-        return FileResponse(DIST / "index.html")
+        # index.html must never be cached, so a new deploy shows on a normal reload (assets are content-hashed)
+        return FileResponse(DIST / "index.html", headers={"Cache-Control": "no-cache"})

@@ -28,6 +28,21 @@ export function date(v) {
   return d.toLocaleDateString("en-GB", { day: "numeric", month: "short", year: "numeric" });
 }
 
+// "13 Nov 2026, 22:05" in the viewer's time zone
+export function dateTime(v) {
+  if (!v) return "–";
+  const d = parse(v);
+  if (Number.isNaN(d.getTime())) return String(v);
+  return `${d.toLocaleDateString("en-GB", { day: "numeric", month: "short", year: "numeric" })}, ${d.toLocaleTimeString("en-GB", { hour: "2-digit", minute: "2-digit" })}`;
+}
+
+// Full timestamp with time zone, for tooltips
+export function dateTimeFull(v) {
+  if (!v) return "";
+  const d = parse(v);
+  return Number.isNaN(d.getTime()) ? String(v) : d.toLocaleString("en-GB", { dateStyle: "full", timeStyle: "long" });
+}
+
 export function ago(v) {
   if (!v) return "";
   const s = (Date.now() - parse(v).getTime()) / 1000;

@@ -1,6 +1,6 @@
 import React, { createContext, useCallback, useContext, useEffect, useMemo, useState } from "react";
 import { get } from "./api.js";
-import { date } from "./format.js";
+import { ago, date, dateTime, dateTimeFull } from "./format.js";
 import { QuestionLibrary } from "./Genie.jsx";
 import { AssumptionsDrawer, Toast } from "./ui.jsx";
 import Overview from "./pages/Overview.jsx";
@@ -89,7 +89,12 @@ function Header() {
   const { nav, route, health } = useApp();
   const [open, setOpen] = useState(null); // "search" | "alerts"
   const { data: ov } = useApiLite("/api/overview");
-  const refreshed = ov?.activity?.[0]?.at || ov?.kpis?.reporting_date;
+  const refreshed = ov?.data_refreshed_at;
+  const [, tick] = useState(0); // re-render every minute so "x min ago" stays current
+  useEffect(() => {
+    const t = setInterval(() => tick((n) => n + 1), 60000);
+    return () => clearInterval(t);
+  }, []);
   return (
     <>
       <div className="topbar">
@@ -106,8 +111,8 @@ function Header() {
         </nav>
       </div>
       <div className="subbar">
-        <span className="pill" title={`Reporting date ${ov?.kpis?.reporting_date || ""}`}>
-          <span className="dot" /> Data refreshed: {refreshed ? date(refreshed) : "…"}
+        <span className="pill" title={refreshed ? `Last data load: ${dateTimeFull(refreshed)}. Figures are as of the reporting date ${date(ov?.kpis?.reporting_date)}.` : ""}>
+          <span className="dot" /> Data refreshed: {refreshed ? `${dateTime(refreshed)} · ${ago(refreshed)}` : "…"}
         </span>
         <button className="icon-btn" aria-label="Search" onClick={() => setOpen(open === "search" ? null : "search")}>
           <svg width="14" height="14" viewBox="0 0 14 14"><circle cx="6" cy="6" r="4.5" fill="none" stroke="currentColor" strokeWidth="1.5" /><path d="M9.5 9.5L13 13" stroke="currentColor" strokeWidth="1.5" /></svg>
