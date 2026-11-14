@@ -48,6 +48,30 @@ export function Stripe({ value = 1, color = "var(--blue)", height }) {
   );
 }
 
+// Proportional bar: each segment's width is its share of the total. Hover a segment for the exact value.
+export function SplitBar({ segments, format = (v) => int(v), legend = false, height = 8 }) {
+  const segs = (segments || []).filter((x) => Number(x.value) > 0);
+  const total = segs.reduce((a, x) => a + Number(x.value), 0);
+  if (!total) return <div className="stripe" style={{ height }} />;
+  return (
+    <div>
+      <div className="splitbar" style={{ height }}>
+        {segs.map((x) => (
+          <span key={x.label} style={{ flex: Number(x.value), "--c": x.color }}
+                title={`${x.label}: ${format(x.value)} (${Math.round((100 * x.value) / total)}%)`} />
+        ))}
+      </div>
+      {legend && (
+        <div className="splitbar-legend">
+          {segs.map((x) => (
+            <span key={x.label}><i style={{ background: x.color }} />{x.label} {Math.round((100 * x.value) / total)}%</span>
+          ))}
+        </div>
+      )}
+    </div>
+  );
+}
+
 export function Dots({ n, of = 12, color }) {
   const on = Math.round(Math.min(of, n));
   return (
@@ -285,15 +309,21 @@ export function StepLine({ data, xKey, yKey, format = musd, height = 220 }) {
   );
 }
 
-export function MiniBars({ values, color = "#2f66f6" }) {
-  if (!values?.length) return null;
+export function MiniBars({ data, xKey, yKey, color = "#2f66f6", format = (v) => int(v) }) {
+  if (!data?.length) return null;
+  const values = data.map((d) => Number(d[yKey]) || 0);
   const max = Math.max(...values) || 1;
-  const hi = values.indexOf(max);
   return (
-    <div style={{ display: "flex", gap: 4, alignItems: "flex-end", height: 22 }}>
-      {values.map((v, i) => (
-        <div key={i} style={{ flex: 1, height: `${30 + (v / max) * 70}%`, borderRadius: 3, background: color, opacity: i === hi ? 1 : 0.22 }} />
-      ))}
+    <div>
+      <div style={{ display: "flex", gap: 4, alignItems: "flex-end", height: 28 }}>
+        {data.map((d, i) => (
+          <div key={i} title={`${d[xKey]}: ${format(values[i])}`}
+               style={{ flex: 1, height: `${Math.max(4, (values[i] / max) * 100)}%`, borderRadius: 3, background: color, opacity: i === data.length - 1 ? 1 : 0.35 }} />
+        ))}
+      </div>
+      <div style={{ display: "flex", justifyContent: "space-between", fontSize: 10.5, color: "var(--muted)", marginTop: 4 }}>
+        <span>{data[0][xKey]}</span><span>{data[data.length - 1][xKey]}</span>
+      </div>
     </div>
   );
 }

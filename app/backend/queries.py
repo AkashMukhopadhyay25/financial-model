@@ -92,7 +92,9 @@ FROM {P}"""
 FROM {P}
 WHERE {WS2_SCOPE}"""
     return {"kpis": kpis, "status_mix": status, "alerts": {k: by_p.get(k, 0) for k in ("HIGH", "MEDIUM", "REVIEW")},
-            "risk": q(risk_sql)[0], "activity": activity(), "evidence": {"kpis": kpi_sql, "credit_risk": risk_sql}}
+            "risk": q(risk_sql)[0],
+            "client_bands": try_q(f"SELECT band, count(*) AS clients FROM {T('certified_client_scorecard')} GROUP BY band"),
+            "activity": activity(), "evidence": {"kpis": kpi_sql, "credit_risk": risk_sql}}
 
 
 def activity() -> list:
@@ -134,7 +136,8 @@ FROM {P}
 WHERE {where}
 GROUP BY region
 ORDER BY approved_musd DESC"""
-    trend_sql = f"""SELECT approval_year AS year, count(*) AS projects, round(sum(total_approved_musd), 2) AS approved_musd
+    trend_sql = f"""SELECT approval_year AS year, count(*) AS projects, count_if(status = 'Active') AS active_projects,
+       round(sum(total_approved_musd), 2) AS approved_musd
 FROM {P}
 WHERE {where} AND approval_year IS NOT NULL
 GROUP BY approval_year
@@ -344,7 +347,8 @@ WHERE p.status = 'Active'
     for a in alerts:
         a["reviewed_at"] = str(reviewed[a["client_id"]]["reviewed_at"]) if a["client_id"] in reviewed else None
     counts = {col: sum(1 for a in alerts if a.get(col)) for col, _ in SIGNALS}
-    return {"alerts": alerts, "projects_to_review": int(q(projects_sql)[0]["projects"]),
+    active = int(q(f"SELECT count_if(status = 'Active') AS n FROM {P}")[0]["n"])
+    return {"alerts": alerts, "projects_to_review": int(q(projects_sql)[0]["projects"]), "active_projects": active,
             "signals": [{"column": c, "label": l, "clients": counts[c]} for c, l in SIGNALS],
             "evidence": {"alerts": alerts_sql, "projects": projects_sql}}
 

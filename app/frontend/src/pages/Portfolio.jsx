@@ -3,7 +3,7 @@ import { useApp } from "../App.jsx";
 import { get } from "../api.js";
 import { AskBar, GenieThread, useGenie } from "../Genie.jsx";
 import { int, musd } from "../format.js";
-import { BarChart, Check, DataTable, DqTag, ErrorBox, EvidenceDrawer, Loading, MiniBars, SqlBlock, StatusTag, StepLine, Tag, useApi } from "../ui.jsx";
+import { BarChart, Check, DataTable, DqTag, ErrorBox, EvidenceDrawer, Info, Loading, MiniBars, SqlBlock, StatusTag, StepLine, Tag, useApi } from "../ui.jsx";
 
 const FILTERS = [
   ["region", "Region"], ["country", "Country"], ["industry", "Industry"], ["department", "Department"],
@@ -93,9 +93,9 @@ export default function Portfolio({ params }) {
       {loading && !data && <Loading />}
       {k && (
         <div className="grid g3">
-          <KpiCard label="Approved investment" value={musd(k.approved_musd, { digits: 1 })} bars={trend.slice(-8).map((t) => t.approved_musd)} color="#2f66f6" />
-          <KpiCard label="Projects" value={int(k.projects)} bars={trend.slice(-8).map((t) => t.projects)} color="#1f9d55" />
-          <KpiCard label="Active projects" value={int(k.active_projects)} sub={`${int(k.clients)} clients`} bars={trend.slice(-8).map((t) => t.projects)} color="#e0457b" />
+          <KpiCard label="Approved investment" value={musd(k.approved_musd, { digits: 1 })} data={trend.slice(-8)} yKey="approved_musd" format={(v) => musd(v)} color="#2f66f6" />
+          <KpiCard label="Projects" value={int(k.projects)} data={trend.slice(-8)} yKey="projects" color="#1f9d55" />
+          <KpiCard label="Active projects" value={int(k.active_projects)} sub={`${int(k.clients)} clients`} data={trend.slice(-8)} yKey="active_projects" color="#e0457b" />
         </div>
       )}
 
@@ -168,12 +168,15 @@ export default function Portfolio({ params }) {
   );
 }
 
-function KpiCard({ label, value, bars, color, sub }) {
+function KpiCard({ label, value, data, yKey, color, sub, format }) {
   return (
     <div className="card">
-      <div className="kpi-label">{label} {sub && <span className="small muted">{sub}</span>}</div>
+      <div className="kpi-label">
+        <span>{label} <Info align="left" text="Bars: by approval year, last 8 years (the latest year runs to the reporting date). Hover a bar for its value." /></span>
+        {sub && <span className="small muted">{sub}</span>}
+      </div>
       <div className="kpi-value">{value}</div>
-      <MiniBars values={bars} color={color} />
+      <MiniBars data={data} xKey="year" yKey={yKey} color={color} format={format} />
     </div>
   );
 }

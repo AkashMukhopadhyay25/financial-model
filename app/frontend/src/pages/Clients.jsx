@@ -2,7 +2,7 @@ import React, { useEffect, useState } from "react";
 import { useApp } from "../App.jsx";
 import { flagReview, get } from "../api.js";
 import { int, musd, pct } from "../format.js";
-import { Check, DataTable, DqTag, ErrorBox, EvidenceDrawer, Info, Loading, Modal, Stats, StatusTag, Stripe, Tag, useApi } from "../ui.jsx";
+import { Check, DataTable, DqTag, ErrorBox, EvidenceDrawer, Info, Loading, Modal, SplitBar, Stats, StatusTag, Stripe, Tag, useApi } from "../ui.jsx";
 
 const STEPS = [
   ["directory", "Client directory"],
@@ -84,7 +84,10 @@ function BoardRecommendation({ selected, onSelect, onCompare }) {
                 <Tag color={l.color} caps>{l.label}</Tag>
               </div>
               <div className="amt">{musd(r.exposure_affected_musd)}</div>
-              <Stripe value={1} color={l.bar} />
+              <SplitBar format={(v) => musd(v)} legend segments={[
+                { label: "Disbursed", value: r.current_disbursed_exposure_musd, color: "#2f66f6" },
+                { label: "Undisbursed", value: r.undisbursed_commitment_musd, color: "#16a389" },
+              ]} />
               <div className="why">
                 <Stats items={[
                   { label: "Past Due", value: r.n_past_due, color: "red" },
@@ -178,7 +181,7 @@ function Profile({ id, full }) {
         </div>
         <div style={{ display: "flex", justifyContent: "space-between", fontSize: 13 }}>
           <span>Exposure breakdown</span>
-          <b>Approved {musd(s.approved_musd)}</b>
+          <b>Exposure affected {musd(disb + und)} <Info text={`Current disbursed exposure + undisbursed commitments (A09, A10). Board-approved total across all ${s.n_projects} projects: ${musd(s.approved_musd)}.`} /></b>
         </div>
         <div className="split-bar">
           <div style={{ flex: disb || 0.01, background: "repeating-linear-gradient(90deg,#2f66f6 0 3px,transparent 3px 6px)" }} />

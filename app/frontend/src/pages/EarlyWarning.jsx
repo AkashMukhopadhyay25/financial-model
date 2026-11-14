@@ -3,7 +3,7 @@ import { useApp } from "../App.jsx";
 import { flagReview, invalidate } from "../api.js";
 import { AskBar, GenieThread, useGenie } from "../Genie.jsx";
 import { date, int, musd } from "../format.js";
-import { ErrorBox, EvidenceDrawer, Info, Loading, Stats, Tag, useApi } from "../ui.jsx";
+import { ErrorBox, EvidenceDrawer, Info, Loading, SplitBar, Stats, Tag, useApi } from "../ui.jsx";
 
 const PRIORITY = { HIGH: { label: "High priority", color: "red" }, MEDIUM: { label: "Medium priority", color: "amber" }, REVIEW: { label: "Review", color: "teal" } };
 const SIG_COLOR = {
@@ -64,16 +64,15 @@ export default function EarlyWarning() {
               <div className="kpi-label">Clients flagged</div>
               <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
                 <div className="kpi-value">{int(data.alerts.length)}</div>
-                <DotPyramid color="#2f66f6" />
               </div>
-              <Stats items={[{ label: "high", value: counts.HIGH, color: "red" }, { label: "medium", value: counts.MEDIUM, color: "amber" }, { label: "review", value: counts.REVIEW, color: "blue" }]} />
+              <SplitBar legend segments={[{ label: "High", value: counts.HIGH, color: "#c9302c" }, { label: "Medium", value: counts.MEDIUM, color: "#e29a12" }, { label: "Review", value: counts.REVIEW, color: "#2f66f6" }]} />
             </div>
             <div className="card">
               <div className="kpi-label"><span>Projects to review <Info align="left" text="Active projects of flagged clients that are Watchlist, Past Due, rated 5-6 or overdue for review." /></span></div>
               <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
                 <div className="kpi-value" style={{ color: "#a86a00" }}>{int(data.projects_to_review)}</div>
-                <DotPyramid color="#e29a12" />
               </div>
+              <SplitBar legend segments={[{ label: "To review", value: data.projects_to_review, color: "#e29a12" }, { label: "Other Active", value: Math.max(0, data.active_projects - data.projects_to_review), color: "#c5cad6" }]} />
             </div>
             <div className="copilot" style={{ cursor: "default", minHeight: 0 }}>
               <div>
@@ -167,15 +166,3 @@ export default function EarlyWarning() {
 }
 
 
-function DotPyramid({ color }) {
-  const cols = [1, 2, 4, 5, 4, 2, 1];
-  return (
-    <svg width="60" height="44" viewBox="0 0 60 44" aria-hidden>
-      {cols.map((n, i) =>
-        Array.from({ length: n }, (_, j) => (
-          <circle key={`${i}-${j}`} cx={6 + i * 8} cy={40 - j * 8} r="3" fill={color} opacity={i === 3 ? 1 : 0.35} />
-        )),
-      )}
-    </svg>
-  );
-}

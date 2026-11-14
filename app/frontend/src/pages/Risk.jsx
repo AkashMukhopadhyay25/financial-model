@@ -1,7 +1,7 @@
 import React, { useState } from "react";
 import { useApp } from "../App.jsx";
 import { int, musd, musdFull } from "../format.js";
-import { Check, DataTable, Dots, DqTag, ErrorBox, EvidenceDrawer, Info, Loading, Stats, Stripe, Tag, useApi } from "../ui.jsx";
+import { Check, DataTable, Dots, DqTag, ErrorBox, EvidenceDrawer, Info, Loading, SplitBar, Stats, Stripe, Tag, useApi } from "../ui.jsx";
 
 export default function Risk({ params }) {
   const { nav, openAssumptions } = useApp();
@@ -36,17 +36,19 @@ export default function Risk({ params }) {
         <div className="card">
           <div className="kpi-label">Past Due <Tag color="red">Category A</Tag></div>
           <div className="kpi-value red">{int(pd.projects)}</div>
-          <Dots n={(pd.projects / (tot.projects || 1)) * 12} color="var(--red)" />
+          <SplitBar segments={[{ label: "Past Due", value: pd.projects, color: "#c9302c" }, { label: "Watchlist", value: wl.projects, color: "#e8e9ef" }]} />
+          <div className="kpi-foot mt">{Math.round((100 * pd.projects) / (tot.projects || 1))}% of {int(tot.projects)} Category A in distress</div>
         </div>
         <div className="card">
           <div className="kpi-label">Watchlist <Tag color="amber">Category A</Tag></div>
           <div className="kpi-value amber">{int(wl.projects)}</div>
-          <Dots n={(wl.projects / (tot.projects || 1)) * 12} color="var(--amber)" />
+          <SplitBar segments={[{ label: "Past Due", value: pd.projects, color: "#e8e9ef" }, { label: "Watchlist", value: wl.projects, color: "#e29a12" }]} />
+          <div className="kpi-foot mt">{Math.round((100 * wl.projects) / (tot.projects || 1))}% of {int(tot.projects)} Category A in distress</div>
         </div>
         <div className="card">
           <div className="kpi-label">Disbursed exposure <Tag color="blue">Past Due + Watchlist</Tag></div>
           <div className="kpi-value">{musd(tot.disbursed_capital_tied_up_musd)}</div>
-          <Stripe value={1} color="var(--blue)" />
+          <SplitBar format={(v) => musd(v)} segments={[{ label: "Past Due", value: pdD, color: "#c9302c" }, { label: "Watchlist", value: wlD, color: "#e29a12" }]} legend />
         </div>
         <div className="copilot" style={{ minHeight: 0, cursor: "default" }}>
           <div>

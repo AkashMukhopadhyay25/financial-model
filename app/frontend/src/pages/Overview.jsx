@@ -2,7 +2,7 @@ import React, { useState } from "react";
 import { useApp } from "../App.jsx";
 import { AskBar } from "../Genie.jsx";
 import { ago, date, int, musd } from "../format.js";
-import { ErrorBox, EvidenceDrawer, Info, Loading, OkIcon, Stripe, Tag, useApi } from "../ui.jsx";
+import { ErrorBox, EvidenceDrawer, Info, Loading, OkIcon, SplitBar, Stripe, Tag, useApi } from "../ui.jsx";
 
 const STORIES = [
   { page: "portfolio", eyebrow: "WS1 · Portfolio analytics", color: "blue", q: "What does IFC's portfolio look like?", d: "Explore metrics and answer recurring questions in plain language." },
@@ -26,7 +26,13 @@ export default function Overview() {
 
   const k = data?.kpis;
   const a = data?.alerts || {};
-  const maxAlert = Math.max(a.HIGH || 0, a.MEDIUM || 0, a.REVIEW || 0, 1);
+  const maxAlert = Math.max(Number(k?.clients) || 0, 1); // alert bars = share of all clients
+  const STATUS_COLOR = { Active: "#1f9d55", Pending: "#2f66f6", Closed: "#9aa1b3", Dropped: "#c9302c" };
+  const BAND = { CONTINUE: ["Continue", "#1f9d55"], MONITOR: ["Monitor", "#2f66f6"], REDUCE_OR_REVIEW: ["Review", "#e29a12"] };
+  const byStatus = (key) => ["Active", "Pending", "Closed", "Dropped"].map((st) => ({
+    label: st, color: STATUS_COLOR[st], value: Number((data?.status_mix || []).find((x) => x.status === st)?.[key] || 0) }));
+  const byBand = Object.entries(BAND).map(([b, [label, color]]) => ({
+    label, color, value: Number((data?.client_bands || []).find((x) => x.band === b)?.clients || 0) }));
   return (
     <>
       <div className="page-head" style={{ marginTop: 22 }}>
@@ -60,19 +66,19 @@ export default function Overview() {
       {loading && <Loading />}
       {k && (
         <div className="grid g3">
-          <Kpi label="Approved investment" tag="Portfolio snapshot" tagColor="blue" value={musd(k.approved_musd, { digits: 1 })} color="var(--blue)"
+          <Kpi label="Approved investment" tag="Portfolio snapshot" tagColor="blue" value={musd(k.approved_musd, { digits: 1 })} bar={<SplitBar segments={byStatus("approved_musd")} format={(v) => musd(v)} legend />}
                info={`Board-approved total, every status (A03, A08), as of ${date(k.reporting_date)}.`} onClick={() => setEvidence(true)} />
-          <Kpi label="Projects" tag="Portfolio snapshot" tagColor="green" value={int(k.projects)} color="var(--green)"
+          <Kpi label="Projects" tag="Portfolio snapshot" tagColor="green" value={int(k.projects)} bar={<SplitBar segments={byStatus("projects")} legend />}
                info={`${int(k.active_projects)} Active. Counted by project URL (A01).`} onClick={() => nav("portfolio")} />
-          <Kpi label="Clients" tag="Portfolio snapshot" tagColor="pink" value={int(k.clients)} color="var(--pink)"
-               info="Distinct clients with monitored projects." onClick={() => nav("clients", { step: "directory" })} />
+          <Kpi label="Clients" tag="Portfolio snapshot" tagColor="pink" value={int(k.clients)} bar={<SplitBar segments={byBand} legend />}
+               info="Distinct clients with monitored projects, split by client band (A15)." onClick={() => nav("clients", { step: "directory" })} />
         </div>
       )}
 
       <div className="grid g3 mt">
         <div className="card">
           <div className="card-head">
-            <h3>Priority risk alerts {k && <Info align="left" text={`Clients with early-warning signals (A22). Separately, ${int(k.projects_needing_review)} projects carry data-quality flags (${int(k.projects_high_severity)} high); they stay in every total.`} />}</h3>
+            <h3>Priority risk alerts {k && <Info align="left" text={`Clients with early-warning signals (A22). Bars show the share of all ${int(k.clients)} clients. Separately, ${int(k.projects_needing_review)} projects carry data-quality flags (${int(k.projects_high_severity)} high); they stay in every total.`} />}</h3>
             <button className="icon-btn" aria-label="Open early warning" onClick={() => nav("early-warning")}>↗</button>
           </div>
           <AlertRow label="High priority" n={a.HIGH} max={maxAlert} color="var(--red)" />
@@ -112,14 +118,14 @@ export default function Overview() {
   );
 }
 
-function Kpi({ label, tag, tagColor, value, color, info, onClick }) {
+function Kpi({ label, tag, tagColor, value, info, onClick, bar }) {
   return (
     <div className="card" style={{ cursor: "pointer" }} onClick={onClick}>
       <div className="kpi-label">
         <span>{label} <Info text={info} align="left" /></span> <span className={`tag ${tagColor}`}>{tag}</span>
       </div>
       <div className="kpi-value">{value}</div>
-      <Stripe value={1} color={color} />
+      {bar}
     </div>
   );
 }
