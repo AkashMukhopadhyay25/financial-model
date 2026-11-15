@@ -405,3 +405,27 @@ textarea.note { width: 100%; border: 1px solid var(--line); border-radius: 10px;
 .brand { gap: 12px; }
 .brand-mark { flex: none; border-radius: 9px; box-shadow: 0 4px 12px rgba(45, 69, 196, .25); }
 .wordmark { font-family: var(--display); font-weight: 500; font-size: 22px; letter-spacing: -.01em; color: var(--ink); }
+
+/* ---------- Risk: exposure breakdown ---------- */
+.xb { background: linear-gradient(180deg, #fffaf3, #fff); }
+.xb-row { display: flex; gap: 8px; margin-top: 4px; }
+.xb-group { min-width: 0; display: flex; flex-direction: column; }
+.xb-bracket { display: flex; justify-content: space-between; align-items: baseline; font-size: 12.5px; color: var(--muted);
+  border-bottom: 2px solid #d8d2c6; padding-bottom: 4px; margin-bottom: 8px; white-space: nowrap; gap: 8px; }
+.xb-bracket b { color: var(--ink); font-weight: 600; }
+.xb-bracket.dashed { border-bottom-style: dashed; }
+.xb-blocks { display: flex; gap: 6px; height: 64px; }
+.xb-block { border-radius: 10px; display: grid; place-items: center; min-width: 6px; overflow: hidden; cursor: default; }
+.xb-block span { font-family: var(--display); font-weight: 600; font-size: 18px; white-space: nowrap; }
+.xb-ecl { background: repeating-linear-gradient(-45deg, #b8322c 0 8px, #c9433c 8px 14px); color: #fff; }
+.xb-rec { background: #f1d0cc; color: #8a1f1b; }
+.xb-wl { background: #e2a531; color: #4a3200; }
+.xb-und { background: repeating-linear-gradient(-45deg, #f4f1ea 0 8px, #fbfaf6 8px 14px); border: 1.5px dashed #c7c2b6; color: var(--ink-2); }
+.xb-legend { display: flex; gap: 6px; margin-top: 8px; font-size: 12px; color: var(--ink-2); }
+.xb-legend span { display: flex; align-items: center; gap: 6px; white-space: nowrap; min-width: 0; }
+.xb-legend i { width: 9px; height: 9px; border-radius: 50%; flex: none; }
+.xb-legend i.xb-und { border-width: 1px; }
+.xb-foot { display: flex; align-items: center; gap: 12px; border-top: 1px solid var(--line); margin-top: 16px; padding-top: 14px; font-size: 13px; flex-wrap: wrap; }
+.xb-pill { color: #fff; font-weight: 600; border-radius: 999px; padding: 6px 14px;
+  background: linear-gradient(130deg, #3d63f5 0%, #1c3bb8 50%, #0d1b4c 100%); }
+@media (max-width: 760px) { .xb-block span { font-size: 13px; } .xb-legend { flex-wrap: wrap; } .xb-legend span { flex: none !important; } }

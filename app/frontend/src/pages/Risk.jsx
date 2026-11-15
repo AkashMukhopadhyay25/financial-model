@@ -58,24 +58,10 @@ export default function Risk({ params }) {
         </div>
       </div>
 
-      <div className="card mt" style={{ background: "linear-gradient(180deg,#fffaf3,#fff)" }}>
-        <div className="card-head">
-          <h3>Exposure breakdown <Info align="left" text={`Disbursed exposure is not expected credit loss: the ${Math.round(data.ecl_loss_rate * 100)}% loss applies to Past Due only, not Watchlist (A11). A further ${musd(tot.undisbursed_commitment_musd)} is approved but undisbursed (A10).`} /></h3>
-          <Tag color="amber">ECL ≠ exposure</Tag>
-        </div>
-        <div style={{ display: "flex", gap: 6 }}>
-          <div style={{ flex: pdD || 1 }}>
-            <div style={{ fontFamily: "var(--display)", fontSize: 18 }}>≈ {musd(pdD)}</div>
-            <div className="split-bar"><div style={{ flex: 1, background: "repeating-linear-gradient(90deg,#c9302c 0 3px,transparent 3px 6px)" }} /></div>
-            <div className="legend"><span><i style={{ background: "var(--red)" }} />Past Due · {Math.round(data.ecl_loss_rate * 100)}% loss</span></div>
-          </div>
-          <div style={{ flex: wlD || 1 }}>
-            <div style={{ fontFamily: "var(--display)", fontSize: 18 }}>≈ {musd(wlD)}</div>
-            <div className="split-bar"><div style={{ flex: 1, background: "repeating-linear-gradient(90deg,#e29a12 0 9px,transparent 9px 12px)" }} /></div>
-            <div className="legend"><span><i style={{ background: "var(--amber)" }} />Watchlist · no loss</span></div>
-          </div>
-        </div>
-      </div>
+      <ExposureBreakdown
+        pd={pdD} wl={wlD} ecl={tot.expected_credit_loss_musd || 0} undisbursed={tot.undisbursed_commitment_musd || 0}
+        approved={tot.approved_musd || 0} rate={data.ecl_loss_rate}
+      />
 
       <div className="grid g-main mt">
         <div className="card">
@@ -177,6 +163,52 @@ function MethodNote({ onClose, openAssumptions }) {
           <li><b>Reconciliation.</b> On the first delivery the totals were recomputed independently from the two source files: 95 projects, $15,473.36M approved, $11,447.52M disbursed, $3,311.72M ECL.</li>
         </ol>
         <button className="btn" onClick={openAssumptions}>Open the assumptions applied</button>
+      </div>
+    </div>
+  );
+}
+
+// Exposure breakdown: every block is sized to its amount. Disbursed (expected loss + recoverable Past Due + Watchlist)
+// then the approved-but-undisbursed commitment (A10). ECL applies to Past Due only (A11).
+function ExposureBreakdown({ pd, wl, ecl, undisbursed, approved, rate }) {
+  const recoverable = Math.max(0, pd - ecl);
+  const disbursed = pd + wl;
+  const blocks = [
+    { key: "ecl", label: "Expected loss", value: ecl, tip: `Expected credit loss: ${Math.round(rate * 100)}% of Past Due disbursed (A11)` },
+    { key: "rec", label: "Recoverable", value: recoverable, tip: "Past Due disbursed not expected to be lost" },
+    { key: "wl", label: "Watchlist · no loss", value: wl, tip: "Watchlist disbursed: no provision under the brief's model" },
+  ];
+  const Block = ({ b }) => (
+    <div className={`xb-block xb-${b.key}`} style={{ flex: b.value || 0.001 }} title={`${b.tip}: ${musd(b.value)}`}>
+      <span>{musd(b.value)}</span>
+    </div>
+  );
+  return (
+    <div className="card mt xb">
+      <div className="card-head">
+        <h3>Exposure breakdown <Info align="left" text="Disbursed exposure is not expected credit loss. The loss rate applies to Past Due only; Watchlist carries no provision. Undisbursed commitments are approved amounts IFC may still fund." /></h3>
+        <Tag color="amber">ECL ≠ exposure</Tag>
+      </div>
+      <div className="xb-row">
+        <div className="xb-group" style={{ flex: disbursed || 1 }}>
+          <div className="xb-bracket"><span>Disbursed</span><b>{musd(disbursed)}</b></div>
+          <div className="xb-blocks">{blocks.map((b) => <Block key={b.key} b={b} />)}</div>
+          <div className="xb-legend">
+            {blocks.map((b) => <span key={b.key} style={{ flex: b.value || 0.001 }}><i className={`xb-${b.key}`} />{b.label}</span>)}
+          </div>
+        </div>
+        <div className="xb-group" style={{ flex: undisbursed || 0.001 }}>
+          <div className="xb-bracket dashed"><span>Not yet disbursed</span></div>
+          <div className="xb-blocks">
+            <div className="xb-block xb-und" style={{ flex: 1 }} title={`Approved but not yet disbursed (A10): ${musd(undisbursed)}`}><span>{musd(undisbursed)}</span></div>
+          </div>
+          <div className="xb-legend"><span><i className="xb-und" />Undisbursed (A10)</span></div>
+        </div>
+      </div>
+      <div className="xb-foot">
+        <span className="xb-pill">ECL {musd(ecl)}</span>
+        <span className="muted">= {Math.round(rate * 100)}% × {musd(pd)} Past Due</span>
+        <span style={{ marginLeft: "auto" }} className="muted">Total approved <b style={{ color: "var(--ink)" }}>{musd(approved)}</b></span>
       </div>
     </div>
   );
