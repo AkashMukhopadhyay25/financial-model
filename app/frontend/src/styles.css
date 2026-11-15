@@ -582,3 +582,11 @@ table.data th.sorted .sort-ic { opacity: 1; color: var(--blue); }
 .brief-owner-bar > div { height: 100%; border-radius: 999px; background: repeating-linear-gradient(-45deg, #e29a12 0 6px, color-mix(in srgb, #e29a12 72%, white) 6px 9px); }
 @media (max-width: 760px) { .brief-ew-row { grid-template-columns: 1fr; } .brief-owner { grid-template-columns: 1fr 1fr 50px; } }
 .brief-rec > .tag { align-self: flex-start; }
+
+/* recommendation cards: tag on top, full client name below (wraps, never truncated) */
+.client-card > .tag { align-self: flex-start; }
+.client-card { display: flex; flex-direction: column; }
+.client-card .rec-name { font-family: var(--display); font-size: 17px; font-weight: 500; line-height: 1.25; margin-top: 10px; min-height: 2.5em; }
+.client-card .amt { margin-top: 2px; }
+.client-card .card-foot { margin-top: auto; padding-top: 12px; }
+.client-card .rec-name { min-height: 0; margin-bottom: 4px; }

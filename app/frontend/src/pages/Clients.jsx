@@ -85,10 +85,8 @@ function BoardRecommendation({ selected, onSelect, onCompare }) {
           const l = recLabel(r.recommendation);
           return (
             <div key={r.client_id} className={`card client-card ${selected === r.client_id ? "sel" : ""}`} onClick={() => openProfile(r.client_id)}>
-              <div className="kpi-label" style={{ color: "var(--ink)", fontSize: 16, fontFamily: "var(--display)" }}>
-                <span style={{ overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{r.client_name}</span>
-                <Tag color={l.color} caps>{l.label}</Tag>
-              </div>
+              <Tag color={l.color} caps>{l.label}</Tag>
+              <div className="rec-name" title={r.client_name}>{r.client_name}</div>
               <div className="amt">{musd(r.exposure_affected_musd)}</div>
               <SplitBar format={(v) => musd(v)} legend segments={[
                 { label: "Disbursed", value: r.current_disbursed_exposure_musd, color: "#2f66f6" },
