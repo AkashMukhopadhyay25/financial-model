@@ -16,7 +16,6 @@ export default function Risk({ params }) {
   const by = Object.fromEntries(data.summary.map((r) => [r.status_label, r]));
   const pd = by["Past Due"] || {}, wl = by["Watchlist"] || {}, tot = by.TOTAL || {};
   const pdD = pd.disbursed_capital_tied_up_musd || 0, wlD = wl.disbursed_capital_tied_up_musd || 0;
-  const done = data.checks.filter((c) => c.ok).length;
   let projects = data.projects.filter((p) => tab === "All" || p.performance_status === tab);
   if (params.client) projects = projects.filter((p) => p.client_id === params.client);
   if (category) projects = projects.filter((p) => p.industry === category);
@@ -63,7 +62,7 @@ export default function Risk({ params }) {
         approved={tot.approved_musd || 0} rate={data.ecl_loss_rate}
       />
 
-      <div className="grid g-main mt">
+      <div className="mt">
         <div className="card">
           <div className="card-head" style={{ flexWrap: "wrap" }}>
             <h3><span className="dot" style={{ marginRight: 8 }} />Projects requiring attention <Info align="left" text={`${int(tot.projects)} projects across ${int(tot.clients)} clients, all Active, Category A. Approved ${musdFull(tot.approved_musd)}; disbursed ${musdFull(tot.disbursed_capital_tied_up_musd)}; ECL ${musdFull(tot.expected_credit_loss_musd)}.`} /></h3>
@@ -107,19 +106,6 @@ export default function Risk({ params }) {
               ) },
             ]}
           />
-        </div>
-        <div className="card" style={{ background: "linear-gradient(180deg,#fff,#f4f7fd)", alignSelf: "start" }}>
-          <h3>Methodology / data quality</h3>
-          <div className="progress-line mt">
-            <Stripe value={done / data.checks.length} color="var(--green)" /> {done} of {data.checks.length} checked
-          </div>
-          <div className="checklist mt">
-            {data.checks.map((c) => (
-              <Check key={c.name} ok={c.ok} warn={!c.ok} detail={c.detail}>{c.name}</Check>
-            ))}
-          </div>
-          <div className="mt"><Stats items={[{ label: "of " + int(data.data_quality.rows_in_scope) + " flagged", value: int(data.data_quality.rows_needing_review), color: "amber" }, { label: "high", value: int(data.data_quality.rows_high_severity), color: "red" }]} /></div>
-          <button className="btn mt" style={{ width: "100%" }} onClick={() => setEvidence(true)}>View SQL / evidence</button>
         </div>
       </div>
       {evidence && (
