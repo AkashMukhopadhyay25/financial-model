@@ -163,7 +163,7 @@ function MethodNote({ onClose, openAssumptions }) {
         <ol style={{ lineHeight: 1.6, fontSize: 13.5 }}>
           <li><b>Join.</b> Each project is joined to its monitoring record on <code>project_url</code>. Project Number is not unique (3,559 values for 5,000 projects); joining on it would inflate monitoring rows from 3,768 to 6,477.</li>
           <li><b>Scope.</b> Environmental Category A and the latest performance status Past Due or Watchlist.</li>
-          <li><b>Measures.</b> Approved = Board-approved total. Disbursed = monitoring disbursed amount. Undisbursed commitment = approved − disbursed on Active projects.</li>
+          <li><b>Measures.</b> Approved = board-approved total. Disbursed = monitoring disbursed amount. Undisbursed commitment = approved − disbursed on Active projects.</li>
           <li><b>Expected credit loss.</b> Past Due = default; 60% of disbursed is lost (case brief). Watchlist projects carry no provision under this simplified model.</li>
           <li><b>Reconciliation.</b> On the first delivery the totals were recomputed independently from the two source files: 95 projects, $15,473.36M approved, $11,447.52M disbursed, $3,311.72M ECL.</li>
         </ol>

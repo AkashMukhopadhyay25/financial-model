@@ -127,7 +127,7 @@ export default function Portfolio({ params }) {
           <div className="card">
             <div className="card-head">
               <h3>Top 25 projects</h3>
-              <Tag color="blue">By Board-approved amount</Tag>
+              <Tag color="blue">By board-approved amount</Tag>
             </div>
             <DataTable
               rows={data.projects}
