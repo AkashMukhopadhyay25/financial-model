@@ -81,7 +81,7 @@ export default function Monthly({ params }) {
       {data.ready && (
         <>
           <div className="grid g4">
-            {data.kpis.map((k) => <KpiCard key={k.kpi_id} k={k} prev={short(data.previous)} />)}
+            {data.kpis.map((k) => <KpiCard key={k.kpi_id} k={k} prev={`${short(data.previous)} '${String(data.previous || "").slice(2, 4)}`} />)}
           </div>
 
           <div className="grid g-main mt" style={{ alignItems: "start" }}>
@@ -132,16 +132,17 @@ function KpiCard({ k, prev }) {
   const t = KPI_TEXT[k.kpi_id] || { label: k.kpi_name, foot: "" };
   const color = k.assessment === "Improving" ? "green" : k.assessment === "Deteriorating" ? "red" : "grey";
   const diff = k.change || 0;
-  const sign = diff > 0 ? "+" : diff < 0 ? "−" : "";
+  const arrow = diff > 0 ? "↑" : diff < 0 ? "↓" : "";
   const diffTxt = k.unit === "USD M" ? musd(Math.abs(diff)) : int(Math.abs(Math.round(diff)));
   return (
     <div className="card">
       <div className="kpi-label">
         <span>{t.label} <Info text={t.foot} align="left" /></span>
-        <Tag color={color}>{diff === 0 ? "No change" : `${sign}${diffTxt}`}</Tag>
       </div>
       <div className={`kpi-value ${color === "red" ? "red" : ""}`}>{fmtKpi(k.value, k.unit)}</div>
-      <div className="kpi-foot">{fmtKpi(k.previous_value, k.unit)} in {prev}</div>
+      <Tag color={color} title={`${fmtKpi(k.previous_value, k.unit)} in ${prev}`}>
+        {diff === 0 ? `No change from ${prev}` : `${arrow} ${diffTxt} from ${prev}`}
+      </Tag>
     </div>
   );
 }
