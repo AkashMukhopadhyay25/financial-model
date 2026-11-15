@@ -161,7 +161,7 @@ function MethodNote({ onClose, openAssumptions }) {
 
 // Exposure breakdown: every block is sized to its amount. Disbursed (expected loss + recoverable Past Due + Watchlist)
 // then the approved-but-undisbursed commitment (A10). ECL applies to Past Due only (A11).
-function ExposureBreakdown({ pd, wl, ecl, undisbursed, approved, rate }) {
+export function ExposureBreakdown({ pd, wl, ecl, undisbursed, approved, rate, bare }) {
   const recoverable = Math.max(0, pd - ecl);
   const disbursed = pd + wl;
   const blocks = [
@@ -175,8 +175,8 @@ function ExposureBreakdown({ pd, wl, ecl, undisbursed, approved, rate }) {
     </div>
   );
   return (
-    <div className="card mt xb">
-      <div className="card-head">
+    <div className={bare ? "xb" : "card mt xb"}>
+      <div className="card-head" style={bare ? { display: "none" } : undefined}>
         <h3>Exposure breakdown <Info align="left" text="Disbursed exposure is not expected credit loss. The loss rate applies to Past Due only; Watchlist carries no provision. Undisbursed commitments are approved amounts IFC may still fund." /></h3>
         <Tag color="amber">ECL ≠ exposure</Tag>
       </div>

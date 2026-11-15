@@ -5,7 +5,7 @@ import { AskBar, GenieThread, useGenie } from "../Genie.jsx";
 import { date, int, musd } from "../format.js";
 import { ErrorBox, EvidenceDrawer, Info, Loading, SplitBar, Stats, Tag, useApi } from "../ui.jsx";
 
-const PRIORITY = { HIGH: { label: "High priority", color: "red" }, MEDIUM: { label: "Medium priority", color: "amber" }, REVIEW: { label: "Review", color: "teal" } };
+const PRIORITY = { HIGH: { label: "High priority", color: "red", dot: "red" }, MEDIUM: { label: "Medium priority", color: "amber", dot: "amber" }, REVIEW: { label: "Review", color: "blue", dot: "blue" } };
 const SIG_COLOR = {
   sig_multiple_watchlist: "amber", sig_high_risk_rating: "red", sig_review_overdue: "blue",
   sig_existing_past_due: "red", sig_country_concentration: "teal",
@@ -90,37 +90,43 @@ export default function EarlyWarning() {
                   <label><input type="checkbox" checked={showReviewed} onChange={(e) => setShowReviewed(e.target.checked)} /> show reviewed</label>
                 </span>
               </div>
-              {alerts.slice(0, limit).map((a) => (
-                <div key={a.client_id} className={`ew-card ${a.reviewed_at ? "reviewed" : ""}`}>
-                  <div className="row1">
-                    <div className="name">
-                      {a.client_name} <Tag color={PRIORITY[a.priority].color} caps>{PRIORITY[a.priority].label}</Tag>
+              {alerts.slice(0, limit).map((a, i, arr) => (
+                <React.Fragment key={a.client_id}>
+                  {(i === 0 || arr[i - 1].priority !== a.priority) && (
+                    <div className="ew-group">
+                      <span className={`dot ${PRIORITY[a.priority].dot}`} /> {PRIORITY[a.priority].label}
+                      <span className="muted">· {int(counts[a.priority])} clients</span>
+                      <span className="ew-action">→ {a.suggested_action}</span>
                     </div>
-                    <div className="actions">
-                      <button className="btn small" onClick={() => markReviewed(a)} disabled={!!a.reviewed_at}>
-                        {a.reviewed_at ? `Reviewed ${date(a.reviewed_at)}` : "Mark reviewed"}
+                  )}
+                  <div className={`ew-card2 pr-${a.priority.toLowerCase()} ${a.reviewed_at ? "reviewed" : ""}`}>
+                    <div className="ew-main">
+                      <div className="ew-name">
+                        {a.client_name}
+                        <span className="ew-meta">{a.primary_industry} · {a.primary_region}</span>
+                      </div>
+                      <Stats items={[
+                        { label: "exposure", value: musd(a.exposure_affected_musd) },
+                        { label: "Past Due", value: a.n_past_due, color: "red" },
+                        { label: "Watchlist", value: a.n_watchlist, color: "amber" },
+                        { label: "rated 5-6", value: a.n_active_rating_5_6, color: "red" },
+                        { label: "reviews overdue", value: a.n_review_overdue_active, color: "blue" },
+                        a.sig_country_concentration ? { label: `in ${a.top_country}`, value: `${Math.round(a.top_country_exposure_share * 100)}%` } : null,
+                      ]} />
+                    </div>
+                    <div className="ew-side">
+                      <button className={`icon-btn ew-check ${a.reviewed_at ? "done" : ""}`} disabled={!!a.reviewed_at}
+                              title={a.reviewed_at ? `Reviewed ${date(a.reviewed_at)}` : "Mark reviewed"} aria-label="Mark reviewed" onClick={() => markReviewed(a)}>
+                        <svg width="14" height="14" viewBox="0 0 14 14" aria-hidden><path d="M2.5 7.3l2.8 2.8L11.5 4" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" /></svg>
                       </button>
-                      <button className="btn small" onClick={() => nav("risk", { client: a.client_id })}>WS2 project details</button>
-                      <button className="btn small dark" onClick={() => nav("clients", { step: "profile", client: a.client_id })}>WS3 Client 360°</button>
+                      <button className="link small" onClick={() => nav("risk", { client: a.client_id })}>Projects</button>
+                      <button className="row-go" aria-label={`Open Client 360° for ${a.client_name}`} title={`Open Client 360° for ${a.client_name}`}
+                              onClick={() => nav("clients", { step: "profile", client: a.client_id })}>
+                        <svg width="14" height="14" viewBox="0 0 14 14" aria-hidden><path d="M3 7h8M7.5 3.5L11 7l-3.5 3.5" fill="none" stroke="currentColor" strokeWidth="1.7" strokeLinecap="round" strokeLinejoin="round" /></svg>
+                      </button>
                     </div>
                   </div>
-                  <div className="desc">
-                    <Stats items={[
-                      { label: "exposure", value: musd(a.exposure_affected_musd) },
-                      { label: "Past Due", value: a.n_past_due, color: "red" },
-                      { label: "Watchlist", value: a.n_watchlist, color: "amber" },
-                      { label: "rated 5-6", value: a.n_active_rating_5_6, color: "red" },
-                      { label: "reviews overdue", value: a.n_review_overdue_active, color: "blue" },
-                      a.sig_country_concentration ? { label: `in ${a.top_country}`, value: `${Math.round(a.top_country_exposure_share * 100)}%` } : null,
-                    ]} />
-                  </div>
-                  <div className="trig">
-                    {signals.filter((s) => a[s.column]).map((s) => (
-                      <Tag key={s.column} color={SIG_COLOR[s.column]}>{s.label}</Tag>
-                    ))}
-                    <span className="sugg" style={{ marginTop: 0, marginLeft: "auto" }}>→ {a.suggested_action}</span>
-                  </div>
-                </div>
+                </React.Fragment>
               ))}
               {!alerts.length && <div className="card empty">No alerts match the selected indicators.</div>}
               {alerts.length > limit && (
@@ -129,7 +135,7 @@ export default function EarlyWarning() {
                 </button>
               )}
             </div>
-            <div className="card" style={{ alignSelf: "start", background: "linear-gradient(180deg,#fff,#fff8ef)" }}>
+            <div className="card" style={{ alignSelf: "start" }}>
               <h3>Risk indicators <Info align="left" text="Tick to filter the alerts. Suggested actions are investigation, updated review or escalation, never automatic investment decisions. Thresholds: assumption A22." /></h3>
               <div className="checklist mt">
                 {signals.map((s) => (
@@ -145,6 +151,7 @@ export default function EarlyWarning() {
 
           <div className="mt">
             <AskBar
+              variant="hero"
               prompt="Ask the agent"
               placeholder="Which clients show the strongest combination of risk indicators?"
               busy={genie.busy}

@@ -1,7 +1,8 @@
 import React from "react";
 import { useApp } from "../App.jsx";
 import { date, int, musd, musdFull } from "../format.js";
-import { DataTable, ErrorBox, Loading, Tag, useApi } from "../ui.jsx";
+import { ErrorBox, Info, Loading, SplitBar, Tag, useApi } from "../ui.jsx";
+import { ExposureBreakdown } from "./Risk.jsx";
 
 // Board briefing: every number below is read live from the certified tables, so the briefing never drifts from the app.
 export default function Briefing() {
@@ -37,95 +38,139 @@ export default function Briefing() {
   );
 }
 
-function Brief({ d, nav }) {
-  const k = d.overview.kpis;
-  const by = Object.fromEntries(d.risk.summary.map((r) => [r.status_label, r]));
-  const tot = by.TOTAL || {};
+const STATUS_COLOR = { Active: "#1f9d55", Pending: "#2f66f6", Closed: "#9aa1b3", Dropped: "#c9302c" };
+const SIGNAL_COLOR = {
+  "Multiple Watchlist projects": "amber", "Internal risk ratings 5-6": "red", "Long time since last review": "blue",
+  "Existing Past Due projects": "red", "Concentration in one country": "teal",
+};
+
+function Section({ n, title, sub, link, onLink, children }) {
   return (
-    <div className="brief">
-      <div className="grid g4">
-        <Stat label="Approved investment" value={musd(k.approved_musd, { digits: 1 })} note={`${int(k.projects)} projects, all statuses`} />
-        <Stat label="Active projects" value={int(k.active_projects)} note={`${int(k.clients)} clients`} />
-        <Stat label="Category A in distress" value={int(tot.projects)} note={`${musd(tot.disbursed_capital_tied_up_musd)} disbursed`} />
-        <Stat label="Expected credit loss" value={musd(tot.expected_credit_loss_musd)} note="60% of Past Due disbursed" />
+    <div className="card mt brief-sec">
+      <div className="brief-head">
+        <span className="brief-n">{n}</span>
+        <div>
+          <h2>{title}</h2>
+          {sub && <div className="card-sub">{sub}</div>}
+        </div>
+        {link && <button className="link no-print" style={{ marginLeft: "auto" }} onClick={onLink}>{link} →</button>}
       </div>
-
-      <div className="card mt">
-        <h2>1. Portfolio at a glance</h2>
-        <p>
-          As of the reporting date {date(k.reporting_date)}, IFC's portfolio holds <b>{int(k.projects)}</b> projects with{" "}
-          <b>{musdFull(k.approved_musd)}</b> approved by the Board (every status, Dropped included). {int(k.active_projects)} projects are Active.
-        </p>
-        <DataTable rows={d.overview.status_mix} columns={[
-          { key: "status", label: "Status" }, { key: "projects", label: "Projects", num: true },
-          { key: "approved_musd", label: "Approved", num: true, render: (v) => musdFull(v) },
-        ]} />
-        <button className="link mt no-print" onClick={() => nav("portfolio")}>Explore in Portfolio analytics →</button>
-      </div>
-
-      <div className="card mt">
-        <h2>2. Board questions: Category A risk (WS2)</h2>
-        <ul>
-          <li><b>{int(tot.projects)}</b> Category A projects are Past Due ({int(by["Past Due"]?.projects)}) or on the Watchlist ({int(by.Watchlist?.projects)}), across {int(tot.clients)} clients, with {musdFull(tot.approved_musd)} approved.</li>
-          <li><b>{musdFull(tot.disbursed_capital_tied_up_musd)}</b> of disbursed capital is tied up in them: {musdFull(by["Past Due"]?.disbursed_capital_tied_up_musd)} Past Due and {musdFull(by.Watchlist?.disbursed_capital_tied_up_musd)} Watchlist.</li>
-          <li>Recommended provision on the Past Due projects: <b>{musdFull(tot.expected_credit_loss_musd)}</b>. A further {musdFull(tot.undisbursed_commitment_musd)} is approved but undisbursed.</li>
-        </ul>
-        <div className="small muted">Checks: {d.risk.checks.map((c) => `${c.name} ${c.ok ? "✓" : "✗"}`).join(" · ")}</div>
-        <button className="link mt no-print" onClick={() => nav("risk")}>Open Risk &amp; exposure →</button>
-      </div>
-
-      <div className="card mt">
-        <h2>3. Client recommendations (WS3) — for Credit Risk Committee review</h2>
-        {d.recommendations.map((r) => (
-          <div key={r.client_id} style={{ marginBottom: 12 }}>
-            <div style={{ display: "flex", gap: 8, alignItems: "center", flexWrap: "wrap" }}>
-              <Tag color={r.recommendation === "CONTINUE" ? "green" : "red"} caps>{r.recommendation === "CONTINUE" ? "Continue to invest" : "Reduce / review"}</Tag>
-              <b>{r.client_name}</b> <span className="small muted">{r.client_id} · {r.primary_industry}, {r.primary_region}</span>
-            </div>
-            <p style={{ margin: "6px 0 0" }}>
-              Exposure affected {musdFull(r.exposure_affected_musd)} (disbursed {musdFull(r.current_disbursed_exposure_musd)} + undisbursed {musdFull(r.undisbursed_commitment_musd)}).
-              Evidence: {r.evidence_summary}. {r.suggested_action}
-            </p>
-          </div>
-        ))}
-        <button className="link no-print" onClick={() => nav("clients")}>Open Client intelligence →</button>
-      </div>
-
-      <div className="card mt">
-        <h2>4. Early warning: highest-priority clients</h2>
-        <p className="small muted" style={{ marginTop: 0 }}>Risk signals for human investigation, not predictions of default.</p>
-        <DataTable rows={d.early_warning} columns={[
-          { key: "client_name", label: "Client", strong: true }, { key: "triggered_by", label: "Signals" },
-          { key: "exposure_affected_musd", label: "Exposure affected", num: true, render: (v) => musd(v) },
-          { key: "suggested_action", label: "Suggested action" },
-        ]} />
-      </div>
-
-      <div className="card mt">
-        <h2>5. Data quality and assumptions</h2>
-        <p>
-          {int(k.projects_needing_review)} projects carry open data-quality flags ({int(k.projects_high_severity)} high severity). They are
-          included in every figure and routed to their owners:
-        </p>
-        <DataTable rows={d.review_owners} columns={[{ key: "owner", label: "Owner" }, { key: "projects", label: "Projects flagged", num: true }]} />
-        <details className="mt">
-          <summary style={{ cursor: "pointer", fontWeight: 600 }}>Assumptions applied ({d.assumptions.length})</summary>
-          <ul>
-            {d.assumptions.map((a) => (
-              <li key={a.assumption_id}><b>{a.assumption_id} {a.topic}.</b> {a.statement}</li>
-            ))}
-          </ul>
-        </details>
-      </div>
+      {children}
     </div>
   );
 }
 
-const Stat = ({ label, value, note }) => (
-  <div className="card">
-    <div className="kpi-label">{label}</div>
+function Brief({ d, nav }) {
+  const k = d.overview.kpis;
+  const by = Object.fromEntries(d.risk.summary.map((r) => [r.status_label, r]));
+  const tot = by.TOTAL || {}, pd = by["Past Due"] || {}, wl = by.Watchlist || {};
+  const pdD = pd.disbursed_capital_tied_up_musd || 0, wlD = wl.disbursed_capital_tied_up_musd || 0;
+  const rate = pdD ? (tot.expected_credit_loss_musd || 0) / pdD : 0.6;
+  const statuses = ["Active", "Pending", "Closed", "Dropped"].map((st) => ({ st, ...(d.overview.status_mix.find((x) => x.status === st) || {}) }));
+  const maxOwner = Math.max(1, ...d.review_owners.map((o) => o.projects));
+  return (
+    <div className="brief">
+      <div className="grid g4">
+        <Stat label="Approved investment" value={musd(k.approved_musd, { digits: 1 })}
+              bar={<SplitBar format={(v) => musd(v)} segments={statuses.map((x) => ({ label: x.st, value: x.approved_musd || 0, color: STATUS_COLOR[x.st] }))} />}
+              note={`${int(k.projects)} projects, all statuses`} />
+        <Stat label="Active projects" value={int(k.active_projects)}
+              bar={<SplitBar segments={[{ label: "Active", value: k.active_projects, color: "#1f9d55" }, { label: "Other", value: k.projects - k.active_projects, color: "#d5d9e3" }]} />}
+              note={`${int(k.clients)} clients`} />
+        <Stat label="Category A in distress" value={int(tot.projects)}
+              bar={<SplitBar segments={[{ label: "Past Due", value: pd.projects, color: "#c9302c" }, { label: "Watchlist", value: wl.projects, color: "#e29a12" }]} />}
+              note={`${int(pd.projects)} Past Due · ${int(wl.projects)} Watchlist`} />
+        <Stat label="Expected credit loss" value={musd(tot.expected_credit_loss_musd)} dark
+              note={`${Math.round(rate * 100)}% of ${musd(pdD)} Past Due disbursed`} />
+      </div>
+
+      <Section n="1" title="Portfolio at a glance" sub={`As of ${date(k.reporting_date)} · board-approved, every status`} link="Portfolio analytics" onLink={() => nav("portfolio")}>
+        <SplitBar format={(v) => musd(v)} height={12} segments={statuses.map((x) => ({ label: x.st, value: x.approved_musd || 0, color: STATUS_COLOR[x.st] }))} />
+        <div className="grid g4 mt">
+          {statuses.map((x) => (
+            <div key={x.st} className="mini">
+              <div className="k"><span className="dot" style={{ background: STATUS_COLOR[x.st], marginRight: 6 }} />{x.st}</div>
+              <div className="v big">{musd(x.approved_musd)}</div>
+              <div className="small muted">{int(x.projects)} projects</div>
+            </div>
+          ))}
+        </div>
+      </Section>
+
+      <Section n="2" title="Board questions: Category A risk" sub={`${int(tot.projects)} projects Past Due or on the Watchlist · ${int(tot.clients)} clients · ${musd(tot.approved_musd)} approved`}
+               link="Risk & exposure" onLink={() => nav("risk")}>
+        <ExposureBreakdown bare pd={pdD} wl={wlD} ecl={tot.expected_credit_loss_musd || 0}
+                           undisbursed={tot.undisbursed_commitment_musd || 0} approved={tot.approved_musd || 0} rate={rate} />
+        <div className="chips" style={{ marginTop: 12 }}>
+          {d.risk.checks.map((c) => <Tag key={c.name} color={c.ok ? "green" : "amber"}>{c.ok ? "✓" : "!"} {c.name}</Tag>)}
+        </div>
+      </Section>
+
+      <Section n="3" title="Client recommendations" sub="For Credit Risk Committee review" link="Client intelligence" onLink={() => nav("clients")}>
+        <div className="grid g4">
+          {d.recommendations.map((r) => {
+            const cont = r.recommendation === "CONTINUE";
+            return (
+              <div key={r.client_id} className="brief-rec">
+                <Tag color={cont ? "green" : "red"} caps>{cont ? "Continue to invest" : "Reduce / review"}</Tag>
+                <div className="brief-rec-name">{r.client_name}</div>
+                <div className="small muted">{r.primary_industry} · {r.primary_region}</div>
+                <div className="brief-rec-amt">{musd(r.exposure_affected_musd)} <Info align="left" text={`${r.evidence_summary}. ${r.suggested_action}`} /></div>
+                <SplitBar format={(v) => musd(v)} segments={[
+                  { label: "Disbursed", value: r.current_disbursed_exposure_musd, color: "#2f66f6" },
+                  { label: "Undisbursed", value: r.undisbursed_commitment_musd, color: "#16a389" },
+                ]} />
+                {r.expected_credit_loss_musd > 0 && <div className="mt"><Tag color="red">ECL {musd(r.expected_credit_loss_musd)}</Tag></div>}
+              </div>
+            );
+          })}
+        </div>
+      </Section>
+
+      <Section n="4" title="Early warning: highest-priority clients" sub="Risk signals for human investigation, not predictions of default" link="Early warning" onLink={() => nav("early-warning")}>
+        <div className="brief-ew">
+          {d.early_warning.map((e) => (
+            <div key={e.client_id} className="brief-ew-row">
+              <div className="brief-ew-name">{e.client_name}</div>
+              <div className="chips" style={{ marginTop: 0 }}>
+                {String(e.triggered_by || "").split("; ").filter(Boolean).map((t) => <Tag key={t} color={SIGNAL_COLOR[t] || "grey"}>{t}</Tag>)}
+              </div>
+              <div className="brief-ew-amt">{musd(e.exposure_affected_musd)}</div>
+            </div>
+          ))}
+        </div>
+        <div className="small muted mt">Suggested action for all: {d.early_warning[0]?.suggested_action || "–"}.</div>
+      </Section>
+
+      <Section n="5" title="Data quality" sub={`${int(k.projects_needing_review)} projects flagged (${int(k.projects_high_severity)} high) · included in every figure · routed to owners`}>
+        <div className="brief-owners">
+          {d.review_owners.map((o) => (
+            <div key={o.owner} className="brief-owner">
+              <span>{o.owner}</span>
+              <div className="brief-owner-bar"><div style={{ width: `${(100 * o.projects) / maxOwner}%` }} /></div>
+              <b>{int(o.projects)}</b>
+            </div>
+          ))}
+        </div>
+        <details className="mt">
+          <summary style={{ cursor: "pointer", fontWeight: 600, fontSize: 13 }}>Assumptions applied ({d.assumptions.length})</summary>
+          <ul>
+            {d.assumptions.map((a) => (
+              <li key={a.assumption_id}><b>{a.topic}.</b> {a.statement}</li>
+            ))}
+          </ul>
+        </details>
+      </Section>
+    </div>
+  );
+}
+
+const Stat = ({ label, value, note, bar, dark }) => (
+  <div className={dark ? "copilot" : "card"} style={dark ? { minHeight: 0, cursor: "default" } : undefined}>
+    <div className="kpi-label" style={dark ? { color: "#fff", opacity: 0.9 } : undefined}>{label}</div>
     <div className="kpi-value" style={{ fontSize: 34 }}>{value}</div>
-    <div className="kpi-foot">{note}</div>
+    {bar}
+    <div className="kpi-foot" style={dark ? { color: "#fff", opacity: 0.85 } : { marginTop: 8 }}>{note}</div>
   </div>
 );
 
