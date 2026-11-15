@@ -156,23 +156,39 @@ export function SqlBlock({ sql, comment = "Certified SQL" }) {
 // ---------------------------------------------------------------- table
 export function DataTable({ columns, rows, onRowClick, empty = "No rows", maxRows = 200, pageSize }) {
   const [shown, setShown] = useState(pageSize || maxRows);
+  const [sort, setSort] = useState(null); // { key, dir: 1 | -1 }
   useEffect(() => setShown(pageSize || maxRows), [rows, pageSize, maxRows]);
   if (!rows?.length) return <div className="empty">{empty}</div>;
   const cols = columns || Object.keys(rows[0]).map((k) => ({ key: k, label: title(k), num: typeof rows[0][k] === "number" }));
+  const sortable = (c) => c.sortable !== false && c.label;
+  const valueOf = (c, r) => (c.sortValue ? c.sortValue(r) : c.key === "needs_review" ? dqRank(r) : r[c.key]);
+  const clickSort = (c) => {
+    if (!sortable(c)) return;
+    // numbers start largest-first, text A-Z; a second click flips the order
+    const first = c.num || c.key === "needs_review" || c.sortDesc ? -1 : 1; // data quality: most serious first
+    setSort((s) => (s && s.key === c.key ? { key: c.key, dir: -s.dir } : { key: c.key, dir: first }));
+  };
+  let view = rows;
+  if (sort) {
+    const c = cols.find((x) => x.key === sort.key);
+    view = [...rows].sort((a, b) => compareValues(valueOf(c, a), valueOf(c, b)) * sort.dir);
+  }
   return (
     <div className="table-wrap">
       <table className="data">
         <thead>
           <tr>
             {cols.map((c) => (
-              <th key={c.key} className={c.num ? "num" : ""}>
+              <th key={c.key} className={`${c.num ? "num" : ""} ${sortable(c) ? "sortable" : ""} ${sort?.key === c.key ? "sorted" : ""}`}
+                  onClick={() => clickSort(c)} aria-sort={sort?.key === c.key ? (sort.dir > 0 ? "ascending" : "descending") : undefined}>
                 {c.label}
+                {sortable(c) && <span className="sort-ic">{sort?.key === c.key ? (sort.dir > 0 ? "▲" : "▼") : "↕"}</span>}
               </th>
             ))}
           </tr>
         </thead>
         <tbody>
-          {rows.slice(0, Math.min(shown, maxRows)).map((r, i) => (
+          {view.slice(0, Math.min(shown, maxRows)).map((r, i) => (
             <tr key={i} className={onRowClick ? "clickable" : ""} onClick={onRowClick ? () => onRowClick(r) : undefined}>
               {cols.map((c) => (
                 <td key={c.key} className={`${c.num ? "num" : ""} ${c.strong ? "strong" : ""}`}>
@@ -196,6 +212,20 @@ export function DataTable({ columns, rows, onRowClick, empty = "No rows", maxRow
       )}
     </div>
   );
+}
+
+// Missing values always sort last; numbers numerically; text alphabetically (A-Z, numbers inside names in order).
+function compareValues(a, b) {
+  const na = a === null || a === undefined || a === "", nb = b === null || b === undefined || b === "";
+  if (na || nb) return na === nb ? 0 : na ? 1 : -1;
+  if (typeof a === "number" && typeof b === "number") return a - b;
+  if (typeof a === "boolean" && typeof b === "boolean") return Number(a) - Number(b);
+  return String(a).localeCompare(String(b), "en", { numeric: true, sensitivity: "base" });
+}
+
+// Data quality sorts by severity: clean 0, warning 1, high 2
+function dqRank(r) {
+  return !r.needs_review ? 0 : r.dq_max_severity === "high" ? 2 : 1;
 }
 
 function fmtCell(v, key) {

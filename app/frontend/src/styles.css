@@ -452,3 +452,10 @@ textarea.note { width: 100%; border: 1px solid var(--line); border-radius: 10px;
 .dq-pop-title { font-weight: 600; opacity: .75; font-size: 11px; text-transform: uppercase; letter-spacing: .04em; }
 .dq-pop-item { padding-left: 10px; position: relative; }
 .dq-pop-item::before { content: ""; position: absolute; left: 0; top: 7px; width: 4px; height: 4px; border-radius: 50%; background: #f3b7b3; }
+
+/* sortable table headers */
+table.data th.sortable { cursor: pointer; user-select: none; }
+table.data th.sortable:hover { color: var(--ink); }
+table.data th.sorted { color: var(--ink); }
+table.data th .sort-ic { font-size: 9px; margin-left: 5px; opacity: .45; display: inline-block; }
+table.data th.sorted .sort-ic { opacity: 1; color: var(--blue); }
