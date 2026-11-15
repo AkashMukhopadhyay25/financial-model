@@ -56,7 +56,6 @@ export default function Portfolio({ params }) {
         busy={genie.busy}
         onAsk={genie.ask}
         variant="hero"
-        right={<span className="hero-pill">Powered by Genie · governed data</span>}
         chips={suggestions}
         extraChip={<button className="chip plain" onClick={() => openLibrary()}>Browse 30-question library</button>}
       />
