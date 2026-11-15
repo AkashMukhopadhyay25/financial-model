@@ -1,7 +1,7 @@
 import React, { useCallback, useEffect, useMemo, useState } from "react";
 import { useApp } from "../App.jsx";
 import { get } from "../api.js";
-import { AskBar, GenieThread, useGenie } from "../Genie.jsx";
+import { AskBar, GenieThread, HistoryDrawer, useGenie } from "../Genie.jsx";
 import { date, int, musd } from "../format.js";
 import { BarChart, Check, DataTable, DqTag, ErrorBox, EvidenceDrawer, Info, Loading, MiniBars, SqlBlock, StatusTag, Tag, useApi, YearColumns } from "../ui.jsx";
 
@@ -17,6 +17,7 @@ export default function Portfolio({ params }) {
   const [lib, setLib] = useState([]);
   const [evidence, setEvidence] = useState(false);
   const [genieSql, setGenieSql] = useState(null);
+  const [history, setHistory] = useState(false);
   const options = useApi("/api/portfolio/options");
   const qs = useMemo(() => new URLSearchParams(Object.entries(filters).filter(([, v]) => v)).toString(), [filters]);
   const { data, error, loading } = useApi(`/api/portfolio${qs ? `?${qs}` : ""}`);
@@ -48,6 +49,7 @@ export default function Portfolio({ params }) {
           <button className="btn" onClick={() => setEvidence(true)}>Evidence / SQL</button>
           <button className="btn" onClick={() => openAssumptions(data?.assumption_ids)}>Assumptions</button>
           <button className="btn dark" onClick={() => (window.location.hash = "/briefing")}>Export / briefing</button>
+          <button className="btn" onClick={() => setHistory(true)}>History</button>
         </div>
       </div>
 
@@ -60,6 +62,7 @@ export default function Portfolio({ params }) {
         extraChip={<button className="chip plain" onClick={() => openLibrary()}>Browse 30-question library</button>}
       />
       <GenieThread genie={genie} onOpenCertified={openLibrary} onSql={onSql} />
+      {history && <HistoryDrawer onClose={() => setHistory(false)} onOpen={genie.show} />}
       {data && (
         <ExplainPanel
           genieSql={genieSql}
