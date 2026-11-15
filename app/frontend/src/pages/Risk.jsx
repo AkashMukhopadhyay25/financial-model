@@ -99,7 +99,12 @@ export default function Risk({ params }) {
               { key: "approved_musd", label: "Approved", num: true, render: (v) => musd(v) },
               { key: "disbursed_musd", label: "Disbursed", num: true, render: (v) => musd(v) },
               { key: "needs_review", label: "Data quality", render: (v, r) => <DqTag needs={v} severity={r.dq_max_severity} ids={r.dq_flag_ids} messages={r.dq_messages} /> },
-              { key: "client_id", label: "", render: (v) => <button className="link" style={{ whiteSpace: "nowrap" }} onClick={() => nav("clients", { step: "profile", client: v })}>Client →</button> },
+              { key: "client_id", label: "", render: (v, r) => (
+                <button className="row-go" aria-label={`Open Client 360° for ${r.client_name}`} title={`Open Client 360° for ${r.client_name}`}
+                        onClick={() => nav("clients", { step: "profile", client: v })}>
+                  <svg width="14" height="14" viewBox="0 0 14 14" aria-hidden><path d="M3 7h8M7.5 3.5L11 7l-3.5 3.5" fill="none" stroke="currentColor" strokeWidth="1.7" strokeLinecap="round" strokeLinejoin="round" /></svg>
+                </button>
+              ) },
             ]}
           />
         </div>
