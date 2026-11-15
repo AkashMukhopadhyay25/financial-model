@@ -107,18 +107,7 @@ function BoardRecommendation({ selected, onSelect, onCompare }) {
       </div>
       <div className="grid g-main mt">
         <div id="client-360" style={{ scrollMarginTop: 16 }}>{selected && <Profile id={selected} onCompare={() => onCompare(recs.map((r) => r.client_id))} />}</div>
-        <div>
-          <div className="card" style={{ background: "linear-gradient(180deg,#fff,#f2faf5)" }}>
-            <h3>Evidence + impact</h3>
-            <div className="checklist mt">
-              <Check ok detail="Exposure, credit risk, performance history per client (certified_client_scorecard).">Risk / performance profile</Check>
-              <Check ok detail="Same band rules for every client (A15); ranked by exposure affected.">Consistent comparison criteria</Check>
-              <Check ok detail="Exposure affected = current disbursed + undisbursed commitments (A09, A10).">Affected exposure quantified</Check>
-            </div>
-            <div className="actions mt">
-              <button className="btn small" onClick={() => setEvidence(true)}>View SQL</button>
-            </div>
-          </div>
+        <div className="side-first">
           <HumanReview clientId={selected} name={recs.find((r) => r.client_id === selected)?.client_name} />
         </div>
       </div>

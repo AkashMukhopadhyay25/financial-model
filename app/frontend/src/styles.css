@@ -529,3 +529,4 @@ table.data th.sorted .sort-ic { opacity: 1; color: var(--blue); }
 .suggest-foot { border-top: 1px solid var(--line-2); margin-top: 4px; }
 @media (max-width: 640px) { .suggest { width: min(92vw, 380px); } }
 .suggest { width: 460px; }
+.side-first > .copilot:first-child { margin-top: 0; }
