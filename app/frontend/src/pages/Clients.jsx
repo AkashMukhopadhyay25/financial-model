@@ -34,10 +34,12 @@ export default function Clients({ params }) {
           <div className="subtitle">Client relationship recommendations</div>
         </div>
         <div className="actions">
-          <form className="pill" style={{ padding: "4px 12px" }} onSubmit={(e) => { e.preventDefault(); nav("clients", { step: "directory", search }); }}>
-            <svg width="12" height="12" viewBox="0 0 14 14"><circle cx="6" cy="6" r="4.5" fill="none" stroke="currentColor" strokeWidth="1.5" /><path d="M9.5 9.5L13 13" stroke="currentColor" strokeWidth="1.5" /></svg>
-            <input value={search} onChange={(e) => setSearch(e.target.value)} placeholder="Search client directory" style={{ border: 0, outline: 0, padding: 6, width: 180 }} />
-          </form>
+          <ClientSearch
+            value={search}
+            onChange={setSearch}
+            onPick={(c) => { setSearch(""); setSelected(c.client_id); nav("clients", { step: "profile", client: c.client_id }); }}
+            onSubmit={(text) => nav("clients", { step: "directory", search: text })}
+          />
           <button className="btn" onClick={() => go("compare")}>Client comparison</button>
           <button className="btn dark" onClick={() => nav("briefing")}>Export / briefing</button>
         </div>
@@ -387,4 +389,65 @@ function Compare({ ids, onPick }) {
       </div>
     </div>
   );
+}
+
+// Search box with live client suggestions (name or client ID). Enter without a pick opens the filtered directory.
+function ClientSearch({ value, onChange, onPick, onSubmit }) {
+  const [items, setItems] = useState([]);
+  const [open, setOpen] = useState(false);
+  const [active, setActive] = useState(-1);
+  useEffect(() => {
+    const q = value.trim();
+    if (q.length < 2) {
+      setItems([]);
+      return undefined;
+    }
+    let live = true;
+    const t = setTimeout(() => {
+      get(`/api/clients?limit=8&search=${encodeURIComponent(q)}`)
+        .then((d) => { if (live) { setItems(d.clients || []); setActive(-1); setOpen(true); } })
+        .catch(() => live && setItems([]));
+    }, 180);
+    return () => { live = false; clearTimeout(t); };
+  }, [value]);
+  const onKey = (e) => {
+    if (e.key === "ArrowDown") { e.preventDefault(); setOpen(true); setActive((i) => Math.min(items.length - 1, i + 1)); }
+    else if (e.key === "ArrowUp") { e.preventDefault(); setActive((i) => Math.max(-1, i - 1)); }
+    else if (e.key === "Escape") { setOpen(false); }
+  };
+  const submit = (e) => {
+    e.preventDefault();
+    if (open && active >= 0 && items[active]) { setOpen(false); onPick(items[active]); }
+    else if (value.trim()) { setOpen(false); onSubmit(value.trim()); }
+  };
+  const showList = open && value.trim().length >= 2;
+  return (
+    <form className="pill client-search" style={{ padding: "4px 12px" }} onSubmit={submit}>
+      <svg width="12" height="12" viewBox="0 0 14 14"><circle cx="6" cy="6" r="4.5" fill="none" stroke="currentColor" strokeWidth="1.5" /><path d="M9.5 9.5L13 13" stroke="currentColor" strokeWidth="1.5" /></svg>
+      <input value={value} onChange={(e) => { onChange(e.target.value); setOpen(true); }} onKeyDown={onKey}
+             onFocus={() => setOpen(true)} onBlur={() => setTimeout(() => setOpen(false), 150)}
+             placeholder="Search client directory" aria-label="Search clients" aria-autocomplete="list" aria-expanded={showList}
+             style={{ border: 0, outline: 0, padding: 6, width: 200 }} />
+      {showList && (
+        <div className="suggest" role="listbox">
+          {items.length === 0 && <div className="suggest-empty">No client matches “{value.trim()}”</div>}
+          {items.map((c, i) => (
+            <div key={c.client_id} role="option" aria-selected={i === active} className={`suggest-item ${i === active ? "active" : ""}`}
+                 onMouseEnter={() => setActive(i)} onMouseDown={(e) => { e.preventDefault(); setOpen(false); onPick(c); }}>
+              <span className="suggest-name">{highlight(c.client_name, value.trim())}</span>
+              <span className="suggest-meta">{c.client_id}</span>
+              <Tag color={BAND[c.band]?.color}>{BAND[c.band]?.label}</Tag>
+            </div>
+          ))}
+          {items.length > 0 && <div className="suggest-foot">Enter to see all matches in the directory</div>}
+        </div>
+      )}
+    </form>
+  );
+}
+
+function highlight(text, q) {
+  const i = text.toLowerCase().indexOf(q.toLowerCase());
+  if (i < 0 || !q) return text;
+  return <>{text.slice(0, i)}<b>{text.slice(i, i + q.length)}</b>{text.slice(i + q.length)}</>;
 }
