@@ -184,8 +184,25 @@ class AskBody(BaseModel):
 
 
 @app.post("/api/genie/ask")
-def ask(body: AskBody):
-    return genie.ask(body.question.strip(), body.conversation_id)
+def ask(body: AskBody, request: Request):
+    question = body.question.strip()
+    r = genie.ask(question, body.conversation_id)
+    if r.get("available"):
+        r["history_id"] = queries.save_genie_answer(question, r, _user(request))
+    return r
+
+
+@app.get("/api/genie/history")
+def genie_history(limit: int = 100):
+    return queries.genie_history(min(limit, 500))
+
+
+@app.get("/api/genie/history/{history_id}")
+def genie_history_item(history_id: str):
+    item = queries.genie_history_item(history_id)
+    if not item:
+        raise HTTPException(404, "Not found in history")
+    return item
 
 
 class FeedbackBody(BaseModel):

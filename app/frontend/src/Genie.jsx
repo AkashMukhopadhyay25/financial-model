@@ -1,6 +1,6 @@
 import React, { useEffect, useRef, useState } from "react";
 import { askGenie, get, post } from "./api.js";
-import { BarChart, DataTable, Info, SparkIcon, SqlBlock, Tag } from "./ui.jsx";
+import { DataTable, Drawer, Info, SparkIcon, SqlBlock, Tag } from "./ui.jsx";
 import { int } from "./format.js";
 
 // Genie answers use light Markdown (**bold**, "- " bullets, "1." lists). Render it as formatted text, never as raw HTML.
@@ -39,17 +39,15 @@ export function RichText({ text }) {
 // "How this answer was calculated": Genie's own explanation of its query, the exact SQL that ran on the certified
 // table, and the certified SQL when the question matches one of the 30 certified questions.
 function HowCalculated({ r }) {
-  const [open, setOpen] = useState(false);
   const [certSql, setCertSql] = useState(null);
   const cert = r.certified_match?.question_id;
   useEffect(() => {
-    if (open && cert && certSql === null) get(`/api/answers/${cert}`).then((a) => setCertSql(a.sql_text || "")).catch(() => setCertSql(""));
-  }, [open, cert, certSql]);
+    if (cert && certSql === null) get(`/api/answers/${cert}`).then((a) => setCertSql(a.sql_text || "")).catch(() => setCertSql(""));
+  }, [cert, certSql]);
+  const open = true;
   return (
     <div className="how-calc">
-      <button className={`btn small ${open ? "dark" : ""}`} onClick={() => setOpen((o) => !o)} aria-expanded={open}>
-        {open ? "Hide how this answer was calculated" : "Show how this answer was calculated (SQL)"}
-      </button>
+      <div className="small" style={{ fontWeight: 600, marginBottom: 6 }}>How this answer was calculated</div>
       {open && (
         <div className="how-calc-body">
           <div className="steps-list">
@@ -142,7 +140,48 @@ export function useGenie() {
     conv.current = null;
     setTurns([]);
   };
-  return { turns, busy, ask, reset };
+  // Reopen a stored answer from History exactly as it was shown (no Genie call, no SQL re-run).
+  const show = (item) => setTurns((t) => [...t, { question: item.question, result: item.result, asked_at: item.asked_at }]);
+  return { turns, busy, ask, reset, show };
+}
+
+// History: earlier Genie questions and answers, read from ops_genie_history (stored when they were asked).
+export function HistoryDrawer({ onClose, onOpen }) {
+  const [items, setItems] = useState(null);
+  const [filter, setFilter] = useState("");
+  const [loading, setLoading] = useState(null);
+  useEffect(() => {
+    get("/api/genie/history", { fresh: true }).then(setItems).catch(() => setItems([]));
+  }, []);
+  const open = (h) => {
+    setLoading(h.history_id);
+    get(`/api/genie/history/${h.history_id}`, { fresh: true })
+      .then((item) => { onOpen(item); onClose(); })
+      .finally(() => setLoading(null));
+  };
+  const shown = (items || []).filter((h) => !filter || h.question.toLowerCase().includes(filter.toLowerCase()));
+  const lvl = (l) => LEVEL[l] || LEVEL.HUMAN_REVIEW_REQUIRED;
+  return (
+    <Drawer title="Question history" onClose={onClose}>
+      <p className="small muted" style={{ marginTop: 0 }}>
+        Earlier questions and the answers shown at the time. Opening one shows the stored answer; nothing is recomputed.
+      </p>
+      <input placeholder="Search questions…" value={filter} onChange={(e) => setFilter(e.target.value)} style={{ width: "100%", marginBottom: 10 }} />
+      {items === null && <div className="thinking"><span className="spinner" /> Loading history…</div>}
+      {items && !shown.length && <div className="empty">No questions yet.</div>}
+      <div className="history-list">
+        {shown.map((h) => (
+          <button key={h.history_id} className="history-item" onClick={() => open(h)} disabled={loading === h.history_id}>
+            <span className="hq">{h.question}</span>
+            <span className="hm">
+              <span>{h.asked_at?.slice(0, 16)}{h.asked_by && h.asked_by !== "local-user" ? ` · ${h.asked_by}` : ""} · {int(h.row_count)} rows</span>
+              <Tag color={lvl(h.trust_level).color}>{lvl(h.trust_level).label.split(" · ")[0]}</Tag>
+            </span>
+          </button>
+        ))}
+      </div>
+    </Drawer>
+  );
 }
 
 export function GenieThread({ genie, onOpenCertified, onSql }) {
@@ -163,7 +202,7 @@ export function GenieThread({ genie, onOpenCertified, onSql }) {
 }
 
 function GenieAnswer({ turn, onAsk, onOpenCertified, onSql, latest }) {
-  const [view, setView] = useState("table");
+  const [open, setOpen] = useState(true);
   const [fb, setFb] = useState(null);
   const r = turn.result;
   useEffect(() => {
@@ -186,13 +225,17 @@ function GenieAnswer({ turn, onAsk, onOpenCertified, onSql, latest }) {
       </div>
     );
   const lvl = LEVEL[r.trust?.level] || LEVEL.HUMAN_REVIEW_REQUIRED;
-  const chartable = canChart(r);
   return (
-    <div className="answer">
-      <div style={{ display: "flex", justifyContent: "space-between", gap: 10, alignItems: "flex-start" }}>
+    <div className={`answer${open ? "" : " collapsed"}`}>
+      <div className="answer-head">
         <div className="q">{turn.question}</div>
-        <Tag color={lvl.color}>{lvl.label}</Tag>
+        <div style={{ display: "flex", gap: 8, alignItems: "center", flex: "none" }}>
+          {turn.asked_at && <span className="small muted">From history · {turn.asked_at.slice(0, 16)}</span>}
+          <Tag color={lvl.color}>{lvl.label}</Tag>
+          <button className="btn small" onClick={() => setOpen((o) => !o)} aria-expanded={open}>{open ? "Hide" : "Show"}</button>
+        </div>
       </div>
+      {open && <>
       {r.text && <RichText text={r.text} />}
       {r.error && <div className="error mt">{r.error}</div>}
 
@@ -207,18 +250,8 @@ function GenieAnswer({ turn, onAsk, onOpenCertified, onSql, latest }) {
         <div className="mt">
           <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 8 }}>
             <span className="small muted">{int(r.row_count)} rows from Genie's query</span>
-            {chartable && (
-              <div className="toggle">
-                <button className={view === "table" ? "active" : ""} onClick={() => setView("table")}>Table</button>
-                <button className={view === "chart" ? "active" : ""} onClick={() => setView("chart")}>Chart</button>
-              </div>
-            )}
           </div>
-          {view === "chart" && chartable ? (
-            <BarChart data={r.rows.slice(0, 20)} labelKey={chartable.label} valueKey={chartable.value} format={(v) => v.toLocaleString("en-US", { maximumFractionDigits: 2 })} />
-          ) : (
-            <DataTable rows={r.rows} maxRows={50} />
-          )}
+          <DataTable rows={r.rows} maxRows={50} />
         </div>
       )}
 
@@ -250,6 +283,7 @@ function GenieAnswer({ turn, onAsk, onOpenCertified, onSql, latest }) {
           </span>
         )}
       </div>
+      </>}
     </div>
   );
 }
@@ -260,13 +294,6 @@ function sendFeedback(r, positive, setFb) {
     .catch(() => setFb("error"));
 }
 
-function canChart(r) {
-  if (!r.rows?.length || r.rows.length > 40) return null;
-  const cols = Object.keys(r.rows[0]);
-  const label = cols.find((c) => typeof r.rows[0][c] === "string");
-  const value = cols.find((c) => typeof r.rows[0][c] === "number" && !/year/i.test(c));
-  return label && value ? { label, value } : null;
-}
 
 // ---------------------------------------------------------------- certified answers library (30 WS1 questions)
 export function QuestionLibrary({ onClose, onAsk, openId }) {

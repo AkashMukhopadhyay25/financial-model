@@ -406,3 +406,43 @@ SELECT now(), :by, :etype, :eid, :ename, :action, :note, :page""", params)
 
 def review_requests(limit: int = 50) -> list:
     return try_q(f"SELECT * FROM {T('ops_review_requests')} ORDER BY requested_at DESC LIMIT {int(limit)}")
+
+
+# ---------------------------------------------------------------- Genie question history
+# Every Genie answer is stored as it was shown (text, SQL, result rows, trust check), so History reopens it without
+# asking Genie again or re-running the SQL.
+def ensure_genie_history_table():
+    q(f"""CREATE TABLE IF NOT EXISTS {T('ops_genie_history')} (
+  history_id STRING, asked_at TIMESTAMP, asked_by STRING, question STRING, status STRING,
+  trust_level STRING, row_count BIGINT, response_json STRING)
+COMMENT 'Genie questions and the answers shown in the app, stored as returned (History reopens them without re-running).'""")
+
+
+def save_genie_answer(question: str, response: dict, user: str) -> str:
+    import uuid
+    hid = uuid.uuid4().hex
+    try:
+        ensure_genie_history_table()
+        q(f"""INSERT INTO {T('ops_genie_history')}
+SELECT :hid, now(), :by, :question, :status, :level, CAST(:rows AS BIGINT), :resp""",
+          {"hid": hid, "by": user, "question": question, "status": response.get("status") or "",
+           "level": (response.get("trust") or {}).get("level") or "", "rows": int(response.get("row_count") or 0),
+           "resp": json.dumps(response, default=str)})
+    except Exception:
+        return None  # history is best effort: never block the answer
+    return hid
+
+
+def genie_history(limit: int = 100) -> list:
+    return try_q(f"""SELECT history_id, CAST(asked_at AS STRING) AS asked_at, asked_by, question, status, trust_level, row_count
+FROM {T('ops_genie_history')} ORDER BY asked_at DESC LIMIT {int(limit)}""")
+
+
+def genie_history_item(history_id: str):
+    rows = try_q(f"SELECT question, CAST(asked_at AS STRING) AS asked_at, asked_by, response_json FROM {T('ops_genie_history')} WHERE history_id = :hid",
+                 {"hid": history_id})
+    if not rows:
+        return None
+    r = rows[0]
+    return {"question": r["question"], "asked_at": r["asked_at"], "asked_by": r["asked_by"],
+            "result": json.loads(r["response_json"] or "{}")}

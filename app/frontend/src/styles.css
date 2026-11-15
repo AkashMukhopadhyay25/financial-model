@@ -495,3 +495,13 @@ table.data th.sorted .sort-ic { opacity: 1; color: var(--blue); }
 .steps-list { display: grid; gap: 6px; margin-bottom: 10px; font-size: 13px; }
 .steps-list div { display: flex; gap: 10px; align-items: flex-start; }
 .steps-list .n { flex: none; width: 20px; height: 20px; border-radius: 50%; background: var(--blue-soft); color: var(--blue); display: grid; place-items: center; font-size: 11px; font-weight: 600; }
+
+/* Collapsible Genie answers and History */
+.answer-head { display: flex; justify-content: space-between; gap: 10px; align-items: flex-start; }
+.answer.collapsed { padding-bottom: 10px; }
+.answer.collapsed .q { margin-bottom: 0; }
+.history-list { display: grid; gap: 8px; }
+.history-item { text-align: left; border: 1px solid var(--line); background: #fff; border-radius: 12px; padding: 10px 12px; cursor: pointer; display: grid; gap: 6px; font: inherit; }
+.history-item:hover { border-color: var(--blue); }
+.history-item .hq { font-weight: 600; font-size: 13.5px; color: var(--ink); }
+.history-item .hm { display: flex; justify-content: space-between; align-items: center; gap: 8px; font-size: 12px; color: var(--muted); }
