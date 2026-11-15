@@ -464,3 +464,13 @@ table.data th.sorted .sort-ic { opacity: 1; color: var(--blue); }
 .row-go { width: 30px; height: 30px; border-radius: 50%; border: 0; display: grid; place-items: center; cursor: pointer;
   background: var(--blue-soft); color: var(--blue); transition: background .12s, color .12s, transform .12s; }
 .row-go:hover, .row-go:focus-visible { background: var(--blue); color: #fff; outline: none; }
+
+/* collapsible explanation panel (Portfolio analytics) */
+.explain { padding: 0; }
+.explain-head { width: 100%; display: flex; align-items: center; gap: 12px; padding: 16px 18px; background: none; border: 0; cursor: pointer; text-align: left; }
+.explain-head h3 { margin: 0; }
+.explain-head .small { margin-left: auto; }
+.explain-head .chev { color: var(--muted); transition: transform .15s; flex: none; }
+.explain.open .explain-head .chev { transform: rotate(180deg); }
+.explain-body { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1.4fr); gap: 14px; padding: 0 18px 18px; }
+@media (max-width: 760px) { .explain-body { grid-template-columns: 1fr; } }
