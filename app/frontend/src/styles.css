@@ -474,3 +474,7 @@ table.data th.sorted .sort-ic { opacity: 1; color: var(--blue); }
 .explain.open .explain-head .chev { transform: rotate(180deg); }
 .explain-body { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1.4fr); gap: 14px; padding: 0 18px 18px; }
 @media (max-width: 760px) { .explain-body { grid-template-columns: 1fr; } }
+
+/* hero ask bar: the box keeps dark text (the hero itself is white text on blue) */
+.ask-hero .ask-row, .ask-hero .ask-row input { color: var(--ink); caret-color: var(--blue); }
+.ask-hero .ask-row input::placeholder { color: #9aa1b3; }
