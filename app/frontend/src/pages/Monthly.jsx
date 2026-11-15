@@ -2,7 +2,7 @@ import React, { useState } from "react";
 import { useApp } from "../App.jsx";
 import { invalidate, post } from "../api.js";
 import { int, musd } from "../format.js";
-import { Drawer, ErrorBox, EvidenceDrawer, Info, Loading, Modal, StepLine, Tag, useApi } from "../ui.jsx";
+import { Drawer, ErrorBox, EvidenceDrawer, Info, Loading, Modal, Tag, useApi, YearColumns } from "../ui.jsx";
 
 const DIRECTION = {
   Deteriorated: { color: "red", label: "Deteriorated" },
@@ -171,25 +171,27 @@ function ClientRow({ c, onOpen }) {
     c.recoveries && { t: `${c.recoveries} recover${c.recoveries > 1 ? "ies" : "y"}`, cls: "green" },
     c.growth && { t: `${c.growth} new-business step${c.growth > 1 ? "s" : ""}`, cls: "blue" },
   ].filter(Boolean);
+  const amount = c.exposure_musd > 0 ? { k: "Disbursed affected", v: c.exposure_musd } : c.approved_musd > 0 ? { k: "Newly approved", v: c.approved_musd } : null;
   return (
-    <div className="ew-card" style={{ cursor: "pointer" }} onClick={onOpen}>
-      <div className="row1">
-        <div className="name">
-          {c.client_name} <Tag color={d.color}>{d.label}</Tag>
-        </div>
-        <div style={{ display: "flex", gap: 16, alignItems: "center" }}>
-          {c.exposure_musd > 0 && (
-            <span className="small muted">Disbursed affected <b style={{ color: "var(--ink)" }}>{musd(c.exposure_musd)}</b></span>
-          )}
-          {c.exposure_musd === 0 && c.approved_musd > 0 && (
-            <span className="small muted">Newly approved <b style={{ color: "var(--ink)" }}>{musd(c.approved_musd)}</b></span>
-          )}
-          <span className="link">View details →</span>
+    <div className={`ew-card2 dir-${d.color}`} style={{ cursor: "pointer" }} onClick={onOpen}>
+      <div className="ew-main">
+        <div className="ew-name">{c.client_name} <Tag color={d.color}>{d.label}</Tag></div>
+        <div className="mo-headline">{c.headline}</div>
+        <div className="stats">
+          {facts.map((f) => <span key={f.t} className={`stat ${f.cls}`}>{f.t}</span>)}
         </div>
       </div>
-      <div className="desc">{c.headline}</div>
-      <div className="stats">
-        {facts.map((f) => <span key={f.t} className={`stat ${f.cls}`}>{f.t}</span>)}
+      <div className="ew-side">
+        {amount && (
+          <div className="mo-amt">
+            <span>{amount.k}</span>
+            <b>{musd(amount.v)}</b>
+          </div>
+        )}
+        <button className="row-go" aria-label={`Details for ${c.client_name}`} title="View details"
+                onClick={(e) => { e.stopPropagation(); onOpen(); }}>
+          <svg width="14" height="14" viewBox="0 0 14 14" aria-hidden><path d="M3 7h8M7.5 3.5L11 7l-3.5 3.5" fill="none" stroke="currentColor" strokeWidth="1.7" strokeLinecap="round" strokeLinejoin="round" /></svg>
+        </button>
       </div>
     </div>
   );
@@ -244,7 +246,7 @@ function ClientDrawer({ c, month, onClose, onProfile, onEvidence }) {
               {CLIENT_SERIES.map((x) => <option key={x.key} value={x.key}>{x.label}</option>)}
             </select>
           </div>
-          <StepLine data={hist} xKey="label" yKey={series} format={s.fmt} height={160} />
+          <YearColumns data={hist} xKey="label" yKey={series} format={s.fmt} height={190} labelFmt={(l) => l} defaultIndex="last" />
 
           <h3 style={{ margin: "18px 0 8px" }}>What changed in {monthName(month)}</h3>
           <div className="activity">
@@ -290,7 +292,10 @@ function PortfolioTrend({ months }) {
           ))}
         </div>
       </div>
-      {line.length > 0 ? <StepLine data={line} xKey="label" yKey="value" format={(v) => fmtKpi(v, unit)} height={180} /> : <Loading />}
+      {line.length > 0 ? (
+        <YearColumns data={line} xKey="label" yKey="value" format={(v) => fmtKpi(v, unit)} width={1100} height={240}
+                     labelFmt={(l) => l} defaultIndex="last" />
+      ) : <Loading />}
     </div>
   );
 }

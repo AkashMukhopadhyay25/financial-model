@@ -413,21 +413,22 @@ export function StepLine({ data, xKey, yKey, format = musd, height = 220 }) {
 
 // Column chart by year: value axis with gridlines, every year labelled, hover label above the column.
 // `partialFrom`: the year that is still in progress (drawn hatched, labelled with `partialLabel`).
-export function YearColumns({ data, xKey, yKey, format = musd, height = 230, partialYear, partialLabel, color = "#2f66f6" }) {
+export function YearColumns({ data, xKey, yKey, format = musd, height = 230, partialYear, partialLabel, color = "#2f66f6", width = 560, labelFmt, defaultIndex }) {
   const [hover, setHover] = useState(null);
   if (!data?.length) return <div className="empty">No data</div>;
-  const W = 560, H = height, left = 46, top = 30, bottom = 26;
+  const W = width, H = height, left = 46, top = 30, bottom = 26;
   const plotH = H - top - bottom, plotW = W - left;
   const vals = data.map((d) => Number(d[yKey]) || 0);
   const max = Math.max(...vals) || 1;
-  const step = niceStep(max / 4);
+  const ints = vals.every((v) => Number.isInteger(v));
+  const step = ints ? Math.max(1, niceStep(max / 4)) : niceStep(max / 4); // counts step in whole numbers
   const yMax = Math.ceil(max / step) * step;
   const ticks = Array.from({ length: Math.round(yMax / step) + 1 }, (_, i) => i * step);
-  const slot = plotW / data.length, bw = Math.min(30, slot * 0.62);
+  const slot = plotW / data.length, bw = Math.min(width > 800 ? 72 : 30, slot * 0.62);
   const y = (v) => top + plotH - (v / yMax) * plotH;
   const fullVals = vals.filter((_, i) => String(data[i][xKey]) !== String(partialYear));
   const peak = vals.indexOf(Math.max(...fullVals));
-  const active = hover ?? peak;
+  const active = hover ?? (defaultIndex === "last" ? data.length - 1 : peak);
   const ax = left + (active + 0.5) * slot;
   const isPartial = (i) => String(data[i][xKey]) === String(partialYear);
   const tip = `${data[active][xKey]}${isPartial(active) && partialLabel ? ` (${partialLabel})` : ""} · ${format(vals[active])}`;
@@ -456,7 +457,7 @@ export function YearColumns({ data, xKey, yKey, format = musd, height = 230, par
               <rect x={x} y={y(vals[i])} width={bw} height={h} rx="5"
                     fill={isPartial(i) ? "url(#yc-hatch)" : color} opacity={isPartial(i) ? 1 : i === active ? 1 : 0.32} />
               <text x={left + (i + 0.5) * slot} y={H - 8} textAnchor="middle" fontWeight={i === active ? 600 : 400}>
-                {`'${String(d[xKey]).slice(-2)}`}
+                {labelFmt ? labelFmt(d[xKey]) : `'${String(d[xKey]).slice(-2)}`}
               </text>
             </g>
           );
