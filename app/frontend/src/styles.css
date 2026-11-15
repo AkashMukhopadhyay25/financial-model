@@ -429,3 +429,17 @@ textarea.note { width: 100%; border: 1px solid var(--line); border-radius: 10px;
 .xb-pill { color: #fff; font-weight: 600; border-radius: 999px; padding: 6px 14px;
   background: linear-gradient(130deg, #3d63f5 0%, #1c3bb8 50%, #0d1b4c 100%); }
 @media (max-width: 760px) { .xb-block span { font-size: 13px; } .xb-legend { flex-wrap: wrap; } .xb-legend span { flex: none !important; } }
+
+/* exposure breakdown in the site palette (overrides the first version above) */
+.xb { background: var(--card); }
+.xb-bracket { border-bottom-color: #d5d9e3; }
+.xb-ecl { background: repeating-linear-gradient(-45deg, #c9302c 0 6px, color-mix(in srgb, #c9302c 78%, white) 6px 9px); color: #fff; }
+.xb-rec { background: var(--red-soft); color: var(--red); }
+.xb-wl { background: repeating-linear-gradient(-45deg, #e29a12 0 6px, color-mix(in srgb, #e29a12 72%, white) 6px 9px); color: #fff; }
+.xb-wl span { text-shadow: 0 1px 2px rgba(120, 70, 0, .35); }
+.xb-und { background: var(--line-2); border: 1.5px dashed #c5cad6; color: var(--ink-2); }
+.xb-legend i.xb-ecl { background: #c9302c; }
+.xb-legend i.xb-rec { background: #f3b7b3; }
+.xb-legend i.xb-wl { background: #e29a12; }
+.xb-legend i.xb-und { background: var(--line-2); border: 1px dashed #c5cad6; }
+.xb-wl { color: #4a3000; } .xb-wl span { text-shadow: 0 1px 1px rgba(255, 255, 255, .45); }
