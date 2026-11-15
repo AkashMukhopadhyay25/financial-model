@@ -186,7 +186,7 @@ COMMENTS = {
     "undisbursed_commitment_musd": "Approved but not yet disbursed and contractually committed, USD millions (A10).",
     "pipeline_unsigned_musd": "Approved or proposed amount on Pending projects not yet signed, USD millions.",
     "expected_credit_loss_musd": f"{ECL_LOSS_RATE:.0%} of disbursed for Past Due projects, else 0, USD millions (A11).",
-    "risk_flag": "RED = Past Due, AMBER = Watchlist, GREEN = Performing, CLOSED_OK, CLOSED_LOSS, NOT_APPLICABLE.",
+    "risk_flag": "Never null. GREEN = Performing (a green-flag project: use this for 'no risk', 'low risk', 'healthy' or 'in a good state'), AMBER = Watchlist, RED = Past Due, CLOSED_OK = completed, CLOSED_LOSS = exited at a loss, NOT_APPLICABLE = no monitoring record (Pending or Dropped). Never filter risk_flag IS NULL.",
     "is_new_renewable_generation": "Main purpose is new renewable generation capacity (text-derived, A13).",
     "new_capacity_mw": "New generation capacity in MW stated in the description; null if not stated (A13).",
     "is_msme_financing": "Main purpose is financing MSMEs (text-derived, A14).",
