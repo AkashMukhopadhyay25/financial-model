@@ -530,3 +530,10 @@ table.data th.sorted .sort-ic { opacity: 1; color: var(--blue); }
 @media (max-width: 640px) { .suggest { width: min(92vw, 380px); } }
 .suggest { width: 460px; }
 .side-first > .copilot:first-child { margin-top: 0; }
+
+/* client comparison picker */
+.compare-picker { display: flex; flex-wrap: wrap; align-items: center; gap: 8px; padding: 10px; background: var(--line-2); border-radius: 14px; }
+.pick-chip { display: inline-flex; align-items: center; gap: 6px; background: #fff; border: 1px solid var(--line); border-radius: 999px; padding: 5px 6px 5px 12px; font-size: 13px; font-weight: 500; }
+.pick-chip button { border: 0; background: var(--line-2); width: 20px; height: 20px; border-radius: 50%; cursor: pointer; line-height: 1; font-size: 14px; color: var(--ink-2); }
+.pick-chip button:hover { background: var(--red-soft); color: var(--red); }
+.compare-picker .client-search { box-shadow: none; }

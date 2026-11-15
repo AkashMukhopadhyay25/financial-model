@@ -58,7 +58,7 @@ export default function Clients({ params }) {
                    onCompare={() => nav("clients", { step: "compare", compare: compareIds.join(",") })} />
       )}
       {step === "profile" && (selected ? <Profile id={selected} full /> : <div className="card empty">Pick a client in the directory first.</div>)}
-      {step === "compare" && <Compare ids={compareIds} onPick={() => go("directory")} />}
+      {step === "compare" && <Compare ids={compareIds} setIds={setCompareIds} />}
     </>
   );
 }
@@ -338,50 +338,70 @@ const COMPARE_ROWS = [
   ["n_projects_needing_review", "Projects with DQ flags"],
 ];
 
-function Compare({ ids, onPick }) {
+function Compare({ ids, setIds }) {
+  const [text, setText] = useState("");
+  const recs = useApi("/api/clients/recommendations");
   const { data, error, loading } = useApi(ids.length ? `/api/clients/compare?ids=${ids.join(",")}` : null);
-  if (!ids.length || ids.length < 2)
-    return (
-      <div className="card empty">
-        Choose 2 to 4 clients to compare. <button className="link" onClick={onPick}>Open the directory</button>
-      </div>
-    );
-  if (error) return <ErrorBox error={error} />;
-  if (loading || !data) return <Loading />;
-  const rows = ids.map((id) => data.find((d) => d.client_id === id)).filter(Boolean);
+  const add = (c) => { setText(""); setIds((cur) => (cur.includes(c.client_id) ? cur : [...cur, c.client_id].slice(0, 4))); };
+  const remove = (id) => setIds((cur) => cur.filter((x) => x !== id));
+  const nameOf = (id) => data?.find((d) => d.client_id === id)?.client_name
+    || recs.data?.recommendations?.find((r) => r.client_id === id)?.client_name || id;
+  const rows = ids.length && data ? ids.map((id) => data.find((d) => d.client_id === id)).filter(Boolean) : [];
   return (
     <div className="card">
       <div className="card-head">
         <div>
           <h3>Client comparison</h3>
-          <div className="card-sub">Same criteria for every client</div>
+          <div className="card-sub">Same criteria for every client · up to 4</div>
         </div>
-        <button className="btn small" onClick={onPick}>Change clients</button>
       </div>
-      <div className="table-wrap">
-        <table className="data">
-          <thead>
-            <tr>
-              <th>Measure</th>
-              {rows.map((r) => <th key={r.client_id} className="num">{r.client_name}</th>)}
-            </tr>
-          </thead>
-          <tbody>
-            {COMPARE_ROWS.map(([k, label, f]) => (
-              <tr key={k}>
-                <td>{label}</td>
-                {rows.map((r) => <td key={r.client_id} className="num">{f ? f(r[k]) : r[k] ?? "–"}</td>)}
+      <div className="compare-picker">
+        {ids.map((id) => (
+          <span key={id} className="pick-chip">
+            {nameOf(id)}
+            <button aria-label={`Remove ${nameOf(id)}`} onClick={() => remove(id)}>×</button>
+          </span>
+        ))}
+        {ids.length < 4 && (
+          <ClientSearch value={text} onChange={setText} onPick={add} exclude={ids}
+                        placeholder={ids.length ? "Add another client…" : "Add a client…"} />
+        )}
+        {ids.length === 0 && recs.data?.recommendations?.length > 0 && (
+          <button className="btn small" onClick={() => setIds(recs.data.recommendations.map((r) => r.client_id).slice(0, 4))}>
+            Compare the four recommended
+          </button>
+        )}
+        {ids.length > 0 && <button className="link" onClick={() => setIds([])}>Clear</button>}
+      </div>
+      {ids.length === 0 && <div className="empty">Add up to 4 clients above to compare them side by side.</div>}
+      {ids.length > 0 && error && <ErrorBox error={error} />}
+      {ids.length > 0 && !error && (loading || !data) && <Loading />}
+      {rows.length > 0 && (
+        <div className="table-wrap mt">
+          <table className="data">
+            <thead>
+              <tr>
+                <th>Measure</th>
+                {rows.map((r) => <th key={r.client_id} className="num">{r.client_name}</th>)}
               </tr>
-            ))}
-          </tbody>
-        </table>
-      </div>
+            </thead>
+            <tbody>
+              {COMPARE_ROWS.map(([k, label, f]) => (
+                <tr key={k}>
+                  <td>{label}</td>
+                  {rows.map((r) => <td key={r.client_id} className="num">{f ? f(r[k]) : r[k] ?? "–"}</td>)}
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+      )}
     </div>
   );
 }
 
 // Search box with live client suggestions (name or client ID). Enter without a pick opens the filtered directory.
-function ClientSearch({ value, onChange, onPick, onSubmit }) {
+function ClientSearch({ value, onChange, onPick, onSubmit, exclude = [], placeholder = "Search client directory" }) {
   const [items, setItems] = useState([]);
   const [open, setOpen] = useState(false);
   const [active, setActive] = useState(-1);
@@ -394,7 +414,7 @@ function ClientSearch({ value, onChange, onPick, onSubmit }) {
     let live = true;
     const t = setTimeout(() => {
       get(`/api/clients?limit=8&search=${encodeURIComponent(q)}`)
-        .then((d) => { if (live) { setItems(d.clients || []); setActive(-1); setOpen(true); } })
+        .then((d) => { if (live) { setItems((d.clients || []).filter((c) => !exclude.includes(c.client_id))); setActive(-1); setOpen(true); } })
         .catch(() => live && setItems([]));
     }, 180);
     return () => { live = false; clearTimeout(t); };
@@ -407,7 +427,8 @@ function ClientSearch({ value, onChange, onPick, onSubmit }) {
   const submit = (e) => {
     e.preventDefault();
     if (open && active >= 0 && items[active]) { setOpen(false); onPick(items[active]); }
-    else if (value.trim()) { setOpen(false); onSubmit(value.trim()); }
+    else if (!onSubmit && items[0]) { setOpen(false); onPick(items[0]); } // picker mode: Enter takes the first match
+    else if (onSubmit && value.trim()) { setOpen(false); onSubmit(value.trim()); }
   };
   const showList = open && value.trim().length >= 2;
   return (
@@ -415,7 +436,7 @@ function ClientSearch({ value, onChange, onPick, onSubmit }) {
       <svg width="12" height="12" viewBox="0 0 14 14"><circle cx="6" cy="6" r="4.5" fill="none" stroke="currentColor" strokeWidth="1.5" /><path d="M9.5 9.5L13 13" stroke="currentColor" strokeWidth="1.5" /></svg>
       <input value={value} onChange={(e) => { onChange(e.target.value); setOpen(true); }} onKeyDown={onKey}
              onFocus={() => setOpen(true)} onBlur={() => setTimeout(() => setOpen(false), 150)}
-             placeholder="Search client directory" aria-label="Search clients" aria-autocomplete="list" aria-expanded={showList}
+             placeholder={placeholder} aria-label="Search clients" aria-autocomplete="list" aria-expanded={showList}
              style={{ border: 0, outline: 0, padding: 6, width: 200 }} />
       {showList && (
         <div className="suggest" role="listbox">
@@ -428,7 +449,7 @@ function ClientSearch({ value, onChange, onPick, onSubmit }) {
               <Tag color={BAND[c.band]?.color}>{BAND[c.band]?.label}</Tag>
             </div>
           ))}
-          {items.length > 0 && <div className="suggest-foot">Enter to see all matches in the directory</div>}
+          {items.length > 0 && onSubmit && <div className="suggest-foot">Enter to see all matches in the directory</div>}
         </div>
       )}
     </form>
