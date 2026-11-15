@@ -478,3 +478,20 @@ table.data th.sorted .sort-ic { opacity: 1; color: var(--blue); }
 /* hero ask bar: the box keeps dark text (the hero itself is white text on blue) */
 .ask-hero .ask-row, .ask-hero .ask-row input { color: var(--ink); caret-color: var(--blue); }
 .ask-hero .ask-row input::placeholder { color: #9aa1b3; }
+
+/* Genie answer text (formatted Markdown) */
+.rich-text { font-size: 13.5px; line-height: 1.6; color: var(--ink); }
+.rich-text p { margin: 0 0 8px; }
+.rich-text ul, .rich-text ol { margin: 4px 0 10px; padding-left: 0; list-style: none; counter-reset: rt; }
+.rich-text li { position: relative; padding: 7px 10px 7px 30px; border-radius: 10px; margin-bottom: 4px; background: var(--line-2); }
+.rich-text ul li::before { content: ""; position: absolute; left: 13px; top: 15px; width: 6px; height: 6px; border-radius: 50%; background: var(--blue); }
+.rich-text ol li { counter-increment: rt; }
+.rich-text ol li::before { content: counter(rt); position: absolute; left: 9px; top: 7px; width: 16px; text-align: center; font-weight: 600; color: var(--blue); font-size: 12px; }
+.rich-text strong { font-weight: 600; color: var(--ink); }
+
+/* "How this answer was calculated" */
+.how-calc { margin-top: 12px; }
+.how-calc-body { margin-top: 10px; border: 1px solid var(--line); border-radius: 12px; padding: 12px; background: #fbfcfe; }
+.steps-list { display: grid; gap: 6px; margin-bottom: 10px; font-size: 13px; }
+.steps-list div { display: flex; gap: 10px; align-items: flex-start; }
+.steps-list .n { flex: none; width: 20px; height: 20px; border-radius: 50%; background: var(--blue-soft); color: var(--blue); display: grid; place-items: center; font-size: 11px; font-weight: 600; }
