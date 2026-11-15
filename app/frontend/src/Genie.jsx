@@ -3,6 +3,39 @@ import { askGenie, get, post } from "./api.js";
 import { BarChart, DataTable, Info, SparkIcon, SqlBlock, Tag } from "./ui.jsx";
 import { int } from "./format.js";
 
+// Genie answers use light Markdown (**bold**, "- " bullets, "1." lists). Render it as formatted text; never as raw HTML.
+function inline(s, key) {
+  return s.split(/(\*\*[^*]+\*\*)/g).filter(Boolean).map((part, i) =>
+    part.startsWith("**") && part.endsWith("**") ? <strong key={key + "-" + i}>{part.slice(2, -2)}</strong> : part.replace(/\*\*/g, ""));
+}
+
+export function RichText({ text }) {
+  const blocks = [];
+  let list = null;
+  String(text).split("\n").forEach((raw) => {
+    const line = raw.trim();
+    const bullet = line.match(/^[-*•]\s+(.*)$/);
+    const num = line.match(/^\d+[.)]\s+(.*)$/);
+    if (bullet || num) {
+      const type = bullet ? "ul" : "ol";
+      if (!list || list.type !== type) blocks.push((list = { type, items: [] }));
+      list.items.push((bullet || num)[1]);
+      return;
+    }
+    list = null;
+    if (line) blocks.push({ type: "p", text: line });
+  });
+  return (
+    <div className="rich-text">
+      {blocks.map((b, i) => {
+        if (b.type === "p") return <p key={i}>{inline(b.text, i)}</p>;
+        const L = b.type;
+        return <L key={i}>{b.items.map((it, j) => <li key={j}>{inline(it, i + "-" + j)}</li>)}</L>;
+      })}
+    </div>
+  );
+}
+
 const LEVEL = {
   VALIDATED: { label: "Green · Validated", color: "green" },
   REVIEW_RECOMMENDED: { label: "Amber · Review recommended", color: "amber" },
@@ -126,7 +159,7 @@ function GenieAnswer({ turn, onAsk, onOpenCertified, onSql, latest }) {
         <div className="q">{turn.question}</div>
         <Tag color={lvl.color}>{lvl.label}</Tag>
       </div>
-      {r.text && <div className="text">{r.text}</div>}
+      {r.text && <RichText text={r.text} />}
       {r.error && <div className="error mt">{r.error}</div>}
 
       {r.certified_match && (
