@@ -304,7 +304,7 @@ export function BarChart({ data, labelKey, valueKey, format = musd, height = 220
   const vals = data.map((d) => Number(d[valueKey]) || 0);
   const max = Math.max(...vals) || 1;
   const bw = (W - gap * (data.length - 1)) / data.length;
-  const hi = hover ?? (highlight === "max" ? vals.indexOf(max) : null);
+  const hi = hover; // value label only while hovering
   const maxChars = Math.max(6, Math.floor(bw / 6.2));
   const stripe = `stripe-${color.replace("#", "")}`;
   const barTop = (v) => H - (v / max) * (H - top);
@@ -428,10 +428,10 @@ export function YearColumns({ data, xKey, yKey, format = musd, height = 230, par
   const y = (v) => top + plotH - (v / yMax) * plotH;
   const fullVals = vals.filter((_, i) => String(data[i][xKey]) !== String(partialYear));
   const peak = vals.indexOf(Math.max(...fullVals));
-  const active = hover ?? (defaultIndex === "last" ? data.length - 1 : peak);
-  const ax = left + (active + 0.5) * slot;
+  const active = hover; // value label only while hovering
+  const ax = active == null ? 0 : left + (active + 0.5) * slot;
   const isPartial = (i) => String(data[i][xKey]) === String(partialYear);
-  const tip = `${data[active][xKey]}${isPartial(active) && partialLabel ? ` (${partialLabel})` : ""} · ${format(vals[active])}`;
+  const tip = active == null ? "" : `${data[active][xKey]}${isPartial(active) && partialLabel ? ` (${partialLabel})` : ""} · ${format(vals[active])}`;
   const tipW = Math.max(90, tip.length * 6.6);
   return (
     <div className="chart">
@@ -455,18 +455,18 @@ export function YearColumns({ data, xKey, yKey, format = musd, height = 230, par
             <g key={i} onMouseEnter={() => setHover(i)} style={{ cursor: "pointer" }}>
               <rect x={left + i * slot} y={top} width={slot} height={plotH} fill="transparent" />
               <rect x={x} y={y(vals[i])} width={bw} height={h} rx="5"
-                    fill={isPartial(i) ? "url(#yc-hatch)" : color} opacity={isPartial(i) ? 1 : i === active ? 1 : 0.32} />
+                    fill={isPartial(i) ? "url(#yc-hatch)" : color} opacity={isPartial(i) ? 1 : active == null ? 0.55 : i === active ? 1 : 0.32} />
               <text x={left + (i + 0.5) * slot} y={H - 8} textAnchor="middle" fontWeight={i === active ? 600 : 400}>
                 {labelFmt ? labelFmt(d[xKey]) : `'${String(d[xKey]).slice(-2)}`}
               </text>
             </g>
           );
         })}
-        <g pointerEvents="none">
+        {active != null && <g pointerEvents="none">
           <rect x={Math.min(W - tipW, Math.max(left, ax - tipW / 2))} y={Math.max(0, y(vals[active]) - 28)} width={tipW} height="21" rx="10" fill="#0f1222" />
           <text className="tip" x={Math.min(W - tipW / 2, Math.max(left + tipW / 2, ax))} y={Math.max(0, y(vals[active]) - 28) + 14.5}
                 textAnchor="middle" style={{ fill: "#fff", fontSize: 11.5 }}>{tip}</text>
-        </g>
+        </g>}
       </svg>
     </div>
   );
