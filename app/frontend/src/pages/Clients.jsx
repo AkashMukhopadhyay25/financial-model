@@ -234,7 +234,7 @@ function Profile({ id, full }) {
               { key: "approved_musd", label: "Approved", num: true, render: (v) => musd(v) },
               { key: "disbursed_musd", label: "Disbursed", num: true, render: (v) => musd(v) },
               { key: "days_since_last_review", label: "Days since review", num: true },
-              { key: "needs_review", label: "DQ", render: (v, r) => <span title={r.dq_messages || ""}><DqTag needs={v} severity={r.dq_max_severity} /></span> },
+              { key: "needs_review", label: "Data quality", render: (v, r) => <DqTag needs={v} severity={r.dq_max_severity} ids={r.dq_flag_ids} messages={r.dq_messages} /> },
             ]}
           />
         </div>

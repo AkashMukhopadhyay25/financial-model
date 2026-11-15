@@ -127,7 +127,7 @@ export default function Portfolio({ params }) {
                 { key: "country", label: "Country" },
                 { key: "product_line", label: "Product line" },
                 { key: "status", label: "Status", render: (v) => <StatusTag value={v} /> },
-                { key: "needs_review", label: "Data quality", render: (v, r) => <DqTag needs={v} severity={r.dq_max_severity} /> },
+                { key: "needs_review", label: "Data quality", render: (v, r) => <DqTag needs={v} severity={r.dq_max_severity} ids={r.dq_flag_ids} messages={r.dq_messages} /> },
                 { key: "approved_musd", label: "Approved", num: true, render: (v) => musd(v) },
               ]}
             />

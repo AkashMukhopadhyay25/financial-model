@@ -98,7 +98,7 @@ export default function Risk({ params }) {
               { key: "internal_risk_rating", label: "Rating", num: true },
               { key: "approved_musd", label: "Approved", num: true, render: (v) => musd(v) },
               { key: "disbursed_musd", label: "Disbursed", num: true, render: (v) => musd(v) },
-              { key: "needs_review", label: "DQ", render: (v, r) => <DqTag needs={v} severity={r.dq_max_severity} /> },
+              { key: "needs_review", label: "Data quality", render: (v, r) => <DqTag needs={v} severity={r.dq_max_severity} ids={r.dq_flag_ids} messages={r.dq_messages} /> },
               { key: "client_id", label: "", render: (v) => <button className="link" style={{ whiteSpace: "nowrap" }} onClick={() => nav("clients", { step: "profile", client: v })}>Client →</button> },
             ]}
           />

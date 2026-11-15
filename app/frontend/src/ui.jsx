@@ -1,4 +1,5 @@
 import React, { useEffect, useState } from "react";
+import { createPortal } from "react-dom";
 import { get } from "./api.js";
 import { int, musd, title } from "./format.js";
 
@@ -212,9 +213,45 @@ export function StatusTag({ value }) {
   return <Tag color={map[value] || "grey"}>{value || "–"}</Tag>;
 }
 
-export function DqTag({ needs, severity }) {
+// Data-quality flag codes (contracts/*.yml) -> short reason shown in tables. High-severity codes sort first.
+const DQ_REASONS = {
+  "P-F01": "Region renamed", "P-F02": "Under-allocated", "P-F03": "Over-allocated", "P-F04": "Signed before approval",
+  "P-F05": "Invested, not signed", "P-F06": "Outdated record", "P-F07": "Board date passed", "P-F08": "No Board date",
+  "P-F09": "Status/date conflict", "P-F10": "Country code conflict", "P-F11": "No description", "P-F12": "Outside emerging markets",
+  "P-F13": "Invested before signed", "M-F01": "Project number mismatch", "M-F02": "Dropped but monitored",
+  "M-F03": "Over-disbursed", "M-F04": "Performance conflict", "M-F05": "Disbursement date conflict",
+  "M-F06": "Disbursement status conflict", "M-F07": "Review days conflict", "M-F08": "Review overdue", "M-F09": "Client identity conflict",
+};
+const DQ_HIGH = new Set(["P-F03", "P-F09", "P-F10", "M-F01", "M-F02", "M-F03", "M-F04", "M-F05", "M-F06", "M-F09"]);
+
+// Tag naming why a project is flagged; hover lists every reason in full. Flagged rows stay in every figure.
+export function DqTag({ needs, severity, ids, messages }) {
+  const [pos, setPos] = useState(null);
   if (!needs) return <Tag color="green">Clean</Tag>;
-  return <Tag color={severity === "high" ? "red" : "amber"} title="Open data-quality issue (included, not excluded)">{severity === "high" ? "High DQ flag" : "DQ flag"}</Tag>;
+  const codes = String(ids || "").split(",").map((c) => c.trim()).filter(Boolean)
+    .sort((a, b) => (DQ_HIGH.has(b) ? 1 : 0) - (DQ_HIGH.has(a) ? 1 : 0));
+  const msgs = String(messages || "").split(" | ").filter(Boolean);
+  const first = codes[0] ? DQ_REASONS[codes[0]] || codes[0] : (msgs[0] || "Data issue").split(/[:,]/)[0];
+  const more = Math.max(codes.length, msgs.length) - 1;
+  const show = (e) => {
+    const r = e.currentTarget.getBoundingClientRect();
+    setPos({ x: Math.min(window.innerWidth - 330, Math.max(10, r.left)), y: r.bottom + 6 });
+  };
+  return (
+    <span className="dqtag" onMouseEnter={show} onMouseLeave={() => setPos(null)} onFocus={show} onBlur={() => setPos(null)} tabIndex={0}>
+      <Tag color={severity === "high" ? "red" : "amber"}>
+        {first}{more > 0 && <b className="dq-more">+{more}</b>}
+      </Tag>
+      {pos && msgs.length > 0 && createPortal(
+        // rendered on <body>: the page frame's backdrop-filter would otherwise offset position: fixed
+        <span className="dq-pop" style={{ left: pos.x, top: pos.y }} role="tooltip">
+          <span className="dq-pop-title">{severity === "high" ? "High-severity data issue" : "Data issue"} · included in the figures</span>
+          {msgs.map((m, i) => <span key={i} className="dq-pop-item">{m}</span>)}
+        </span>,
+        document.body,
+      )}
+    </span>
+  );
 }
 
 // ---------------------------------------------------------------- charts (hand-drawn SVG, no chart library)

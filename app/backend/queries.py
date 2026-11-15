@@ -155,7 +155,7 @@ WHERE {where} AND approval_year IS NOT NULL
 GROUP BY approval_year
 ORDER BY approval_year"""
     table_sql = f"""SELECT project_name, project_url, region, country, product_line, industry, status,
-       round(total_approved_musd, 2) AS approved_musd, needs_review, dq_max_severity
+       round(total_approved_musd, 2) AS approved_musd, needs_review, dq_max_severity, dq_flag_ids, dq_messages
 FROM {P}
 WHERE {where}
 ORDER BY total_approved_musd DESC
@@ -235,7 +235,7 @@ ORDER BY status_label = 'TOTAL', status_label"""
        environmental_category, performance_status, internal_risk_rating, status,
        round(total_approved_musd, 2) AS approved_musd, round(disbursed_musd, 2) AS disbursed_musd,
        round(expected_credit_loss_musd, 2) AS expected_credit_loss_musd, days_since_last_review,
-       mon_flag_review_overdue AS review_overdue, needs_review, dq_max_severity
+       mon_flag_review_overdue AS review_overdue, needs_review, dq_max_severity, dq_flag_ids, dq_messages
 FROM {P}
 WHERE {WS2_SCOPE}
 ORDER BY performance_status, total_approved_musd DESC"""
@@ -313,7 +313,7 @@ def client_detail(client_id: str) -> dict:
        round(total_approved_musd, 2) AS approved_musd, round(disbursed_musd, 2) AS disbursed_musd,
        round(current_disbursed_exposure_musd, 2) AS current_exposure_musd,
        round(undisbursed_commitment_musd, 2) AS undisbursed_musd, days_since_last_review,
-       mon_flag_review_overdue AS review_overdue, needs_review, dq_max_severity, dq_messages
+       mon_flag_review_overdue AS review_overdue, needs_review, dq_max_severity, dq_flag_ids, dq_messages
 FROM {P}
 WHERE client_id = :cid
 ORDER BY CASE risk_flag WHEN 'RED' THEN 1 WHEN 'AMBER' THEN 2 ELSE 3 END, total_approved_musd DESC"""

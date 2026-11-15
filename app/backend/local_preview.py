@@ -101,6 +101,7 @@ SELECT
        WHEN 3 THEN 'high' WHEN 2 THEN 'warning' WHEN 1 THEN 'info' ELSE 'none' END AS dq_max_severity,
   concat_ws(', ', nullif(p.review_owners, ''), nullif(m.review_owners, '')) AS review_owners,
   concat_ws(' | ', nullif(p.dq_messages, ''), nullif(m.dq_messages, '')) AS dq_messages,
+  concat_ws(',', nullif(p.dq_flag_ids, ''), nullif(m.dq_flag_ids, '')) AS dq_flag_ids,
   coalesce(p.dq_flag_count, 0) + coalesce(m.dq_flag_count, 0) AS dq_flag_count
 FROM vp p LEFT JOIN vm m ON p.project_url = m.project_url
 """
