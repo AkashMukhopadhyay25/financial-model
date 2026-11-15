@@ -181,18 +181,29 @@ function Profile({ id, full }) {
           </div>
           <Tag color={band.color} caps>{band.label}</Tag>
         </div>
-        <div style={{ display: "flex", justifyContent: "space-between", fontSize: 13 }}>
-          <span>Exposure breakdown</span>
-          <b>Exposure affected {musd(disb + und)} <Info text={`Current disbursed exposure + undisbursed commitments (A09, A10). Board-approved total across all ${s.n_projects} projects: ${musd(s.approved_musd)}.`} /></b>
-        </div>
-        <div className="split-bar">
-          <div style={{ flex: disb || 0.01, background: "repeating-linear-gradient(90deg,#2f66f6 0 3px,transparent 3px 6px)" }} />
-          <div style={{ flex: und || 0.01, background: "repeating-linear-gradient(90deg,#16a389 0 10px,transparent 10px 13px)" }} />
-        </div>
-        <div className="legend">
-          <span><i style={{ background: "var(--blue)" }} />Disbursed {musd(disb)}</span>
-          <span><i style={{ background: "var(--teal)" }} />Undisbursed commitments {musd(und)}</span>
-          {s.expected_credit_loss_musd > 0 && <span><i style={{ background: "var(--red)" }} />ECL {musd(s.expected_credit_loss_musd)}</span>}
+        <div className="xb-client mt">
+          <div className="xb-row">
+            <div className="xb-group" style={{ flex: 1 }}>
+              <div className="xb-bracket">
+                <span>Exposure affected <Info align="left" text={`Current disbursed exposure + undisbursed commitments: what a decision on this client affects. Board-approved total across all ${s.n_projects} projects: ${musd(s.approved_musd)}.`} /></span>
+                <b>{musd(disb + und)}</b>
+              </div>
+              <div className="xb-blocks">
+                <div className="xb-block xb-dis" style={{ flex: disb || 0.001 }} title={`Disbursed on Active projects: ${musd(disb)}`}><span>{musd(disb)}</span></div>
+                <div className="xb-block xb-undc" style={{ flex: und || 0.001 }} title={`Approved but not yet disbursed: ${musd(und)}`}><span>{musd(und)}</span></div>
+              </div>
+              <div className="xb-legend">
+                <span style={{ flex: disb || 0.001 }}><i className="xb-dis" />Disbursed</span>
+                <span style={{ flex: und || 0.001 }}><i className="xb-undc" />Undisbursed commitments</span>
+              </div>
+            </div>
+          </div>
+          <div className="xb-foot">
+            <span className="xb-pill">Exposure affected {musd(disb + und)}</span>
+            <span className="muted">= {musd(disb)} disbursed + {musd(und)} undisbursed</span>
+            {s.expected_credit_loss_musd > 0 && <Tag color="red">ECL {musd(s.expected_credit_loss_musd)}</Tag>}
+            <span style={{ marginLeft: "auto" }} className="muted">Total approved <b style={{ color: "var(--ink)" }}>{musd(s.approved_musd)}</b></span>
+          </div>
         </div>
         <div className="mini-grid mt">
           <Mini k="Projects" v={int(s.n_projects)} big />
