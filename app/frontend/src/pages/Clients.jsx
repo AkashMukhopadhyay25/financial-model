@@ -350,7 +350,7 @@ function Compare({ ids, onPick }) {
       <div className="card-head">
         <div>
           <h3>Client comparison</h3>
-          <div className="card-sub">Same criteria for every client (A15)</div>
+          <div className="card-sub">Same criteria for every client</div>
         </div>
         <button className="btn small" onClick={onPick}>Change clients</button>
       </div>

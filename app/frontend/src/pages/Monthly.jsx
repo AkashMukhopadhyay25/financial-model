@@ -13,8 +13,8 @@ const DIRECTION = {
 const KPI_TEXT = {
   R01: { label: "Past Due projects", foot: "Projects behind on repayments" },
   R02: { label: "Watchlist projects", foot: "Projects showing early signs of stress" },
-  R04: { label: "Expected credit loss", foot: "60% of disbursed on Past Due projects (A11)" },
-  M01: { label: "Overdue monitoring reviews", foot: "Active projects past their review deadline (A18)" },
+  R04: { label: "Expected credit loss", foot: "60% of disbursed on Past Due projects" },
+  M01: { label: "Overdue monitoring reviews", foot: "Active projects past their review deadline" },
 };
 const FILTERS = [
   { id: "attention", label: "Needs attention", dirs: ["Deteriorated", "Mixed"] },

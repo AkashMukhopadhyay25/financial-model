@@ -53,7 +53,7 @@ export default function Risk({ params }) {
           <div>
             <div style={{ fontSize: 13, opacity: 0.9 }}>Expected credit loss</div>
             <h2 style={{ margin: "8px 0 6px", fontSize: 38 }}>{musd(tot.expected_credit_loss_musd)}</h2>
-            <p>{Math.round(data.ecl_loss_rate * 100)}% of Past Due disbursed (A11)</p>
+            <p>{Math.round(data.ecl_loss_rate * 100)}% of Past Due disbursed</p>
           </div>
         </div>
       </div>
@@ -207,7 +207,7 @@ function ExposureBreakdown({ pd, wl, ecl, undisbursed, approved, rate }) {
           <div className="xb-blocks">
             <div className="xb-block xb-und" style={{ flex: 1 }} title={`Approved but not yet disbursed (A10): ${musd(undisbursed)}`}><span>{musd(undisbursed)}</span></div>
           </div>
-          <div className="xb-legend"><span><i className="xb-und" />Undisbursed (A10)</span></div>
+          <div className="xb-legend"><span><i className="xb-und" />Undisbursed</span></div>
         </div>
       </div>
       <div className="xb-foot">

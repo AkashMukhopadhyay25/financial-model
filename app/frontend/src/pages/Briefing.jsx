@@ -47,14 +47,14 @@ function Brief({ d, nav }) {
         <Stat label="Approved investment" value={musd(k.approved_musd, { digits: 1 })} note={`${int(k.projects)} projects, all statuses`} />
         <Stat label="Active projects" value={int(k.active_projects)} note={`${int(k.clients)} clients`} />
         <Stat label="Category A in distress" value={int(tot.projects)} note={`${musd(tot.disbursed_capital_tied_up_musd)} disbursed`} />
-        <Stat label="Expected credit loss" value={musd(tot.expected_credit_loss_musd)} note="60% of Past Due disbursed (A11)" />
+        <Stat label="Expected credit loss" value={musd(tot.expected_credit_loss_musd)} note="60% of Past Due disbursed" />
       </div>
 
       <div className="card mt">
         <h2>1. Portfolio at a glance</h2>
         <p>
           As of the reporting date {date(k.reporting_date)}, IFC's portfolio holds <b>{int(k.projects)}</b> projects with{" "}
-          <b>{musdFull(k.approved_musd)}</b> approved by the Board (every status, Dropped included, A03). {int(k.active_projects)} projects are Active.
+          <b>{musdFull(k.approved_musd)}</b> approved by the Board (every status, Dropped included). {int(k.active_projects)} projects are Active.
         </p>
         <DataTable rows={d.overview.status_mix} columns={[
           { key: "status", label: "Status" }, { key: "projects", label: "Projects", num: true },
@@ -93,7 +93,7 @@ function Brief({ d, nav }) {
 
       <div className="card mt">
         <h2>4. Early warning: highest-priority clients</h2>
-        <p className="small muted" style={{ marginTop: 0 }}>Risk signals for human investigation, not predictions of default (A22).</p>
+        <p className="small muted" style={{ marginTop: 0 }}>Risk signals for human investigation, not predictions of default.</p>
         <DataTable rows={d.early_warning} columns={[
           { key: "client_name", label: "Client", strong: true }, { key: "triggered_by", label: "Signals" },
           { key: "exposure_affected_musd", label: "Exposure affected", num: true, render: (v) => musd(v) },
@@ -137,10 +137,10 @@ function toMarkdown(d) {
     `# IFC Board briefing (draft)`, ``,
     `*Reporting date ${k.reporting_date}. Amounts in USD millions. Every figure is read from the certified tables in Unity Catalog.*`, ``,
     `## 1. Portfolio at a glance`,
-    `- ${k.projects} projects, ${musdFull(k.approved_musd)} approved by the Board (all statuses, A03); ${k.active_projects} Active; ${k.clients} clients.`, ``,
+    `- ${k.projects} projects, ${musdFull(k.approved_musd)} approved by the Board (all statuses); ${k.active_projects} Active; ${k.clients} clients.`, ``,
     `## 2. Category A risk (WS2)`,
     `- ${t.projects} Category A projects are Past Due (${by["Past Due"]?.projects}) or on the Watchlist (${by.Watchlist?.projects}), across ${t.clients} clients, ${musdFull(t.approved_musd)} approved.`,
-    `- ${musdFull(t.disbursed_capital_tied_up_musd)} disbursed capital tied up; recommended provision ${musdFull(t.expected_credit_loss_musd)} (60% of Past Due disbursed, A11).`, ``,
+    `- ${musdFull(t.disbursed_capital_tied_up_musd)} disbursed capital tied up; recommended provision ${musdFull(t.expected_credit_loss_musd)} (60% of Past Due disbursed).`, ``,
     `## 3. Client recommendations (WS3) — for Credit Risk Committee review`,
     ...d.recommendations.map((r) => `- **${r.recommendation === "CONTINUE" ? "Continue to invest" : "Reduce / review"}: ${r.client_name} (${r.client_id})** — exposure affected ${musdFull(r.exposure_affected_musd)}. ${r.evidence_summary}. ${r.suggested_action}`),
     ``, `## 4. Early warning (highest priority)`,
