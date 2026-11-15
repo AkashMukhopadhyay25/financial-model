@@ -505,3 +505,6 @@ table.data th.sorted .sort-ic { opacity: 1; color: var(--blue); }
 .history-item:hover { border-color: var(--blue); }
 .history-item .hq { font-weight: 600; font-size: 13.5px; color: var(--ink); }
 .history-item .hm { display: flex; justify-content: space-between; align-items: center; gap: 8px; font-size: 12px; color: var(--muted); }
+
+/* recommendation card footer: one chip + round arrow */
+.client-card .card-foot { display: flex; justify-content: space-between; align-items: center; margin-top: 12px; }

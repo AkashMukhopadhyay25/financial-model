@@ -66,6 +66,10 @@ function BoardRecommendation({ selected, onSelect, onCompare }) {
   const { data, error, loading } = useApi("/api/clients/recommendations");
   const [evidence, setEvidence] = useState(false);
   const recs = data?.recommendations || [];
+  const openProfile = (id) => {
+    onSelect(id);
+    setTimeout(() => document.getElementById("client-360")?.scrollIntoView({ behavior: "smooth", block: "start" }), 60);
+  };
   useEffect(() => {
     if (!selected && recs.length) onSelect(recs[0].client_id);
   }, [recs, selected, onSelect]);
@@ -78,7 +82,7 @@ function BoardRecommendation({ selected, onSelect, onCompare }) {
         {recs.map((r) => {
           const l = recLabel(r.recommendation);
           return (
-            <div key={r.client_id} className={`card client-card ${selected === r.client_id ? "sel" : ""}`} onClick={() => onSelect(r.client_id)}>
+            <div key={r.client_id} className={`card client-card ${selected === r.client_id ? "sel" : ""}`} onClick={() => openProfile(r.client_id)}>
               <div className="kpi-label" style={{ color: "var(--ink)", fontSize: 16, fontFamily: "var(--display)" }}>
                 <span style={{ overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{r.client_name}</span>
                 <Tag color={l.color} caps>{l.label}</Tag>
@@ -88,21 +92,19 @@ function BoardRecommendation({ selected, onSelect, onCompare }) {
                 { label: "Disbursed", value: r.current_disbursed_exposure_musd, color: "#2f66f6" },
                 { label: "Undisbursed", value: r.undisbursed_commitment_musd, color: "#16a389" },
               ]} />
-              <div className="why">
-                <Stats items={[
-                  { label: "Past Due", value: r.n_past_due, color: "red" },
-                  { label: "Watchlist", value: r.n_watchlist, color: "amber" },
-                  { label: "Active", value: r.n_active },
-                  { label: "health", value: r.health_score != null ? Math.round(r.health_score) : null, color: r.recommendation === "CONTINUE" ? "green" : "" },
-                ]} />
+              <div className="card-foot">
+                <Stats items={[{ label: "Active", value: r.n_active }]} />
+                <button className="row-go" aria-label={`Open Client 360° for ${r.client_name}`} title={`Open Client 360° for ${r.client_name}`}
+                        onClick={(e) => { e.stopPropagation(); openProfile(r.client_id); }}>
+                  <svg width="14" height="14" viewBox="0 0 14 14" aria-hidden><path d="M3 7h8M7.5 3.5L11 7l-3.5 3.5" fill="none" stroke="currentColor" strokeWidth="1.7" strokeLinecap="round" strokeLinejoin="round" /></svg>
+                </button>
               </div>
-              <button className="link" onClick={(e) => { e.stopPropagation(); onSelect(r.client_id); }}>Open Client 360°</button>
             </div>
           );
         })}
       </div>
       <div className="grid g-main mt">
-        <div>{selected && <Profile id={selected} />}</div>
+        <div id="client-360" style={{ scrollMarginTop: 16 }}>{selected && <Profile id={selected} />}</div>
         <div>
           <div className="card" style={{ background: "linear-gradient(180deg,#fff,#f2faf5)" }}>
             <h3>Evidence + impact</h3>
