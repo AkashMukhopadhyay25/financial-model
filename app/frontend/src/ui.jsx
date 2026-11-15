@@ -49,23 +49,35 @@ export function Stripe({ value = 1, color = "var(--blue)", height }) {
   );
 }
 
+// Whole-number percentages that always add up to 100 (largest-remainder method).
+export function wholePercents(values) {
+  const total = values.reduce((a, v) => a + v, 0);
+  if (!total) return values.map(() => 0);
+  const raw = values.map((v) => (100 * v) / total);
+  const out = raw.map(Math.floor);
+  let left = 100 - out.reduce((a, v) => a + v, 0);
+  raw.map((r, i) => [r - Math.floor(r), i]).sort((a, b) => b[0] - a[0]).forEach(([, i]) => { if (left > 0) { out[i] += 1; left -= 1; } });
+  return out;
+}
+
 // Proportional bar: each segment's width is its share of the total. Hover a segment for the exact value.
 export function SplitBar({ segments, format = (v) => int(v), legend = false, height = 8 }) {
   const segs = (segments || []).filter((x) => Number(x.value) > 0);
   const total = segs.reduce((a, x) => a + Number(x.value), 0);
   if (!total) return <div className="stripe" style={{ height }} />;
+  const pcts = wholePercents(segs.map((x) => Number(x.value)));
   return (
     <div>
       <div className="splitbar" style={{ height }}>
         {segs.map((x) => (
           <span key={x.label} style={{ flex: Number(x.value), "--c": x.color }}
-                title={`${x.label}: ${format(x.value)} (${Math.round((100 * x.value) / total)}%)`} />
+                title={`${x.label}: ${format(x.value)} (${pcts[segs.indexOf(x)]}%)`} />
         ))}
       </div>
       {legend && (
         <div className="splitbar-legend">
           {segs.map((x) => (
-            <span key={x.label} title={`${x.label}: ${format(x.value)}`}><i style={{ background: x.color }} />{x.label}<em className="pct">&nbsp;{Math.round((100 * x.value) / total)}%</em></span>
+            <span key={x.label} title={`${x.label}: ${format(x.value)}`}><i style={{ background: x.color }} />{x.label}<em className="pct">&nbsp;{pcts[segs.indexOf(x)]}%</em></span>
           ))}
         </div>
       )}
