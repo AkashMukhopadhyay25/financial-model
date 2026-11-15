@@ -106,7 +106,7 @@ function BoardRecommendation({ selected, onSelect, onCompare }) {
         })}
       </div>
       <div className="grid g-main mt">
-        <div id="client-360" style={{ scrollMarginTop: 16 }}>{selected && <Profile id={selected} />}</div>
+        <div id="client-360" style={{ scrollMarginTop: 16 }}>{selected && <Profile id={selected} onCompare={() => onCompare(recs.map((r) => r.client_id))} />}</div>
         <div>
           <div className="card" style={{ background: "linear-gradient(180deg,#fff,#f2faf5)" }}>
             <h3>Evidence + impact</h3>
@@ -117,7 +117,6 @@ function BoardRecommendation({ selected, onSelect, onCompare }) {
             </div>
             <div className="actions mt">
               <button className="btn small" onClick={() => setEvidence(true)}>View SQL</button>
-              <button className="btn small" onClick={() => onCompare(recs.map((r) => r.client_id))}>Compare the four</button>
             </div>
           </div>
           <HumanReview clientId={selected} name={recs.find((r) => r.client_id === selected)?.client_name} />
@@ -163,7 +162,7 @@ function HumanReview({ clientId, name }) {
 }
 
 // ---------------------------------------------------------------- Client 360
-function Profile({ id, full }) {
+function Profile({ id, full, onCompare }) {
   const { nav } = useApp();
   const { data, error, loading } = useApi(`/api/clients/${encodeURIComponent(id)}`);
   const [evidence, setEvidence] = useState(false);
@@ -231,6 +230,7 @@ function Profile({ id, full }) {
         <div className="actions mt">
           <button className="btn small" onClick={() => nav("risk", { client: s.client_id })}>WS2 project details</button>
           <button className="btn small" onClick={() => setEvidence(true)}>View SQL</button>
+          {onCompare && <button className="btn small" onClick={onCompare}>Compare the four</button>}
         </div>
       </div>
       {full && (
