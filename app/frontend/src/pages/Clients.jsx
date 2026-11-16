@@ -2,7 +2,7 @@ import React, { useEffect, useState } from "react";
 import { useApp } from "../App.jsx";
 import { flagReview, get } from "../api.js";
 import { int, musd, pct } from "../format.js";
-import { Check, DataTable, DqTag, ErrorBox, EvidenceDrawer, Info, Loading, Modal, SparkIcon, SplitBar, Stats, StatusTag, Stripe, Tag, useApi } from "../ui.jsx";
+import { Check, DataTable, DqTag, ErrorBox, EvidenceDrawer, Info, Loading, Modal, SplitBar, Stats, StatusTag, Stripe, Tag, useApi } from "../ui.jsx";
 import Allocation from "./Allocation.jsx";
 import Stress from "./Stress.jsx";
 
@@ -83,7 +83,7 @@ export default function Clients({ params }) {
         <span className="steps-sep" aria-hidden />
         {AGENTS.map((a) => (
           <button key={a.id} className={`agent ${step === a.id ? "active" : ""}`} onClick={() => go(a.id)}>
-            <span className="n"><SparkIcon size={11} /></span> {a.label}
+            <span className="n"><AgentIcon id={a.id} size={12} /></span> {a.label}
           </button>
         ))}
       </div>
@@ -106,24 +106,46 @@ export default function Clients({ params }) {
 }
 
 // ---------------------------------------------------------------- agent ask box (top of the page)
+// Icons: a falling chart line for the stress test, a pie chart for capital allocation.
+export function AgentIcon({ id, size = 20, color = "currentColor" }) {
+  if (id === "stress") {
+    return (
+      <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke={color} strokeWidth="1.8"
+           strokeLinecap="round" strokeLinejoin="round" aria-hidden>
+        <path d="M3 3v18h18" />
+        <path d="M7 8l4 4 3-2 5 6" />
+        <path d="M19 12v4h-4" />
+      </svg>
+    );
+  }
+  return (
+    <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke={color} strokeWidth="1.8"
+         strokeLinecap="round" strokeLinejoin="round" aria-hidden>
+      <path d="M21 12A9 9 0 1 1 12 3" />
+      <path d="M12 3a9 9 0 0 1 9 9h-9z" />
+    </svg>
+  );
+}
+
 function AgentAsk({ agent, onAsk, onOpen }) {
   const [text, setText] = useState("");
   const submit = () => text.trim() && onAsk(text.trim());
   return (
-    <div className="ask" style={{ padding: 12 }}>
-      <div className="ask-head" style={{ marginBottom: 6 }}>
-        <span style={{ display: "flex", alignItems: "center", gap: 6 }}>
-          <SparkIcon size={12} color="var(--blue)" /> <b>{agent.title}</b> <span className="muted">· our agent</span>
-        </span>
-        <button className="btn small" onClick={onOpen}>Open</button>
+    <div className="ask ask-hero agent-hero">
+      <div className="agent-hero-head">
+        <span className="agent-icon"><AgentIcon id={agent.id} /></span>
+        <div style={{ flex: 1, minWidth: 0 }}>
+          <div className="agent-hero-title">{agent.title}</div>
+          <div className="agent-hero-blurb">{agent.blurb}</div>
+        </div>
+        <button className="hero-pill agent-open" onClick={onOpen}>Open</button>
       </div>
-      <div className="small muted" style={{ margin: "0 4px 8px" }}>{agent.blurb}</div>
       <div className="ask-row">
         <input value={text} placeholder={agent.placeholder} onChange={(e) => setText(e.target.value)}
                onKeyDown={(e) => e.key === "Enter" && submit()} />
-        <button className="btn dark small" onClick={submit} disabled={!text.trim()}>Ask</button>
+        <button className="btn dark" onClick={submit} disabled={!text.trim()}>Ask</button>
       </div>
-      <div className="chips" style={{ marginTop: 8 }}>
+      <div className="chips">
         {agent.chips.map(([label, q]) => <button key={label} className="chip plain" title={q} onClick={() => onAsk(q)}>{label}</button>)}
       </div>
     </div>

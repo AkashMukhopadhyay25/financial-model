@@ -3,11 +3,11 @@ import { createPortal } from "react-dom";
 import { get } from "./api.js";
 import { ago, date, dateTime, dateTimeFull } from "./format.js";
 import { QuestionLibrary } from "./Genie.jsx";
-import { AssumptionsDrawer, SparkIcon, Toast } from "./ui.jsx";
+import { AssumptionsDrawer, Toast } from "./ui.jsx";
 import Overview from "./pages/Overview.jsx";
 import Portfolio from "./pages/Portfolio.jsx";
 import Risk from "./pages/Risk.jsx";
-import Clients from "./pages/Clients.jsx";
+import Clients, { AgentIcon } from "./pages/Clients.jsx";
 import EarlyWarning from "./pages/EarlyWarning.jsx";
 import Briefing from "./pages/Briefing.jsx";
 import Monthly from "./pages/Monthly.jsx";
@@ -19,8 +19,8 @@ export const PAGES = [
   { id: "clients", label: "Client intelligence", el: Clients, menu: [
     { label: "Client recommendations", sub: "Directory, profiles, comparison, Board recommendation", params: { step: "board" } },
     { sep: true },
-    { label: "Stress-test agent", sub: "Reserve & stress test: what if credit gets worse?", params: { step: "stress" }, agent: true },
-    { label: "Capital allocation agent", sub: "Where should new commitments go?", params: { step: "allocation" }, agent: true },
+    { label: "Stress-test agent", sub: "Reserve & stress test: what if credit gets worse?", params: { step: "stress" }, agent: "stress" },
+    { label: "Capital allocation agent", sub: "Where should new commitments go?", params: { step: "allocation" }, agent: "allocation" },
   ] },
   { id: "early-warning", label: "Early warning", el: EarlyWarning },
   { id: "monthly", label: "Monthly review", el: Monthly },
@@ -162,7 +162,7 @@ function NavMenu({ page }) {
           {page.menu.map((m, i) => m.sep ? <hr key={i} /> : (
             <button key={i} role="menuitem" className={route.page === page.id && route.params.step === m.params.step ? "active" : ""}
                     onClick={() => go(m.params)}>
-              {m.agent ? <SparkIcon size={12} color="var(--blue)" /> : <span style={{ width: 12 }} />}
+              {m.agent ? <AgentIcon id={m.agent} size={16} color="var(--blue)" /> : <span style={{ width: 16 }} />}
               <span><div>{m.label}</div><div className="sub">{m.sub}</div></span>
             </button>
           ))}

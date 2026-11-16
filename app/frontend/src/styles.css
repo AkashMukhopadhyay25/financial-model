@@ -608,3 +608,16 @@ table.data th.sorted .sort-ic { opacity: 1; color: var(--blue); }
 .mo-headline { font-size: 13px; color: var(--ink-2); }
 .mo-amt { display: flex; flex-direction: column; align-items: flex-end; font-size: 11.5px; color: var(--muted); white-space: nowrap; }
 .mo-amt b { font-family: var(--display); font-size: 17px; font-weight: 500; color: var(--ink); }
+
+/* Agent ask cards on Client intelligence: the hero gradient, sized for two side by side */
+.ask.ask-hero.agent-hero { padding: 18px 18px 16px; border-radius: 20px; display: flex; flex-direction: column; }
+.agent-hero-head { display: flex; gap: 12px; align-items: flex-start; margin-bottom: 14px; }
+.agent-icon { flex: none; width: 40px; height: 40px; border-radius: 12px; display: grid; place-items: center; color: #fff;
+  background: rgba(255, 255, 255, .16); border: 1px solid rgba(255, 255, 255, .3); }
+.agent-hero-title { font-family: var(--display); font-size: 19px; font-weight: 500; color: #fff; line-height: 1.2; }
+.agent-hero-blurb { font-size: 12.5px; color: rgba(255, 255, 255, .8); margin-top: 3px; line-height: 1.4; }
+.agent-open { cursor: pointer; flex: none; }
+.agent-open:hover { background: rgba(255, 255, 255, .24); }
+.agent-hero .ask-row { margin-top: auto; }
+.agent-hero .ask-row input { font-size: 14px; }
+.agent-hero .chips { margin-top: 12px; }
