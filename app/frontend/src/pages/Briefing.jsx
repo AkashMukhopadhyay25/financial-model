@@ -1,7 +1,8 @@
-import React from "react";
+import React, { useState } from "react";
+import { flagReview, invalidate } from "../api.js";
 import { useApp } from "../App.jsx";
-import { date, int, musd, musdFull } from "../format.js";
-import { ErrorBox, Info, Loading, SplitBar, Tag, useApi } from "../ui.jsx";
+import { date, dateTime, int, musd, musdFull, pct } from "../format.js";
+import { DataTable, ErrorBox, Info, Loading, Modal, SplitBar, Tag, Toast, useApi } from "../ui.jsx";
 import { ExposureBreakdown } from "./Risk.jsx";
 
 // Board briefing: every number below is read live from the certified tables, so the briefing never drifts from the app.
@@ -97,16 +98,27 @@ function Brief({ d, nav }) {
         </div>
       </Section>
 
-      <Section n="2" title="Board questions: Category A risk" sub={`${int(tot.projects)} projects Past Due or on the Watchlist · ${int(tot.clients)} clients · ${musd(tot.approved_musd)} approved`}
+      <BriefStrengths s={d.strengths} />
+
+      <Section n="3" title="Board questions: Category A risk" sub={`${int(tot.projects)} projects Past Due or on the Watchlist · ${int(tot.clients)} clients · ${musd(tot.approved_musd)} approved`}
                link="Risk & exposure" onLink={() => nav("risk")}>
         <ExposureBreakdown bare pd={pdD} wl={wlD} ecl={tot.expected_credit_loss_musd || 0}
                            undisbursed={tot.undisbursed_commitment_musd || 0} approved={tot.approved_musd || 0} rate={rate} />
         <div className="chips" style={{ marginTop: 12 }}>
           {d.risk.checks.map((c) => <Tag key={c.name} color={c.ok ? "green" : "amber"}>{c.ok ? "✓" : "!"} {c.name}</Tag>)}
         </div>
+        {d.risk.context && (
+          <div className="small mt" style={{ color: "var(--green)" }}>
+            For context: {int(d.risk.context.performing_category_a)} of {int(d.risk.context.active_category_a)} Active Category A projects are performing.
+            Expected credit loss on the whole portfolio is {musd(d.overview.portfolio_risk?.expected_credit_loss_musd)}.
+          </div>
+        )}
       </Section>
 
-      <Section n="3" title="Client recommendations" sub="For Credit Risk Committee review" link="Client intelligence" onLink={() => nav("clients")}>
+      <BriefScenarios a={d.scenario_watchlist} b={d.scenario_rating} nav={nav} />
+      <BriefAllocation al={d.allocation} nav={nav} />
+
+      <Section n="6" title="Client recommendations" sub="For Credit Risk Committee review" link="Client intelligence" onLink={() => nav("clients")}>
         <div className="grid g4">
           {d.recommendations.map((r) => {
             const cont = r.recommendation === "CONTINUE";
@@ -127,7 +139,21 @@ function Brief({ d, nav }) {
         </div>
       </Section>
 
-      <Section n="4" title="Early warning: highest-priority clients" sub="Risk signals for human investigation, not predictions of default" link="Early warning" onLink={() => nav("early-warning")}>
+      {d.allocation && !d.allocation.error && (() => {
+        const lim = new Set(d.allocation.regions_to_limit);
+        const inLim = d.recommendations.filter((r) => lim.has(r.primary_region));
+        if (!inLim.length) return null;
+        return (
+          <div className="card brief-note">
+            <b>Read with section 5:</b> {inLim.length === d.recommendations.length ? "all four clients are" : `${inLim.length} of the four clients are`} in{" "}
+            {[...new Set(inLim.map((r) => r.primary_region))].join(", ")}, where new exposure should be limited. Continuing to invest in{" "}
+            {inLim.filter((r) => r.recommendation === "CONTINUE").map((r) => r.client_name).join(" and ") || "these clients"} is recommended on the
+            condition that the region's share of current exposure does not grow; reducing the other two lowers it.
+          </div>
+        );
+      })()}
+
+      <Section n="7" title="Early warning: highest-priority clients" sub="Risk signals for human investigation, not predictions of default" link="Early warning" onLink={() => nav("early-warning")}>
         <div className="brief-ew">
           {d.early_warning.map((e) => (
             <div key={e.client_id} className="brief-ew-row">
@@ -142,7 +168,7 @@ function Brief({ d, nav }) {
         <div className="small muted mt">Suggested action for all: {d.early_warning[0]?.suggested_action || "–"}.</div>
       </Section>
 
-      <Section n="5" title="Data quality" sub={`${int(k.projects_needing_review)} projects flagged (${int(k.projects_high_severity)} high) · included in every figure · routed to owners`}>
+      <Section n="8" title="Data quality" sub={`${int(k.projects_needing_review)} projects flagged (${int(k.projects_high_severity)} high) · included in every figure · routed to owners`}>
         <div className="brief-owners">
           {d.review_owners.map((o) => (
             <div key={o.owner} className="brief-owner">
@@ -161,7 +187,132 @@ function Brief({ d, nav }) {
           </ul>
         </details>
       </Section>
+
+      <ReviewQueue q={d.review_queue} />
     </div>
+  );
+}
+
+// ---------------------------------------------------------------- 2. what is going well
+function BriefStrengths({ s }) {
+  if (!s || s.error) return null;
+  const rec = s.record_fy;
+  const items = [
+    [pct(s.performing_projects / s.active_projects), "of Active projects are performing", `${int(s.performing_projects)} of ${int(s.active_projects)}; ${pct(s.performing_exposure_share)} of current exposure`],
+    [pct(s.completed_projects / s.closed_projects), "of closed projects were completed", `${int(s.completed_projects)} of ${int(s.closed_projects)} met their obligations`],
+    [int(s.climate_projects), "climate-related projects", `${musd(s.climate_approved_musd, { digits: 1 })} approved`],
+    [`${(s.renewable_capacity_mw / 1000).toFixed(1)} GW`, "new renewable capacity", `${int(s.renewable_projects)} generation projects`],
+    [int(s.msme_projects), "small-business finance projects", `across ${int(s.countries)} countries`],
+    rec && [musd(rec.approved_musd, { digits: 1 }), `approved in FY${rec.approval_fy}`, `record year: ${int(rec.projects)} projects`],
+  ].filter(Boolean);
+  return (
+    <Section n="2" title="What is going well" sub="Same certified data and definitions as the risk sections">
+      <div className="strength-grid">
+        {items.map(([v, l, f]) => (
+          <div key={l} className="strength"><div className="sv">{v}</div><div className="sl">{l}</div><div className="sf">{f}</div></div>
+        ))}
+      </div>
+    </Section>
+  );
+}
+
+// ---------------------------------------------------------------- 4. downside scenarios (stress engine, no language model)
+function BriefScenarios({ a, b, nav }) {
+  const ok = [a, b].filter((x) => x && !x.error);
+  if (!ok.length) return null;
+  return (
+    <Section n="4" title="Downside scenarios" sub="What-ifs from the stress-test engine: certified SQL, A11 loss rate, not forecasts"
+             link="Ask the stress-test agent" onLink={() => nav("clients", { step: "stress" })}>
+      <div className="grid g2">
+        {ok.map((x) => (
+          <div key={x.name} className="brief-rec">
+            <div className="small muted">{x.name}</div>
+            <div className="brief-rec-amt" style={{ color: "var(--red)" }}>+{musd(x.summary.ecl_increase_musd)}</div>
+            <div className="small">
+              Expected credit loss would rise from {musd(x.summary.ecl_baseline_musd)} to {musd(x.summary.ecl_stressed_musd)}:
+              {" "}{int(x.summary.shocked_projects)} projects of {int(x.summary.shocked_clients)} clients, {musd(x.summary.shocked_exposure_musd)} disbursed.
+            </div>
+            <div className="small muted mt">
+              Largest contributors: {x.breakdown.slice(0, 3).map((r) => `${r.region || r.client} (+${musd(r.ecl_increase_musd)})`).join(", ")}
+            </div>
+          </div>
+        ))}
+      </div>
+    </Section>
+  );
+}
+
+// ---------------------------------------------------------------- 5. where new money should go (allocation rule A23 + research A24)
+function BriefAllocation({ al, nav }) {
+  if (!al || al.error) return null;
+  return (
+    <Section n="5" title="Where new commitments should go" sub="Our track record (A23) beside cited market research (A24)"
+             link="Ask the capital allocation agent" onLink={() => nav("clients", { step: "allocation" })}>
+      <div className="grid g4">
+        <div className="brief-rec"><div className="small muted">Prioritise</div><div className="brief-rec-name" style={{ color: "var(--green)" }}>{al.prioritise_industry}</div>
+          <div className="small">Rank {al.prioritise_industry_rank}; market {al.data_and_market_agree[al.prioritise_industry] ? "agrees" : "differs"}</div>
+          <div className="small muted">{al.market_view_prioritise_industry.join("; ")}</div></div>
+        <div className="brief-rec"><div className="small muted">Approach with caution</div><div className="brief-rec-name" style={{ color: "#a86a00" }}>{al.caution_industry}</div>
+          <div className="small">Rank {al.caution_industry_rank}; market {al.data_and_market_agree[al.caution_industry] ? "agrees" : "differs"}</div>
+          <div className="small muted">{al.market_view_caution_industry.join("; ")}</div></div>
+        <div className="brief-rec"><div className="small muted">Grow in</div><div className="brief-rec-name">{al.regions_to_grow.join(" · ")}</div>
+          <div className="small muted">Best-ranked regions that are not concentrated</div></div>
+        <div className="brief-rec"><div className="small muted">Limit new exposure</div><div className="brief-rec-name" style={{ color: "var(--red)" }}>{al.regions_to_limit.join(" · ")}</div>
+          <div className="small muted">Above {pct(al.concentration_limit)} of current exposure or last-ranked</div></div>
+      </div>
+      <div className="small mt">
+        Best segments outside the limited regions: {al.best_segments_outside_limited_regions.join("; ")}.
+      </div>
+    </Section>
+  );
+}
+
+// ---------------------------------------------------------------- 9. human review queue
+function ReviewQueue({ q }) {
+  const [items, setItems] = useState(q?.items || []);
+  const [closing, setClosing] = useState(null);
+  const [note, setNote] = useState("");
+  const [toast, setToast] = useState(null);
+  if (!q) return null;
+  const open = items.filter((i) => !i.is_reviewed);
+  const close = async () => {
+    const it = closing;
+    await flagReview({ entity_type: it.entity_type, entity_id: it.entity_id, entity_name: it.entity_name, action: "mark_reviewed",
+                       note: note || "Reviewed", source_page: "briefing" });
+    invalidate("/api/briefing");
+    setItems((xs) => xs.map((x) => (x === it ? { ...x, is_reviewed: true, reviewed_at: new Date().toISOString(), decision: note || "Reviewed" } : x)));
+    setClosing(null); setNote(""); setToast("Marked as reviewed");
+  };
+  return (
+    <Section n="9" title="Human review queue" sub={`${int(open.length)} open · items sent to the Credit Risk Committee from the agents, clients and projects`}>
+      {!items.length && <div className="small muted">Nothing has been sent for review yet. Use "Send to Credit Risk Committee" on an agent's answer, or "Flag for review" on a client.</div>}
+      {items.length > 0 && (
+        <DataTable
+          rows={items}
+          columns={[
+            { key: "is_reviewed", label: "Status", render: (v) => <Tag color={v ? "green" : "amber"}>{v ? "Reviewed" : "Open"}</Tag> },
+            { key: "entity_name", label: "Item", strong: true, render: (v, r) => <span title={r.note}>{v || r.entity_id}</span> },
+            { key: "source_page", label: "From" },
+            { key: "flagged_by", label: "Sent by" },
+            { key: "flagged_at", label: "Sent", render: (v) => dateTime(v) },
+            { key: "decision", label: "Decision", render: (v, r) => (r.is_reviewed ? <span title={`${r.reviewed_by || ""} · ${dateTime(r.reviewed_at)}`}>{v}</span> :
+                <button className="btn small no-print" onClick={() => setClosing(r)}>Mark reviewed</button>) },
+          ]}
+        />
+      )}
+      {closing && (
+        <Modal title="Mark as reviewed" onClose={() => setClosing(null)}
+               actions={<><button className="btn" onClick={() => setClosing(null)}>Cancel</button><button className="btn dark" onClick={close}>Save decision</button></>}>
+          <div className="small" style={{ marginBottom: 8 }}><b>{closing.entity_name || closing.entity_id}</b></div>
+          <div className="small muted" style={{ marginBottom: 8 }}>{closing.note}</div>
+          <textarea rows={3} style={{ width: "100%", borderRadius: 10, border: "1px solid var(--line)", padding: 8 }}
+                    placeholder="Decision, e.g. 'Accepted: propose a reserve top-up' or 'Rejected: scenario too severe'"
+                    value={note} onChange={(e) => setNote(e.target.value)} />
+          <div className="small muted mt">Saved with your name and the time; the original request stays in the history.</div>
+        </Modal>
+      )}
+      {toast && <Toast message={toast} onDone={() => setToast(null)} />}
+    </Section>
   );
 }
 
@@ -181,17 +332,26 @@ function toMarkdown(d) {
   const L = [
     `# IFC Board briefing (draft)`, ``,
     `*Reporting date ${k.reporting_date}. Amounts in USD millions. Every figure is read from the certified tables in Unity Catalog.*`, ``,
-    `## 1. Portfolio at a glance`,
+    `## Portfolio at a glance`,
     `- ${k.projects} projects, ${musdFull(k.approved_musd)} approved by the Board (all statuses); ${k.active_projects} Active; ${k.clients} clients.`, ``,
-    `## 2. Category A risk (WS2)`,
+    ...(d.strengths && !d.strengths.error ? [`## What is going well`,
+      `- ${d.strengths.performing_projects} of ${d.strengths.active_projects} Active projects are performing; ${d.strengths.completed_projects} of ${d.strengths.closed_projects} closed projects were completed.`,
+      `- ${d.strengths.climate_projects} climate-related projects; ${d.strengths.renewable_projects} new renewable-generation projects (${d.strengths.renewable_capacity_mw} MW); ${d.strengths.msme_projects} small-business finance projects in ${d.strengths.countries} countries.`, ``] : []),
+    `## Category A risk (WS2)`,
     `- ${t.projects} Category A projects are Past Due (${by["Past Due"]?.projects}) or on the Watchlist (${by.Watchlist?.projects}), across ${t.clients} clients, ${musdFull(t.approved_musd)} approved.`,
     `- ${musdFull(t.disbursed_capital_tied_up_musd)} disbursed capital tied up; recommended provision for these Category A projects ${musdFull(t.expected_credit_loss_musd)} (60% of Past Due disbursed).`,
     `- For context, expected credit loss on the whole portfolio is ${musdFull(d.overview.portfolio_risk?.expected_credit_loss_musd)} (${d.overview.portfolio_risk?.past_due_projects} Past Due projects, A11).`, ``,
-    `## 3. Client recommendations (WS3) — for Credit Risk Committee review`,
+    ...[d.scenario_watchlist, d.scenario_rating].filter((x) => x && !x.error).flatMap((x, i) => [
+      ...(i === 0 ? [`## Downside scenarios (stress-test engine, not forecasts)`] : []),
+      `- ${x.name}: expected credit loss ${musdFull(x.summary.ecl_baseline_musd)} → ${musdFull(x.summary.ecl_stressed_musd)} (+${musdFull(x.summary.ecl_increase_musd)}).`]), ``,
+    ...(d.allocation && !d.allocation.error ? [`## Where new commitments should go (A23, A24)`,
+      `- Prioritise ${d.allocation.prioritise_industry} (rank ${d.allocation.prioritise_industry_rank}), growing in ${d.allocation.regions_to_grow.join(", ")}; approach ${d.allocation.caution_industry} with caution; limit new exposure in ${d.allocation.regions_to_limit.join(", ")}.`,
+      `- Market view: ${[...d.allocation.market_view_prioritise_industry, ...d.allocation.market_view_caution_industry].join("; ")}.`, ``] : []),
+    `## Client recommendations (WS3) — for Credit Risk Committee review`,
     ...d.recommendations.map((r) => `- **${r.recommendation === "CONTINUE" ? "Continue to invest" : "Reduce / review"}: ${r.client_name} (${r.client_id})** — exposure affected ${musdFull(r.exposure_affected_musd)}. ${r.evidence_summary}. ${r.suggested_action}`),
-    ``, `## 4. Early warning (highest priority)`,
+    ``, `## Early warning (highest priority)`,
     ...d.early_warning.map((e) => `- ${e.client_name}: ${e.triggered_by}. ${e.suggested_action}.`),
-    ``, `## 5. Data quality`,
+    ``, `## Data quality`,
     `- ${k.projects_needing_review} projects carry open data-quality flags (${k.projects_high_severity} high); included in every figure.`,
     ...d.review_owners.map((o) => `  - ${o.owner}: ${o.projects}`),
     ``, `## Assumptions`, ...d.assumptions.map((a) => `- ${a.assumption_id} ${a.topic}: ${a.statement}`),

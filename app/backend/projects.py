@@ -6,7 +6,7 @@ Project-level views and the portfolio's strengths, all from certified_investment
   spotlight(view)      project lists for the Overview: largest Active, recently approved, needs attention
   detail(project_url)  one project: lifecycle, monitoring, amounts, text-derived attributes, data-quality flags in words
 """
-from .queries import T, q, render
+from .queries import T, cached, q, render
 
 STRENGTHS_SQL = """SELECT
   count_if(status = 'Active') AS active_projects,
@@ -31,6 +31,10 @@ FROM {P} WHERE approval_fy IS NOT NULL GROUP BY approval_fy ORDER BY approval_fy
 
 
 def strengths() -> dict:
+    return cached("strengths", _strengths)
+
+
+def _strengths() -> dict:
     P = T("certified_investment_portfolio")
     s = q(STRENGTHS_SQL.format(P=P))[0]
     years = q(MOMENTUM_SQL.format(P=P))
@@ -69,6 +73,10 @@ SPOTLIGHT = {
 def spotlight(view: str = "largest", limit: int = 10) -> dict:
     if view not in SPOTLIGHT:
         view = "largest"
+    return cached(f"spotlight:{view}:{limit}", lambda: _spotlight(view, limit))
+
+
+def _spotlight(view: str, limit: int) -> dict:
     title, where, order = SPOTLIGHT[view]
     where = where.format(EW=T("certified_early_warning"))
     P = T("certified_investment_portfolio")

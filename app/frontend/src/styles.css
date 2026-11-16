@@ -642,3 +642,4 @@ table.data th.sorted .sort-ic { opacity: 1; color: var(--blue); }
 .timeline .done i { background: var(--green); border-color: var(--green); }
 .timeline small { display: block; color: var(--muted); }
 .dq-line { display: flex; gap: 8px; align-items: flex-start; font-size: 12.5px; padding: 6px 0; border-bottom: 1px solid var(--line-2); }
+.brief-note { margin-top: 10px; font-size: 13px; background: #fff8ec; border-color: #f4d39a; line-height: 1.5; }

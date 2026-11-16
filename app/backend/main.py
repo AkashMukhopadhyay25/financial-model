@@ -24,6 +24,21 @@ app = FastAPI(title="Bellwether", docs_url="/api/docs", openapi_url="/api/openap
 DIST = Path(__file__).resolve().parents[1] / "frontend" / "dist"
 
 
+@app.on_event("startup")
+def _warm_cache():
+    """Fill the page cache in the background so the first visitor does not wait for the warehouse."""
+    import threading
+
+    def warm():
+        for fn in (queries.overview, projects.strengths, queries.briefing, queries.early_warning):
+            try:
+                fn()
+            except Exception:  # warm-up is best effort
+                log.exception("cache warm-up failed for %s", fn.__name__)
+
+    threading.Thread(target=warm, daemon=True).start()
+
+
 @app.exception_handler(Exception)
 async def _errors(request: Request, exc: Exception):
     log.exception("API error on %s", request.url.path)
@@ -299,6 +314,11 @@ def add_review(body: ReviewBody, request: Request):
 @app.get("/api/review-requests")
 def list_reviews():
     return queries.review_requests()
+
+
+@app.get("/api/review-queue")
+def review_queue():
+    return queries.review_queue()
 
 
 # ---- frontend (single-page app): serve built files, fall back to index.html for client-side routes

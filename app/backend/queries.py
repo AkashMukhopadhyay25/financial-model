@@ -22,6 +22,33 @@ SIGNALS = [("sig_multiple_watchlist", "Multiple Watchlist projects"), ("sig_high
            ("sig_country_concentration", "Concentration in one country")]
 
 
+# ---------------------------------------------------------------- short-lived cache for the heavy page views
+# The certified tables change only when the pipeline runs, so page views are cached for CACHE_TTL seconds. Anything that
+# shows human actions (review queue, reviewed flags, activity) is invalidated whenever a review request is written.
+import threading as _threading
+import time as _time
+
+CACHE_TTL = 600
+_cache, _cache_lock = {}, _threading.Lock()
+
+
+def cached(key: str, fn, ttl: int = CACHE_TTL):
+    now = _time.time()
+    with _cache_lock:
+        hit = _cache.get(key)
+        if hit and now - hit[0] < ttl:
+            return hit[1]
+    value = fn()
+    with _cache_lock:
+        _cache[key] = (now, value)
+    return value
+
+
+def invalidate_cache():
+    with _cache_lock:
+        _cache.clear()
+
+
 def T(name: str) -> str:
     return get_settings().table(name)
 
@@ -73,6 +100,10 @@ def dq_scope(where: str, params: dict) -> dict:
 
 # ---------------------------------------------------------------- overview
 def overview() -> dict:
+    return cached("overview", _overview)
+
+
+def _overview() -> dict:
     P = T("certified_investment_portfolio")
     kpi_sql = f"""SELECT count(*) AS projects, round(sum(total_approved_musd), 2) AS approved_musd,
        count(DISTINCT client_id) AS clients, count_if(status = 'Active') AS active_projects,
@@ -256,6 +287,10 @@ WS2_SCOPE = "environmental_category = 'A' AND performance_status IN ('Past Due',
 
 
 def risk() -> dict:
+    return cached("risk", _risk)
+
+
+def _risk() -> dict:
     P = T("certified_investment_portfolio")
     summary_sql = f"""SELECT coalesce(performance_status, 'TOTAL') AS status_label,
        count(*) AS projects,
@@ -383,6 +418,10 @@ def compare(ids: list) -> list:
 
 # ---------------------------------------------------------------- early warning
 def early_warning() -> dict:
+    return cached("early_warning", _early_warning)
+
+
+def _early_warning() -> dict:
     EW, P = T("certified_early_warning"), T("certified_investment_portfolio")
     alerts_sql = f"""SELECT *
 FROM {EW}
@@ -408,22 +447,63 @@ WHERE p.status = 'Active'
 
 
 # ---------------------------------------------------------------- board briefing
-def briefing() -> dict:
-    ov = overview()
-    rk = risk()
-    rec = recommendations()["recommendations"]
-    ew = q(f"SELECT client_name, client_id, priority, triggered_by, suggested_action, exposure_affected_musd "
-           f"FROM {T('certified_early_warning')} WHERE priority = 'HIGH' ORDER BY exposure_affected_musd DESC LIMIT 5")
-    owners = q(f"""SELECT owner, count(*) AS projects FROM (
+def _review_owners():
+    if get_settings().data_mode != "local":
+        return q(f"""SELECT owner, count(*) AS projects FROM (
     SELECT trim(o) AS owner FROM {T('certified_investment_portfolio')}
     LATERAL VIEW explode(split(review_owners, ',')) t AS o WHERE needs_review) x
-GROUP BY owner ORDER BY projects DESC""") if get_settings().data_mode != "local" else q(
-        f"""SELECT owner, count(*) AS projects FROM (
+GROUP BY owner ORDER BY projects DESC""")
+    return q(f"""SELECT owner, count(*) AS projects FROM (
     SELECT trim(unnest(string_split(review_owners, ','))) AS owner FROM {T('certified_investment_portfolio')} WHERE needs_review) x
 WHERE owner <> '' GROUP BY owner ORDER BY projects DESC""")
-    assumptions = try_q(f"SELECT assumption_id, topic, statement FROM {T('ref_assumptions')} ORDER BY assumption_id")
-    return {"overview": ov, "risk": {"summary": rk["summary"], "checks": rk["checks"]}, "recommendations": rec,
-            "early_warning": ew, "review_owners": owners, "assumptions": assumptions}
+
+
+def briefing() -> dict:
+    out = dict(cached("briefing", _briefing))
+    out["review_queue"] = review_queue()  # human actions: always fresh
+    return out
+
+
+def _briefing() -> dict:
+    """Everything the Board briefing shows, fetched in parallel. The downside scenarios and the allocation view use the
+    agents' deterministic engines (no language model), so the briefing gives the same figures every time."""
+    from concurrent.futures import ThreadPoolExecutor
+
+    from . import allocation, projects, stress
+
+    jobs = {
+        "overview": overview, "risk": risk, "recommendations": lambda: recommendations()["recommendations"],
+        "early_warning": lambda: q(
+            f"SELECT client_name, client_id, priority, triggered_by, suggested_action, exposure_affected_musd "
+            f"FROM {T('certified_early_warning')} WHERE priority = 'HIGH' ORDER BY exposure_affected_musd DESC LIMIT 5"),
+        "review_owners": _review_owners,
+        "assumptions": lambda: try_q(f"SELECT assumption_id, topic, statement FROM {T('ref_assumptions')} ORDER BY assumption_id"),
+        "strengths": lambda: _safe(projects.strengths),
+        "allocation": lambda: _safe(allocation.allocation_summary),
+        "scenario_watchlist": lambda: _safe(lambda: stress.run_scenario(migrate_watchlist=True, group_by="region",
+                                                                        name="Every Watchlist project slips to default")),
+        "scenario_rating": lambda: _safe(lambda: stress.run_scenario(min_rating=5, group_by="client",
+                                                                     name="Every Active project rated 5-6 defaults")),
+    }
+    with ThreadPoolExecutor(max_workers=6) as ex:
+        futures = {k: ex.submit(f) for k, f in jobs.items()}
+        out = {k: f.result() for k, f in futures.items()}
+    rk = out["risk"]
+    out["risk"] = {"summary": rk["summary"], "checks": rk["checks"], "context": rk.get("context")}
+    for k in ("scenario_watchlist", "scenario_rating"):
+        sc = out[k]
+        if sc and not sc.get("error"):
+            out[k] = {"name": sc["name"], "summary": sc["summary"], "breakdown": sc["breakdown"][:5],
+                      "assumptions": sc["assumptions"], "sql": sc["sql"]}
+    return out
+
+
+def _safe(fn):
+    """Optional briefing sections must not break the page (e.g. a table not yet built)."""
+    try:
+        return fn()
+    except Exception as e:
+        return {"error": f"{type(e).__name__}: {e}"}
 
 
 def assumptions() -> list:
@@ -439,6 +519,7 @@ def ensure_review_table():
 
 def add_review_request(req: dict, user: str) -> dict:
     ensure_review_table()
+    invalidate_cache()
     params = {"by": user, "etype": req["entity_type"], "eid": req["entity_id"], "ename": req.get("entity_name") or "",
               "action": req["action"], "note": req.get("note") or "", "page": req.get("source_page") or ""}
     q(f"""INSERT INTO {T('ops_review_requests')}
@@ -448,6 +529,32 @@ SELECT now(), :by, :etype, :eid, :ename, :action, :note, :page""", params)
 
 def review_requests(limit: int = 50) -> list:
     return try_q(f"SELECT * FROM {T('ops_review_requests')} ORDER BY requested_at DESC LIMIT {int(limit)}")
+
+
+def review_queue(limit: int = 30) -> dict:
+    """Human-review queue: items flagged for review (agents' answers, clients, projects) and whether a reviewer has closed
+    them since. A 'mark_reviewed' row closes every earlier flag on the same item; history is kept (append-only)."""
+    sql = f"""WITH f AS (
+  SELECT entity_type, entity_id, max_by(entity_name, requested_at) AS entity_name, max(requested_at) AS flagged_at,
+         max_by(requested_by, requested_at) AS flagged_by, max_by(note, requested_at) AS note,
+         max_by(source_page, requested_at) AS source_page, count(*) AS times_flagged
+  FROM {T('ops_review_requests')} WHERE action = 'flag_for_review' GROUP BY entity_type, entity_id
+), r AS (
+  SELECT entity_type, entity_id, max(requested_at) AS reviewed_at, max_by(requested_by, requested_at) AS reviewed_by,
+         max_by(note, requested_at) AS decision
+  FROM {T('ops_review_requests')} WHERE action = 'mark_reviewed' GROUP BY entity_type, entity_id
+)
+SELECT f.*, r.reviewed_at, r.reviewed_by, r.decision,
+       coalesce(r.reviewed_at >= f.flagged_at, false) AS is_reviewed
+FROM f LEFT JOIN r ON f.entity_type = r.entity_type AND f.entity_id = r.entity_id
+ORDER BY is_reviewed, f.flagged_at DESC
+LIMIT {int(limit)}"""
+    rows = try_q(sql)
+    for r in rows:
+        for k in ("flagged_at", "reviewed_at"):
+            if r.get(k) is not None:
+                r[k] = str(r[k])
+    return {"items": rows, "open": sum(1 for r in rows if not r.get("is_reviewed")), "sql": sql}
 
 
 # ---------------------------------------------------------------- Genie question history

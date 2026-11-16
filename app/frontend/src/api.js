@@ -37,5 +37,6 @@ export const flagReview = (body) =>
   post("/api/review-requests", body).then((r) => {
     invalidate("/api/early-warning");
     invalidate("/api/overview");
+    invalidate("/api/briefing");
     return r;
   });

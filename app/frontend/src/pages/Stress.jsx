@@ -118,12 +118,15 @@ function Turn({ question, r, latest }) {
   const [pick, setPick] = useState(0);
   const [sql, setSql] = useState(false);
   const [toast, setToast] = useState(null);
+  const [sent, setSent] = useState(false);
   const lvl = LEVEL[r.trust?.level] || LEVEL.HUMAN_REVIEW_REQUIRED;
   const scenarios = (r.results || []).filter((x) => x.tool === "run_stress_scenario").map((x) => x.result);
   const s = scenarios[Math.min(pick, scenarios.length - 1)];
   const baselines = (r.results || []).filter((x) => x.tool === "get_risk_baseline").map((x) => x.result);
 
   const escalate = async () => {
+    if (sent) return;
+    setSent(true);
     await flagReview({
       entity_type: "answer", entity_id: r.run_id || "stress-test", entity_name: question.slice(0, 200),
       action: "flag_for_review", source_page: "stress-test",
@@ -229,7 +232,7 @@ function Turn({ question, r, latest }) {
 
       <div className="mt" style={{ display: "flex", gap: 8, flexWrap: "wrap", alignItems: "center" }}>
         <button className="btn small" onClick={() => setSql(true)}>How the agent worked ({(r.trace || []).length} steps)</button>
-        <button className="btn small" onClick={escalate}>Send to Credit Risk Committee</button>
+        <button className="btn small" onClick={escalate} disabled={sent}>{sent ? "Sent to Credit Risk Committee ✓" : "Send to Credit Risk Committee"}</button>
         <span className="small muted">
           {r.model} · {(r.latency_ms / 1000).toFixed(1)} s{r.run_id ? ` · logged as ${r.run_id.slice(0, 8)} in ops_agent_runs` : ""}
         </span>
