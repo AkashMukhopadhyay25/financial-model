@@ -173,30 +173,61 @@ LIMIT 25"""
     }
 
 
+def _parts(reg: dict, question_id: str) -> list:
+    """Register rows for one library question: the exact ID, or its parts (Q25 -> Q25a, Q25b, Q25c) for multi-part
+    questions that 04_answers/ws1 certifies as separate queries."""
+    if question_id in reg:
+        return [reg[question_id]]
+    return [reg[k] for k in sorted(reg) if k[:-1] == question_id and k[-1].isalpha()]
+
+
 def answers_library() -> list:
     reg = {r["question_id"]: r for r in try_q(
         f"SELECT * FROM {T('answers_register')} WHERE workstream = 'WS1'")}
     out = []
     for item in LIBRARY:
-        r = reg.get(item["question_id"], {})
-        out.append({**item, **{k: r.get(k) for k in (
+        parts = _parts(reg, item["question_id"])
+        r = parts[0] if parts else {}
+        row = {**item, **{k: r.get(k) for k in (
             "sql_text", "assumptions", "assumption_ids", "row_count", "sensitivity_label", "rows_in_scope",
-            "rows_needing_review", "rows_high_severity", "computed_at")}, "certified": bool(r.get("sql_text"))})
+            "rows_needing_review", "rows_high_severity", "computed_at")},
+            "certified": bool(parts) and all(p.get("sql_text") for p in parts)}
+        if len(parts) > 1:
+            row["sql_text"] = "\n\n".join(f"-- {p['question_id']}: {p['question']}\n{p['sql_text']}" for p in parts)
+            row["part_ids"] = [p["question_id"] for p in parts]
+        out.append(row)
     return out
 
 
-def certified_answer(question_id: str) -> dict:
-    rows = try_q(f"SELECT * FROM {T('answers_register')} WHERE question_id = :qid", {"qid": question_id})
-    if not rows:
-        return None
-    r = rows[0]
+def _decode(r: dict) -> dict:
     for k in ("result_preview_json", "sensitivity_preview_json"):
         try:
             r[k] = json.loads(r[k]) if r.get(k) else None
         except (TypeError, ValueError):
             r[k] = None
+    return r
+
+
+def certified_answer(question_id: str) -> dict:
+    rows = try_q(f"SELECT * FROM {T('answers_register')} WHERE question_id = :qid OR question_id LIKE :pattern",
+                 {"qid": question_id, "pattern": f"{question_id}_"})
+    reg = {r["question_id"]: r for r in rows}
+    parts = [_decode(p) for p in _parts(reg, question_id)]
+    if not parts:
+        return None
     meta = next((i for i in LIBRARY if i["question_id"] == question_id), {})
-    return {**meta, **r}
+    if len(parts) == 1:
+        return {**meta, **parts[0]}
+    # Multi-part question: one certified query per part; each keeps its own SQL, result and data-quality counts.
+    first = parts[0]
+    ids = sorted({i for p in parts for i in (p.get("assumption_ids") or "").split(",") if i})
+    return {**meta, **first, "question_id": question_id, "question": meta.get("question", first["question"]),
+            "assumption_ids": ",".join(ids),
+            "assumptions": " ".join(dict.fromkeys(p.get("assumptions") or "" for p in parts)).strip(),
+            "sql_text": "\n\n".join(f"-- {p['question_id']}: {p['question']}\n{p['sql_text']}" for p in parts),
+            "parts": [{k: p.get(k) for k in ("question_id", "question", "sql_text", "row_count", "result_preview_json",
+                                             "rows_in_scope", "rows_needing_review", "rows_high_severity")}
+                      for p in parts]}
 
 
 def _norm(s: str) -> str:

@@ -375,6 +375,25 @@ function CertifiedDetail({ a, onAsk }) {
         </button>
       </div>
       {a.assumptions && <p className="small" style={{ lineHeight: 1.5 }}><b>Assumptions:</b> {a.assumptions}</p>}
+      {a.parts?.length > 1 ? (
+        a.parts.map((p) => (
+          <div key={p.question_id} className="mt">
+            <div style={{ fontWeight: 600, fontSize: 13.5, marginBottom: 8 }}>
+              <Tag color="blue">{p.question_id}</Tag> {p.question.replace(/^\[Challenge\]\s*/, "")}
+            </div>
+            <div className="grid g2">
+              <div>
+                <div className="small" style={{ fontWeight: 600, marginBottom: 6 }}>Result{p.row_count != null ? ` (${int(p.row_count)} rows)` : ""}</div>
+                <DataTable rows={p.result_preview_json || []} maxRows={30} />
+              </div>
+              <div>
+                <div className="small" style={{ fontWeight: 600, marginBottom: 6 }}>Certified SQL</div>
+                <SqlBlock sql={p.sql_text} />
+              </div>
+            </div>
+          </div>
+        ))
+      ) : (
       <div className="grid g2">
         <div>
           <div className="small" style={{ fontWeight: 600, marginBottom: 6 }}>Result{a.row_count != null ? ` (${int(a.row_count)} rows)` : ""}</div>
@@ -391,6 +410,7 @@ function CertifiedDetail({ a, onAsk }) {
           <SqlBlock sql={a.sql_text} />
         </div>
       </div>
+      )}
     </div>
   );
 }
