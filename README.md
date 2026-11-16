@@ -295,6 +295,6 @@ app/             Databricks App: backend (FastAPI, agents, engines) · frontend 
 assets/          architecture diagram
 tests/           Stage 3 SQL run locally on SQLite
 test_files/      broken files for the schema-gate demo · demo months
-reference/, cfo_copilot/   an earlier prototype, superseded by app/ and not used by the solution
+reference/       an earlier prototype, superseded by app/ and not used by the solution
 data/            source CSVs (not in Git)
 ```

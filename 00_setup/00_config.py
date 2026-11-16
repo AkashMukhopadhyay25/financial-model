@@ -14,7 +14,7 @@
 # MAGIC | `CATALOG`, `SCHEMA` | `environment` | Unity Catalog location of every table, view and function |
 # MAGIC | `VOLUME`, `LANDING_ROOT` | `environment` | Landing volume `/Volumes/{catalog}/{schema}/{volume}` with `incoming/ accepted/ held/ loaded/` |
 # MAGIC | `LLM_ENDPOINT`, `RUN_LLM_EXTRACTION`, `LLM_*` | `ai` | Model endpoint and text-extraction settings |
-# MAGIC | `SQL_WAREHOUSE_ID`, `GENIE_SPACE_ID`, `UC_MODEL_NAME` | `serving` | Used by the agent and the app |
+# MAGIC | `SQL_WAREHOUSE_ID`, `GENIE_SPACE_ID` | `serving` | Used by the agent and the app |
 # MAGIC | `ECL_LOSS_RATE`, `Q28_ALLOCATION_THRESHOLD_MUSD`, `CLIENT_BANDS`, `HEALTH_WEIGHTS` | `business` | Business parameters (also in `ref_assumptions`) |
 # MAGIC | `T("name")` | — | Fully-qualified name `{catalog}.{schema}.name` |
 # MAGIC
@@ -137,7 +137,6 @@ LLM_PARALLELISM = int(_ai["llm_parallelism"])
 
 SQL_WAREHOUSE_ID = _srv.get("sql_warehouse_id") or ""
 GENIE_SPACE_ID = _srv.get("genie_space_id") or ""
-UC_MODEL_NAME = _T(CFG, _srv["uc_model_name"])
 
 ECL_LOSS_RATE = float(_biz["ecl_loss_rate"])
 Q28_ALLOCATION_THRESHOLD_MUSD = float(_biz["q28_allocation_threshold_musd"])

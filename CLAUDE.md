@@ -36,7 +36,7 @@ This repo combines **two codebases** that are being merged. **Rule: everything o
     All four WS3 clients are in Sub-Saharan Africa.
   - The WTO October 2026 update (2026 trade growth 3.9%) supersedes the October 2025 one (0.5%); always check that a
     source is the latest.
-- Ritvik's older CFO Decision Advisor (`cfo_copilot/02_agent`) is deployed as endpoint
+- Ritvik's older CFO Decision Advisor, its endpoint, experiment and the `cfo_copilot` schema were deleted on 2026-11-16 (user's decision); `cfo_copilot/` removed from the repo.
   `agents_workspace-cfo_copilot-cfo_decision_advisor` on his `cfo_copilot` schema; it is not used by the app.
 
 **Product pass (2026-11-16, deadline moved to 2026-11-17):**

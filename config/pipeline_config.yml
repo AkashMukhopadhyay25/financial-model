@@ -76,8 +76,6 @@ serving:
   # From the Genie space URL: .../genie/rooms/<id>. Left empty on purpose: the space is rebuilt on the
   # merged tables in phase 8, then its ID goes here.
   genie_space_id: 01f1dfb2b45c126bb81182a497d5866f   # "IFC Certified Investment Portfolio" in dbc-ba139e62-9140
-  # Unity Catalog model name (created in {catalog}.{schema}) for the CFO Decision Advisor agent.
-  uc_model_name: cfo_decision_advisor
   # The team's own agents in the app (app/backend/*_agent.py): Databricks-hosted open-weight models (Serving ->
   # Foundation Model API, pay-per-token). Swap a model here; the app also reads IFC_STRESS_AGENT_MODEL from app.yaml.
   # Chosen 2026-11-16 on the stress-test questions: qwen3-next-80b fastest (~5 s) with every figure traced;
