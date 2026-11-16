@@ -114,6 +114,7 @@ export default function Stress({ embedded = false, pending = null }) {
 }
 
 function Turn({ question, r, latest }) {
+  const { openProject } = useApp();
   const [pick, setPick] = useState(0);
   const [sql, setSql] = useState(false);
   const [toast, setToast] = useState(null);
@@ -201,6 +202,7 @@ function Turn({ question, r, latest }) {
             <div className="small" style={{ fontWeight: 600, marginBottom: 6 }}>Projects contributing most</div>
             <DataTable
               rows={s.top_projects}
+              onRowClick={(row) => openProject(row.project_url)}
               columns={[
                 { key: "project_name", label: "Project", strong: true },
                 { key: "client_name", label: "Client" },

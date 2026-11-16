@@ -139,7 +139,7 @@ HAVING count_if(is_shocked) > 0
 ORDER BY ecl_increase_musd DESC
 LIMIT 10"""
     projects_sql = f"""{cte}
-SELECT project_number, project_name, client_name, country, industry, performance_status, internal_risk_rating,
+SELECT project_url, project_number, project_name, client_name, country, industry, performance_status, internal_risk_rating,
        round(exposure_musd, 2) AS exposure_musd, round(undisbursed_musd, 2) AS undisbursed_musd,
        round(ecl_stressed_musd, 2) AS ecl_stressed_musd, needs_review
 FROM s WHERE is_shocked

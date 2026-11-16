@@ -66,6 +66,11 @@ export default function EarlyWarning() {
                 <div className="kpi-value">{int(data.alerts.length)}</div>
               </div>
               <SplitBar legend segments={[{ label: "High", value: counts.HIGH, color: "#c9302c" }, { label: "Medium", value: counts.MEDIUM, color: "#e29a12" }, { label: "Review", value: counts.REVIEW, color: "#2f66f6" }]} />
+              {data.clients_with_active_projects > 0 && (
+                <div className="small mt" style={{ color: "var(--green)" }}>
+                  {int(data.clients_with_active_projects - data.alerts.length)} of {int(data.clients_with_active_projects)} clients with Active projects show no signal.
+                </div>
+              )}
             </div>
             <div className="card">
               <div className="kpi-label"><span>Projects to review <Info align="left" text="Active projects of flagged clients that are Watchlist, Past Due, rated 5-6 or overdue for review." /></span></div>

@@ -43,6 +43,11 @@ export default function Risk({ params }) {
           <div className="mt">
             <Stats items={[{ label: "Past Due", value: int(pd.projects), color: "red" }, { label: "Watchlist", value: int(wl.projects), color: "amber" }, { label: "clients", value: int(tot.clients) }]} />
           </div>
+          {data.context && (
+            <div className="small mt" style={{ color: "var(--green)" }}>
+              Context: {int(tot.projects)} of {int(data.context.active_category_a)} Active Category A projects; {int(data.context.performing_category_a)} ({Math.round((100 * data.context.performing_category_a) / data.context.active_category_a)}%) are performing.
+            </div>
+          )}
         </div>
         <div className="card">
           <div className="kpi-label">Disbursed exposure <Tag color="blue">Past Due + Watchlist</Tag></div>

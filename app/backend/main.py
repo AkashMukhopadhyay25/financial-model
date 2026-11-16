@@ -16,7 +16,7 @@ from fastapi.responses import FileResponse, JSONResponse
 from fastapi.staticfiles import StaticFiles
 from pydantic import BaseModel, Field
 
-from . import agent_core, allocation_agent, genie, monthly, queries, stress_agent
+from . import agent_core, allocation_agent, genie, monthly, projects, queries, stress_agent
 from .settings import get_settings
 
 log = logging.getLogger("ifc_app")
@@ -47,6 +47,24 @@ def health(request: Request):
 @app.get("/api/overview")
 def overview():
     return queries.overview()
+
+
+@app.get("/api/strengths")
+def strengths():
+    return projects.strengths()
+
+
+@app.get("/api/projects/spotlight")
+def project_spotlight(view: str = "largest", limit: int = 10):
+    return projects.spotlight(view, limit)
+
+
+@app.get("/api/projects/detail")
+def project_detail(url: str):
+    r = projects.detail(url)
+    if not r:
+        raise HTTPException(404, "Project not found")
+    return r
 
 
 @app.get("/api/portfolio/options")

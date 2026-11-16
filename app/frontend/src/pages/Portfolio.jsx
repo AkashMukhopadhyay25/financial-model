@@ -11,7 +11,7 @@ const FILTERS = [
 ];
 
 export default function Portfolio({ params }) {
-  const { openLibrary, openAssumptions } = useApp();
+  const { openLibrary, openAssumptions, openProject } = useApp();
   const genie = useGenie();
   const [filters, setFilters] = useState({});
   const [lib, setLib] = useState([]);
@@ -127,10 +127,11 @@ export default function Portfolio({ params }) {
           <div className="card">
             <div className="card-head">
               <h3>Top 25 projects</h3>
-              <Tag color="blue">By board-approved amount</Tag>
+              <Tag color="blue">By board-approved amount · click for the full record</Tag>
             </div>
             <DataTable
               rows={data.projects}
+              onRowClick={(r) => openProject(r.project_url)}
               pageSize={10}
               columns={[
                 { key: "project_name", label: "Project", strong: true },

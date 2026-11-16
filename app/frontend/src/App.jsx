@@ -3,6 +3,7 @@ import { createPortal } from "react-dom";
 import { get } from "./api.js";
 import { ago, date, dateTime, dateTimeFull } from "./format.js";
 import { QuestionLibrary } from "./Genie.jsx";
+import { ProjectDrawer } from "./Project.jsx";
 import { AssumptionsDrawer, Toast } from "./ui.jsx";
 import Overview from "./pages/Overview.jsx";
 import Portfolio from "./pages/Portfolio.jsx";
@@ -40,6 +41,7 @@ export default function App() {
   const [route, setRoute] = useState(parseHash);
   const [library, setLibrary] = useState(null); // null | {id}
   const [assumptions, setAssumptions] = useState(null); // null | {ids}
+  const [project, setProject] = useState(null); // null | project_url
   const [toast, setToast] = useState("");
   const [health, setHealth] = useState(null);
 
@@ -63,6 +65,7 @@ export default function App() {
       health,
       openLibrary: (id) => setLibrary({ id: id || null }),
       openAssumptions: (ids) => setAssumptions({ ids: ids || null }),
+      openProject: (url) => url && setProject(url),
       toast: setToast,
     }),
     [nav, route, health],
@@ -86,6 +89,7 @@ export default function App() {
         />
       )}
       {assumptions && <AssumptionsDrawer ids={assumptions.ids} onClose={() => setAssumptions(null)} />}
+      {project && <ProjectDrawer url={project} onClose={() => setProject(null)} onOpen={setProject} />}
       <Toast message={toast} onDone={() => setToast("")} />
     </Ctx.Provider>
   );

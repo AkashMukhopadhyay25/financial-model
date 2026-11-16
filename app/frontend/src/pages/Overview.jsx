@@ -1,8 +1,8 @@
 import React, { useState } from "react";
 import { useApp } from "../App.jsx";
 import { AskBar } from "../Genie.jsx";
-import { ago, date, int, musd } from "../format.js";
-import { ErrorBox, EvidenceDrawer, Info, Loading, OkIcon, SplitBar, Stripe, Tag, useApi } from "../ui.jsx";
+import { ago, date, int, musd, pct } from "../format.js";
+import { DataTable, DqTag, ErrorBox, EvidenceDrawer, Info, Loading, OkIcon, SplitBar, StatusTag, Stripe, Tag, useApi } from "../ui.jsx";
 
 const STORIES = [
   { page: "portfolio", eyebrow: "WS1 · Portfolio analytics", color: "blue", q: "What does IFC's portfolio look like?", d: "Explore metrics and answer recurring questions in plain language." },
@@ -70,10 +70,12 @@ export default function Overview() {
                info={`Board-approved total, every status (A03, A08), as of ${date(k.reporting_date)}.`} onClick={() => setEvidence(true)} />
           <Kpi label="Projects" tag={`${int(k.active_projects)} Active`} tagColor="green" value={int(k.projects)} bar={<SplitBar segments={byStatus("projects")} legend />}
                info={`${int(k.active_projects)} Active. Counted by project URL (A01).`} onClick={() => nav("portfolio")} />
-          <Kpi label="Clients" tag={`${int(byBand.find((b) => b.label === "Review")?.value || 0)} to review`} tagColor="amber" value={int(k.clients)} bar={<SplitBar segments={byBand} legend />}
+          <Kpi label="Clients" tag={`${int(byBand.find((b) => b.label === "Continue")?.value || 0)} strong · ${int(byBand.find((b) => b.label === "Review")?.value || 0)} to review`} tagColor="blue" value={int(k.clients)} bar={<SplitBar segments={byBand} legend />}
                info="Distinct clients with monitored projects, split by client band (A15)." onClick={() => nav("clients", { step: "directory" })} />
         </div>
       )}
+
+      <Strengths />
 
       <div className="grid g3 mt">
         <div className="card">
@@ -102,6 +104,8 @@ export default function Overview() {
         </div>
         <RiskCard r={data?.risk} pr={data?.portfolio_risk} onOpen={() => nav("risk")} />
       </div>
+
+      <Spotlight />
 
 
       <div className="section-title" style={{ marginTop: 22 }}>One connected product story</div>
@@ -177,6 +181,93 @@ function RiskCard({ r, pr, onOpen }) {
           {pr && <div style={{ marginTop: 4, opacity: 0.85 }}>Whole portfolio: {musd(pr.expected_credit_loss_musd)} ECL on {int(pr.past_due_projects)} Past Due projects (A11)</div>}
         </div>
       </div>
+    </div>
+  );
+}
+
+// ---------------------------------------------------------------- what is going well (same rigour as the risk views)
+function Strengths() {
+  const { nav } = useApp();
+  const { data: s } = useApi("/api/strengths");
+  const [sql, setSql] = useState(false);
+  if (!s) return null;
+  const rec = s.record_fy, latest = s.latest_fy;
+  const tiles = [
+    { v: pct(s.performing_projects / s.active_projects), l: "of Active projects performing",
+      f: `${int(s.performing_projects)} of ${int(s.active_projects)} · ${pct(s.performing_exposure_share)} of current exposure`, go: () => nav("portfolio") },
+    { v: pct(s.completed_projects / s.closed_projects), l: "of closed projects completed",
+      f: `${int(s.completed_projects)} of ${int(s.closed_projects)} met their obligations · ${pct(s.completed_disbursed_share)} of closed disbursed` },
+    { v: int(s.climate_projects), l: "climate-related projects", f: `${musd(s.climate_approved_musd, { digits: 1 })} approved` },
+    { v: `${(s.renewable_capacity_mw / 1000).toFixed(1)} GW`, l: "new renewable capacity", f: `${int(s.renewable_projects)} generation projects (A13)` },
+    { v: int(s.msme_projects), l: "small-business finance projects", f: `MSME lending through financial institutions (A14)` },
+    rec && { v: musd(rec.approved_musd, { digits: 1 }), l: `approved in FY${rec.approval_fy}, a record year`,
+      f: `${int(rec.projects)} projects${latest && latest.approval_fy !== rec.approval_fy ? ` · FY${latest.approval_fy}: ${musd(latest.approved_musd, { digits: 1 })}` : ""} · ${int(s.countries)} countries` },
+  ].filter(Boolean);
+  return (
+    <div className="card mt strengths">
+      <div className="card-head">
+        <div>
+          <h3>What is going well</h3>
+          <div className="card-sub">Same certified data and definitions as the risk views below</div>
+        </div>
+        <button className="btn small" onClick={() => setSql(true)}>Evidence / SQL</button>
+      </div>
+      <div className="strength-grid">
+        {tiles.map((t) => (
+          <div key={t.l} className={`strength ${t.go ? "clickable" : ""}`} onClick={t.go}>
+            <div className="sv">{t.v}</div>
+            <div className="sl">{t.l}</div>
+            <div className="sf">{t.f}</div>
+          </div>
+        ))}
+      </div>
+      {sql && <EvidenceDrawer items={s.sql} note="Every strength is computed from certified_investment_portfolio with the same definitions as the risk figures." onClose={() => setSql(false)} />}
+    </div>
+  );
+}
+
+// ---------------------------------------------------------------- project spotlight (click a row for the full project)
+const SPOT_TABS = [
+  ["largest", "Largest Active"], ["performing", "Strong performers"], ["recent", "Recently approved"], ["attention", "Needs attention"],
+];
+
+function Spotlight() {
+  const { openProject } = useApp();
+  const [view, setView] = useState("largest");
+  const { data, error, loading } = useApi(`/api/projects/spotlight?view=${view}&limit=8`);
+  return (
+    <div className="card mt">
+      <div className="card-head">
+        <div>
+          <h3>Project spotlight</h3>
+          <div className="card-sub">{data ? `${data.title} · ${int(data.total)} projects · click a project for its full record` : "Projects behind the numbers"}</div>
+        </div>
+        <div className="toggle">
+          {SPOT_TABS.map(([id, label]) => (
+            <button key={id} className={view === id ? "active" : ""} onClick={() => setView(id)}>{label}</button>
+          ))}
+        </div>
+      </div>
+      {error && <ErrorBox error={error} />}
+      {loading && !data && <Loading />}
+      {data && (
+        <DataTable
+          rows={data.rows}
+          onRowClick={(r) => openProject(r.project_url)}
+          columns={[
+            { key: "project_name", label: "Project", strong: true },
+            { key: "client_name", label: "Client" },
+            { key: "country", label: "Country" },
+            { key: "industry", label: "Industry" },
+            { key: "performance_status", label: "Status", render: (v, r) => <StatusTag value={v || r.status} /> },
+            { key: "internal_risk_rating", label: "Rating", num: true },
+            { key: view === "recent" ? "approval_date" : "current_exposure_musd", label: view === "recent" ? "Approved on" : "Exposure", num: view !== "recent",
+              render: (v) => (view === "recent" ? date(v) : musd(v)) },
+            { key: "approved_musd", label: "Approved", num: true, render: (v) => musd(v) },
+            { key: "needs_review", label: "Data quality", render: (v, r) => <DqTag needs={v} severity={r.dq_max_severity} ids={r.dq_flag_ids} messages={r.dq_messages} /> },
+          ]}
+        />
+      )}
     </div>
   );
 }

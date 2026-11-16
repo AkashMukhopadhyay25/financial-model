@@ -278,7 +278,9 @@ WHERE {WS2_SCOPE}
 ORDER BY performance_status, total_approved_musd DESC"""
     checks_sql = f"""SELECT count(*) AS projects, count(DISTINCT project_url) AS distinct_urls,
        count_if(status <> 'Dropped') AS non_dropped, count_if(status <> 'Dropped' AND NOT is_monitored) AS missing_monitoring,
-       count_if(status = 'Dropped' AND is_monitored) AS dropped_but_monitored
+       count_if(status = 'Dropped' AND is_monitored) AS dropped_but_monitored,
+       count_if(status = 'Active' AND environmental_category = 'A') AS active_category_a,
+       count_if(status = 'Active' AND environmental_category = 'A' AND performance_status = 'Performing') AS performing_category_a
 FROM {P}"""
     summary = q(summary_sql)
     c = q(checks_sql)[0]
@@ -300,6 +302,7 @@ FROM {P}"""
                      f"FROM {T('answers_register')} WHERE workstream = 'WS2' ORDER BY question_id")
     return {"summary": summary, "projects": q(projects_sql), "checks": checks, "register": register,
             "data_quality": dq_scope(WS2_SCOPE, {}),
+            "context": {"active_category_a": int(c["active_category_a"]), "performing_category_a": int(c["performing_category_a"])},
             "ecl_loss_rate": get_settings().ecl_loss_rate,
             "evidence": {"summary": summary_sql, "projects": projects_sql, "checks": checks_sql}}
 
@@ -396,8 +399,10 @@ WHERE p.status = 'Active'
     for a in alerts:
         a["reviewed_at"] = str(reviewed[a["client_id"]]["reviewed_at"]) if a["client_id"] in reviewed else None
     counts = {col: sum(1 for a in alerts if a.get(col)) for col, _ in SIGNALS}
-    active = int(q(f"SELECT count_if(status = 'Active') AS n FROM {P}")[0]["n"])
+    act = q(f"SELECT count_if(status = 'Active') AS n, count(DISTINCT CASE WHEN status = 'Active' THEN client_id END) AS clients FROM {P}")[0]
+    active = int(act["n"])
     return {"alerts": alerts, "projects_to_review": int(q(projects_sql)[0]["projects"]), "active_projects": active,
+            "clients_with_active_projects": int(act["clients"]),
             "signals": [{"column": c, "label": l, "clients": counts[c]} for c, l in SIGNALS],
             "evidence": {"alerts": alerts_sql, "projects": projects_sql}}
 
