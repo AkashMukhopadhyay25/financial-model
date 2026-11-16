@@ -11,9 +11,24 @@ deploys, operates and maintains it without further support.
 
 1. Sign in to the Databricks workspace: **https://dbc-ba139e62-9140.cloud.databricks.com**
 2. Left sidebar → **Compute** → **Apps** tab → **ifc-cfo-intelligence**.
-3. If the status reads **Stopped**, click **Start** and wait until it reads **Running** (2–3 minutes).
-4. Click the app URL (https://ifc-cfo-intelligence-7474644524515535.aws.databricksapps.com). It opens with your
+3. Click the app URL (https://ifc-cfo-intelligence-7474644524515535.aws.databricksapps.com). It opens with your
    workspace sign-in, so no separate login is needed.
+
+**If the app is switched off.** Databricks stops idle apps and warehouses to save cost, so the app may need switching
+on first:
+
+1. **Start the app.** On the app's page (Compute → Apps → **ifc-cfo-intelligence**), if the status reads **Stopped**
+   or **Unavailable**, click **Start**.
+   - Wait until the status reads **Running**. This takes 2–3 minutes: Databricks starts the compute and then
+     redeploys the app automatically.
+   - If, after starting, the page says the app has no active deployment, click **Deploy**. The source code path is
+     `/Workspace/Users/pruthvi.doshi@rotman.utoronto.ca/financial-model/app`. Wait for **Running** again.
+2. **Wake the SQL warehouse (only if pages show an error).** The app reads its data through **Serverless Starter
+   Warehouse**, which stops after 10 idle minutes. It normally restarts by itself on the first page load (the first
+   load can take 10–20 seconds). If a page still shows "Could not load data", open left sidebar → **SQL Warehouses**
+   → **Serverless Starter Warehouse** → **Start**, wait until it reads **Running**, then refresh the app.
+3. **First page loads are slower.** Right after a restart the app fills its cache. Give the Overview about 10 seconds;
+   later pages load in about a second.
 
 | Page (top bar) | What you will find |
 |---|---|
