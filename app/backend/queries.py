@@ -476,6 +476,32 @@ def briefing() -> dict:
     return out
 
 
+def dq_breakdown() -> dict:
+    """Open data-quality issues by owner and issue type (warning and high severity: the 1,260 projects that carry
+    needs_review). One project can carry several issues, so a team's total counts distinct projects."""
+    sql = f"""WITH i AS (
+  SELECT record_key, rule_id, rule_name, severity, owner FROM {T('validated_projects_dq_issues')}
+  UNION ALL
+  SELECT record_key, rule_id, rule_name, severity, owner FROM {T('validated_monitoring_dq_issues')}
+)
+SELECT owner, rule_id, rule_name, severity, count(DISTINCT record_key) AS projects,
+       sum(count(DISTINCT record_key)) OVER (PARTITION BY owner) AS owner_issue_rows
+FROM i WHERE severity <> 'info'
+GROUP BY owner, rule_id, rule_name, severity
+ORDER BY owner, projects DESC"""
+    rows = q(sql)
+    totals = {r["owner"]: r["projects"] for r in q(f"""WITH i AS (
+  SELECT record_key, severity, owner FROM {T('validated_projects_dq_issues')}
+  UNION ALL SELECT record_key, severity, owner FROM {T('validated_monitoring_dq_issues')})
+SELECT owner, count(DISTINCT record_key) AS projects FROM i WHERE severity <> 'info' GROUP BY owner""")}
+    owners = []
+    for o, n in sorted(totals.items(), key=lambda kv: -kv[1]):
+        owners.append({"owner": o, "projects": int(n),
+                       "issues": [{k: r[k] for k in ("rule_id", "rule_name", "severity", "projects")} for r in rows if r["owner"] == o]})
+    total = int(q(f"SELECT count(*) AS n FROM {T('certified_investment_portfolio')}")[0]["n"])
+    return {"owners": owners, "portfolio_projects": total, "sql": sql}
+
+
 def _briefing() -> dict:
     """Everything the Board briefing shows, fetched in parallel. The downside scenarios and the allocation view use the
     agents' deterministic engines (no language model), so the briefing gives the same figures every time."""
@@ -489,6 +515,7 @@ def _briefing() -> dict:
             f"SELECT client_name, client_id, priority, triggered_by, suggested_action, exposure_affected_musd "
             f"FROM {T('certified_early_warning')} WHERE priority = 'HIGH' ORDER BY exposure_affected_musd DESC LIMIT 5"),
         "review_owners": _review_owners,
+        "dq_breakdown": lambda: _safe(dq_breakdown),
         "assumptions": lambda: try_q(f"SELECT assumption_id, topic, statement FROM {T('ref_assumptions')} ORDER BY assumption_id"),
         "strengths": lambda: _safe(projects.strengths),
         "allocation": lambda: _safe(allocation.allocation_summary),

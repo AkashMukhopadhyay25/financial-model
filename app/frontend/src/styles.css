@@ -710,3 +710,34 @@ select.btn.select-btn {
 .wnw.bad .wnw-dot { background: var(--red); }
 .wnw-go { font-size: 11px; color: var(--muted); padding-top: 2px; }
 .wnw li:hover .wnw-go { color: var(--blue); }
+
+/* Board briefing: data quality by team (shared axis, segments by issue, colour = severity) */
+.dqt { margin-top: 4px; }
+.dqt-legend { display: flex; gap: 14px; flex-wrap: wrap; align-items: center; margin-bottom: 10px; }
+.dqt-legend span { display: inline-flex; align-items: center; gap: 6px; }
+.sev { display: inline-block; width: 10px; height: 10px; border-radius: 3px; margin-right: 5px; flex: none; }
+.sev.high { background: #c9302c; }
+.sev.warning { background: #e29a12; }
+.dqt-row { display: grid; grid-template-columns: 220px 1fr; gap: 16px; padding: 10px 0; border-top: 1px solid var(--line-2); }
+.dqt-team b { display: block; font-size: 13.5px; font-weight: 600; }
+.dqt-team small { display: block; font-size: 12px; color: var(--muted); margin-top: 2px; }
+.dqt-plot { position: relative; min-width: 0; }
+.dqt-grid { position: absolute; left: 0; right: 0; top: 0; height: 18px; pointer-events: none; }
+.dqt-grid i { position: absolute; top: -4px; bottom: -4px; border-left: 1px dashed var(--line); }
+.dqt-bar { position: relative; display: flex; gap: 2px; height: 18px; }
+.dqt-seg { height: 100%; min-width: 3px; cursor: default; }
+.dqt-seg:first-child { border-radius: 4px 0 0 4px; }
+.dqt-seg:last-child { border-radius: 0 4px 4px 0; }
+.dqt-seg:only-child { border-radius: 4px; }
+.dqt-seg.high { background: #c9302c; }
+.dqt-seg.warning { background: #e29a12; }
+.dqt-seg:hover { filter: brightness(1.08); outline: 2px solid rgba(20, 30, 70, .25); outline-offset: 1px; }
+.dqt-labels { display: flex; flex-wrap: wrap; gap: 4px 14px; margin-top: 6px; font-size: 12px; color: var(--ink-2); }
+.dqt-labels span { display: inline-flex; align-items: center; }
+.dqt-labels b { margin-left: 4px; color: var(--ink); }
+.dqt-axis { display: grid; grid-template-columns: 220px 1fr; gap: 16px; border-top: 1px solid var(--line); padding-top: 4px; }
+.dqt-axis > div { position: relative; height: 14px; font-size: 11px; color: var(--muted); }
+.dqt-axis > div span { position: absolute; transform: translateX(-50%); }
+.dqt-axis > div span:first-child { transform: none; }
+.dqt-axis > div span:last-child { transform: translateX(-100%); }
+@media (max-width: 760px) { .dqt-row, .dqt-axis { grid-template-columns: 1fr; } .dqt-axis > span { display: none; } }

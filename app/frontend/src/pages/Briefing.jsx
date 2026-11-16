@@ -1,4 +1,5 @@
 import React, { useState } from "react";
+import { createPortal } from "react-dom";
 import { flagReview, invalidate } from "../api.js";
 import { useApp } from "../App.jsx";
 import { date, dateTime, int, musd, musdFull, pct } from "../format.js";
@@ -179,15 +180,17 @@ function Brief({ d, nav }) {
       </Section>
 
       <Section n="8" title="Data quality" sub={`${int(k.projects_needing_review)} projects flagged (${int(k.projects_high_severity)} high) · included in every figure · routed to owners`}>
-        <div className="brief-owners">
-          {d.review_owners.map((o) => (
-            <div key={o.owner} className="brief-owner">
-              <span>{o.owner}</span>
-              <div className="brief-owner-bar"><div style={{ width: `${(100 * o.projects) / maxOwner}%` }} /></div>
-              <b>{int(o.projects)}</b>
-            </div>
-          ))}
-        </div>
+        {d.dq_breakdown && !d.dq_breakdown.error ? <DqTeams b={d.dq_breakdown} /> : (
+          <div className="brief-owners">
+            {d.review_owners.map((o) => (
+              <div key={o.owner} className="brief-owner">
+                <span>{o.owner}</span>
+                <div className="brief-owner-bar"><div style={{ width: `${(100 * o.projects) / maxOwner}%` }} /></div>
+                <b>{int(o.projects)}</b>
+              </div>
+            ))}
+          </div>
+        )}
         <details className="mt">
           <summary style={{ cursor: "pointer", fontWeight: 600, fontSize: 13 }}>Assumptions applied ({d.assumptions.length})</summary>
           <ul>
@@ -199,6 +202,64 @@ function Brief({ d, nav }) {
       </Section>
 
       <ReviewQueue q={d.review_queue} />
+    </div>
+  );
+}
+
+// ---------------------------------------------------------------- data quality by team: one shared axis, segments by issue
+const ISSUE_LABEL = {
+  outdated_record: "Outdated record", review_overdue: "Monitoring review overdue", board_date_passed: "Board date passed",
+  signed_before_approval: "Signed before approval", invested_without_signing: "Disbursed without signing",
+  over_allocated: "Products exceed approved amount", under_allocated: "Products below approved amount",
+  pending_without_board_date: "No projected Board date", region_standardized: "Region restated", description_missing: "No description",
+};
+const issueLabel = (r) => ISSUE_LABEL[r] || r.replace(/_/g, " ").replace(/^./, (c) => c.toUpperCase());
+
+function DqTeams({ b }) {
+  const [tip, setTip] = useState(null);
+  const max = Math.max(1, ...b.owners.map((o) => o.projects));
+  const axis = Math.ceil(max / 100) * 100;
+  const ticks = [0, 0.25, 0.5, 0.75, 1].map((f) => Math.round(axis * f));
+  return (
+    <div className="dqt" onMouseLeave={() => setTip(null)}>
+      <div className="dqt-legend small">
+        <span><i className="sev high" /> High severity</span>
+        <span><i className="sev warning" /> Warning</span>
+        <span className="muted">Bars: projects with an open issue, of {int(b.portfolio_projects)} in the portfolio · one project can have several issues</span>
+      </div>
+      {b.owners.map((o) => (
+        <div key={o.owner} className="dqt-row">
+          <div className="dqt-team">
+            <b>{o.owner}</b>
+            <small>{int(o.projects)} projects · {pct(o.projects / b.portfolio_projects, 1)} of portfolio</small>
+          </div>
+          <div className="dqt-plot">
+            <div className="dqt-grid">{ticks.slice(1).map((t) => <i key={t} style={{ left: `${(100 * t) / axis}%` }} />)}</div>
+            <div className="dqt-bar">
+              {o.issues.map((it) => (
+                <span key={it.rule_id} className={`dqt-seg ${it.severity}`} style={{ width: `${(100 * it.projects) / axis}%` }}
+                      onMouseMove={(e) => setTip({ x: e.clientX, y: e.clientY, it, o })} onMouseLeave={() => setTip(null)} />
+              ))}
+            </div>
+            <div className="dqt-labels">
+              {o.issues.map((it) => (
+                <span key={it.rule_id}><i className={`sev ${it.severity}`} />{issueLabel(it.rule_name)} <b>{int(it.projects)}</b></span>
+              ))}
+            </div>
+          </div>
+        </div>
+      ))}
+      <div className="dqt-axis">
+        <span />
+        <div>{ticks.map((t) => <span key={t} style={{ left: `${(100 * t) / axis}%` }}>{int(t)}</span>)}</div>
+      </div>
+      {tip && createPortal(
+        <span className="dq-pop" style={{ left: Math.min(window.innerWidth - 300, tip.x + 12), top: tip.y + 14 }} role="tooltip">
+          <span className="dq-pop-title">{tip.o.owner} · {tip.it.severity === "high" ? "high severity" : "warning"}</span>
+          <span className="dq-pop-item">{issueLabel(tip.it.rule_name)}: {int(tip.it.projects)} projects ({pct(tip.it.projects / b.portfolio_projects, 1)} of the portfolio). Included in every figure; the team fixes it at source.</span>
+        </span>,
+        document.body,
+      )}
     </div>
   );
 }
