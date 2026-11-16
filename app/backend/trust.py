@@ -18,25 +18,62 @@ PORTFOLIO = "certified_investment_portfolio"
 
 
 def scope_where(sql: str):
-    """(where_sql or 'TRUE', None) if the query reads only the certified portfolio table; else (None, reason)."""
+    """(where_sql or 'TRUE', None) if the projects the query reads can be stated as one WHERE on the certified
+    portfolio table; else (None, reason).
+
+    Genie usually writes CTEs, derived tables or PIVOTs. Each SELECT that reads the portfolio table directly
+    contributes its own WHERE; the scope is their OR (a branch with no WHERE reads every project). Outer layers
+    (CTE consumers, PIVOT, window functions, ORDER BY / LIMIT) reshape those rows but read no other projects.
+    This is the same definition as answers_register.scope_where for the certified answers."""
     try:
         tree = sqlglot.parse_one(sql, read="databricks")
     except Exception:
         return None, "The SQL could not be parsed for an automatic data-quality check."
-    tables = {t.name.lower() for t in tree.find_all(exp.Table)}
-    if tables != {PORTFOLIO}:
-        return None, f"The SQL reads {', '.join(sorted(tables)) or 'no table'}; the automatic check covers only {PORTFOLIO}."
-    # Scalar subqueries inside WHERE (e.g. the reporting date) are fine: the count query reuses the WHERE as is.
-    # Joins, CTEs and derived tables in FROM change which rows are in scope, so they are not analyzed.
-    def arg(name):  # sqlglot renamed some keys ("from" -> "from_", "with" -> "with_")
-        return tree.args.get(name) or tree.args.get(name + "_")
+    ctes = {c.alias_or_name.lower() for c in tree.find_all(exp.CTE)}
+    reads = [t for t in tree.find_all(exp.Table) if t.name.lower() not in ctes]
+    other = sorted({t.name.lower() for t in reads} - {PORTFOLIO})
+    if other:
+        return None, f"The SQL also reads {', '.join(other)}; the automatic check covers only {PORTFOLIO}."
+    if not reads:
+        return None, "The SQL reads no table, so there are no projects to check."
 
-    from_ = arg("from") if isinstance(tree, exp.Select) else None
-    if not isinstance(tree, exp.Select) or arg("joins") or arg("with") \
-            or (from_ is not None and from_.find(exp.Subquery)):
-        return None, "The SQL uses joins, CTEs or derived tables; the automatic data-quality check needs a single-table query."
-    where = arg("where")
-    return (where.this.sql("databricks") if where else "TRUE"), None
+    wheres = []
+    for t in reads:
+        sel = t.parent.parent if isinstance(t.parent, exp.From) else None
+        if not isinstance(sel, exp.Select) or (sel.args.get("joins") or sel.args.get("joins_")):
+            # the table is joined (or used some other way): a join can change which rows are in scope
+            if _in_condition(t):
+                continue  # e.g. WHERE as_of_date = (SELECT max(as_of_date) FROM portfolio)
+            return None, "The SQL joins the portfolio table, so its scope cannot be checked automatically."
+        if _in_condition(sel):
+            continue
+        w = sel.args.get("where")
+        if w is None:
+            return "TRUE", None
+        cond = w.this.copy()
+        alias = (t.alias_or_name or "").lower()
+        for col in cond.find_all(exp.Column):
+            if col.table and col.table.lower() in (alias, PORTFOLIO):
+                col.set("table", None)
+                col.set("db", None)
+                col.set("catalog", None)
+        wheres.append(cond.sql("databricks"))
+    wheres = list(dict.fromkeys(wheres))
+    if not wheres:
+        return None, "The SQL's scope could not be determined automatically."
+    if len(wheres) == 1:
+        return wheres[0], None
+    return " OR ".join(f"({w})" for w in wheres), None
+
+
+def _in_condition(node) -> bool:
+    """True when node sits inside a WHERE or HAVING (e.g. a scalar subquery for the reporting date)."""
+    p = node.parent
+    while p is not None:
+        if isinstance(p, (exp.Where, exp.Having)):
+            return True
+        p = p.parent
+    return False
 
 
 def assess(sql: str, has_rows: bool, db, table_fqn: str) -> dict:
