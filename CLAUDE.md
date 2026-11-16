@@ -74,6 +74,15 @@ This repo combines **two codebases** that are being merged. **Rule: everything o
   expired key). Not deployed, because that would duplicate the two jobs above.
 - The app was found STOPPED on 2026-11-16 and was started before deploying.
 
+**Single workspace copy (2026-11-16, user's decision): `/Workspace/Shared/Cloudstruck`.**
+- The app (`app/`), both cloudstruck jobs and all docs run from it; the monthly pipeline is in its `monthly/`
+  subfolder. That is a copy of Ritvik's `financial-model-monthly` without `.git`, data or the old prototype;
+  `run_monthly_pipeline` (824387683291203) points there, with config_path `…/monthly/config/pipeline_config_monthly_dev.yml`.
+- The app's service principal has Can read on the folder. Deploy the app with source path `/Workspace/Shared/Cloudstruck/app`.
+- The old copies are **not deleted yet** (user's choice): `/Users/pruthvi.doshi@…/financial-model` and
+  `financial-model-git`; Ritvik's `financial-model`, `-app`, `-run`, `-monthly` and `ifc-cfo-copilot-new`. Export a
+  backup before deleting; Ritvik must agree for his.
+
 ## The case
 - Competition: Accenture/BTA "Forward Deployed: Agentic Innovation Challenge". Client: IFC CFO Office. Platform: **Databricks** (Unity Catalog, Genie, Databricks Apps). Submission deadline Sun Nov 15, 11:59 p.m. EST (see `IMPLEMENTATION_STRATEGY.md`).
 - Client pain: two departments showed the Board different figures for the same measure. They want **consistent figures regardless of phrasing, traceability, and flags for human review**. The brief: "where a question or the data is ambiguous, state the assumptions and apply them consistently."

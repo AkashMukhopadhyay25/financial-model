@@ -9,7 +9,7 @@
 # reads them); grant the app's service principal access as in app/README.md.
 #
 # Note (2026-11-16): the job "cloudstruck_full_pipeline" (id 1001364789587332) in workspace dbc-ba139e62-9140 was created
-# with the same tasks, pointing at the notebooks already in /Workspace/Users/<owner>/financial-model (the versions that
+# with the same tasks, pointing at the notebooks already in /Workspace/Shared/Cloudstruck (the versions that
 # passed phases 1-7). master also contains the monthly-history versions of the stage notebooks, which expect deliveries
 # in landing/incoming/YYYY-MM/; deploy them to the main schema only after the landing folder is organised by month.
 

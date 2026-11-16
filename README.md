@@ -22,7 +22,7 @@ on first:
    - Wait until the status reads **Running**. This takes 2–3 minutes: Databricks starts the compute and then
      redeploys the app automatically.
    - If, after starting, the page says the app has no active deployment, click **Deploy**. The source code path is
-     `/Workspace/Users/pruthvi.doshi@rotman.utoronto.ca/financial-model/app`. Wait for **Running** again.
+     `/Workspace/Shared/Cloudstruck/app`. Wait for **Running** again.
 2. **Wake the SQL warehouse (only if pages show an error).** The app reads its data through **Serverless Starter
    Warehouse**, which stops after 10 idle minutes. It normally restarts by itself on the first page load (the first
    load can take 10–20 seconds). If a page still shows "Could not load data", open left sidebar → **SQL Warehouses**
@@ -105,7 +105,7 @@ also shown in §2 below.
 | Business case and adoption plan | `docs/business_case.md` |
 | Request trace, failure scenarios, design choices, pilot to scale | `docs/architecture_defense.md` |
 
-The workspace copy of this repository is at `/Workspace/Users/pruthvi.doshi@rotman.utoronto.ca/financial-model`.
+The workspace copy of this repository is at `/Workspace/Shared/Cloudstruck` (the monthly pipeline is in its `monthly/` subfolder).
 
 ---
 
