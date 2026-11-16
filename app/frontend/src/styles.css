@@ -761,3 +761,8 @@ select.btn.select-btn {
 .hover-tip { position: fixed; z-index: 70; transform: translate(-50%, calc(-100% - 12px)); pointer-events: none; white-space: nowrap;
   background: var(--ink); color: #fff; font-size: 12px; font-weight: 500; padding: 5px 10px; border-radius: 8px; box-shadow: 0 8px 24px rgba(0,0,0,.18); }
 .splitbar > span, .xb-block { cursor: default; }
+
+/* Board briefing cards: more line spacing */
+.brief-rec { gap: 9px; }
+.brief-rec .small { line-height: 1.65; }
+.brief-sec > .small, .brief-sec .small.mt { line-height: 1.65; }
