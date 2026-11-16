@@ -32,8 +32,6 @@ the parent folder `/Workspace/Shared/Cloudstruck`.
 | `test_files/demo_months/` | The demo deliveries, one folder per month (2026-06 to 2026-10). October also has a corrected monitoring file, to show how a correction replaces a month. | Source of the demo data |
 | `test_files/make_demo_months` | The notebook that generated the demo months and puts them in the landing folder | Only to recreate the demo |
 | `test_files/*.csv` | Deliberately broken files (added, dropped or renamed column, empty, header only, broken quotes, reordered columns) to show that the schema gate stops bad deliveries | No; for demonstrating the gate |
-| `04_answers/ws1/` | A copy of the WS1 answers notebook that came with this folder; the real one is in the parent folder | No |
-| `tests/` | A developer check that runs the validation SQL locally on SQLite | No |
 
 ## Where the results go
 
