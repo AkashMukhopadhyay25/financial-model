@@ -140,6 +140,17 @@ function PickClient({ onPick, onDirectory }) {
 // ---------------------------------------------------------------- agent ask box (top of the page)
 // Icons: a falling chart line for the stress test, a pie chart for capital allocation.
 export function AgentIcon({ id, size = 20, color = "currentColor" }) {
+  if (id === "clients") {
+    return (
+      <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke={color} strokeWidth="1.8"
+           strokeLinecap="round" strokeLinejoin="round" aria-hidden>
+        <circle cx="9" cy="8" r="3.5" />
+        <path d="M2.5 20c.6-3.6 3.3-5.5 6.5-5.5s5.9 1.9 6.5 5.5" />
+        <path d="M16 4.6a3.5 3.5 0 0 1 0 6.8" />
+        <path d="M18 14.9c1.9.7 3.2 2.4 3.5 5.1" />
+      </svg>
+    );
+  }
   if (id === "stress") {
     return (
       <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke={color} strokeWidth="1.8"

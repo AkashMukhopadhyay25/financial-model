@@ -18,7 +18,7 @@ export const PAGES = [
   { id: "portfolio", label: "Portfolio analytics", el: Portfolio },
   { id: "risk", label: "Risk & exposure", el: Risk },
   { id: "clients", label: "Client intelligence", el: Clients, menu: [
-    { label: "Client recommendations", sub: "Directory, profiles, comparison, Board recommendation", params: { step: "board" } },
+    { label: "Client recommendations", sub: "Directory, profiles, comparison, Board recommendation", params: { step: "board" }, icon: "clients" },
     { sep: true },
     { label: "Stress-test agent", sub: "Reserve & stress test: what if credit gets worse?", params: { step: "stress" }, agent: "stress" },
     { label: "Capital allocation agent", sub: "Where should new commitments go?", params: { step: "allocation" }, agent: "allocation" },
@@ -166,7 +166,7 @@ function NavMenu({ page }) {
           {page.menu.map((m, i) => m.sep ? <hr key={i} /> : (
             <button key={i} role="menuitem" className={route.page === page.id && route.params.step === m.params.step ? "active" : ""}
                     onClick={() => go(m.params)}>
-              {m.agent ? <AgentIcon id={m.agent} size={16} color="var(--blue)" /> : <span style={{ width: 16 }} />}
+              {m.agent || m.icon ? <AgentIcon id={m.agent || m.icon} size={16} color="var(--blue)" /> : <span style={{ width: 16 }} />}
               <span><div>{m.label}</div><div className="sub">{m.sub}</div></span>
             </button>
           ))}
