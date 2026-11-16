@@ -4,7 +4,7 @@ import { flagReview, get, post } from "../api.js";
 import { useApp } from "../App.jsx";
 import { RichText } from "../Genie.jsx";
 import { dateTime, int, musd, pct, title } from "../format.js";
-import { DataTable, Drawer, ErrorBox, Info, SqlBlock, Tag, Toast, useApi } from "../ui.jsx";
+import { DataTable, Drawer, ErrorBox, Flow, Info, SqlBlock, Tag, Toast, useApi } from "../ui.jsx";
 
 // Reserve & Stress-Test Agent: the team's own agent alongside Genie. The model picks the scenario and explains it;
 // deterministic SQL on the certified tables computes every figure, and the app checks every figure in the answer.
@@ -106,7 +106,7 @@ export default function Stress({ embedded = false, pending = null }) {
       {[...turns].reverse().map((t, i) => (
         <Turn key={turns.length - i} question={t.question} r={t.result} latest={i === 0} />
       ))}
-      {!turns.length && !busy && <HowItWorks tools={info.data?.tools} />}
+      {!turns.length && !busy && <HowItWorks />}
       {historyOpen && <PastRuns onClose={() => setHistoryOpen(false)} onOpen={(r) => { setTurns((ts) => [...ts, { question: r.question, result: r }]); setHistoryOpen(false); }} />}
     </>
   );
@@ -298,28 +298,14 @@ export function PastRuns({ onClose, onOpen, agent = "stress-test", label = "stre
   );
 }
 
-function HowItWorks({ tools }) {
+function HowItWorks() {
   return (
-    <div className="grid g3 mt">
-      <div className="card">
-        <h3>1 · You ask a what-if</h3>
-        <p className="small muted">"What if Watchlist projects in Africa default and clients draw half their commitments?"</p>
-      </div>
-      <div className="card">
-        <h3>2 · The agent runs governed scenarios</h3>
-        <p className="small muted">
-          It translates the question into scenario parameters and calls {int((tools || []).length || 3)} tools
-          ({(tools || []).map((t) => t.name).join(", ") || "run_stress_scenario, get_risk_baseline, get_assumptions"}).
-          Certified SQL computes every number, so the same scenario always gives the same figures.
-        </p>
-      </div>
-      <div className="card">
-        <h3>3 · You get a reserve view you can trust</h3>
-        <p className="small muted">
-          Baseline vs stressed ECL ({pct(0.6)} loss on defaulted exposure, A11), what drives it, the stated assumptions and a
-          trust level. Every figure is checked against the tool results; send the result to the Credit Risk Committee in one click.
-        </p>
-      </div>
-    </div>
+    <Flow title="How the stress-test agent works" steps={[
+      { who: "You", title: "Ask a what-if", text: "e.g. \"What if Watchlist projects in Africa default and clients draw half their commitments?\"" },
+      { who: "Agent", title: "Turn it into a scenario", text: "The agent picks which projects default (Watchlist, risk rating 5-6, a region, sector or client), the loss rate and any drawdown of undisbursed commitments." },
+      { who: "Code", title: "Compute with certified SQL", text: "The stress engine runs the scenario on the certified portfolio: baseline vs stressed expected credit loss (60% loss on defaulted exposure, A11), what drives it, the projects behind it." },
+      { who: "Agent", title: "Explain and check", text: "The agent explains the result with the stated assumptions. The app checks every figure against the SQL and sets a trust level (Green / Amber / Red)." },
+      { who: "People", title: "The Committee decides", text: "One click sends the result to the Credit Risk Committee's review queue, where the decision is recorded." },
+    ]} />
   );
 }

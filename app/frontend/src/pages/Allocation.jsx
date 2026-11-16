@@ -4,7 +4,7 @@ import { flagReview, post } from "../api.js";
 import { useApp } from "../App.jsx";
 import { RichText } from "../Genie.jsx";
 import { int, musd, pct, title } from "../format.js";
-import { DataTable, ErrorBox, Info, Tag, Toast, useApi } from "../ui.jsx";
+import { DataTable, ErrorBox, Flow, Info, Tag, Toast, useApi } from "../ui.jsx";
 import { LEVEL, PastRuns, Steps } from "./Stress.jsx";
 
 // Capital Allocation Agent: the second of the team's own agents (same core as the stress test).
@@ -269,28 +269,12 @@ function Ranking({ title: t, dim, rows }) {
 
 function Intro() {
   return (
-    <div className="grid g3 mt">
-      <div className="card">
-        <h3>1 · Our track record (A23)</h3>
-        <p className="small muted">
-          Code ranks industries and regions on four credit metrics from the certified portfolio: distressed share, ECL rate,
-          losses on closed projects and risk rating. It flags any region holding more than 25% of current exposure.
-        </p>
-      </div>
-      <div className="card">
-        <h3>2 · The market view (A24)</h3>
-        <p className="small muted">
-          Curated outlooks from the IMF, World Bank, IEA, GSMA, WTO and FAO, each cited and dated. They sit beside the
-          ranking, never blended into it, so you can see where the data and the market agree.
-        </p>
-      </div>
-      <div className="card">
-        <h3>3 · A recommendation you can check</h3>
-        <p className="small muted">
-          The agent explains the view, tests the four-client recommendation against it and cites every source. The app checks
-          every figure and blocks advice that would deepen a concentration. One click sends it to the Credit Risk Committee.
-        </p>
-      </div>
-    </div>
+    <Flow title="How the capital allocation agent works" steps={[
+      { who: "You", title: "Ask where money should go", text: "e.g. \"Which industry should we prioritise, and does it change our four-client recommendation?\"" },
+      { who: "Code", title: "Rank our track record (A23)", text: "Industries and regions are ranked on four credit measures from the certified portfolio: distressed share, expected-loss rate, losses on closed projects and risk rating. Any region above 25% of current exposure is flagged." },
+      { who: "Research", title: "Add the market view (A24)", text: "Eight curated outlooks (IMF, World Bank, IEA, GSMA, WTO, FAO), each cited and dated, are set beside the ranking, never blended into it." },
+      { who: "Agent", title: "Explain and test the clients", text: "The agent explains the result, cites every source and checks the four-client recommendation against it. The app verifies every figure and blocks advice that would deepen a concentration." },
+      { who: "People", title: "The Committee decides", text: "One click sends the view to the Credit Risk Committee's review queue, where the decision is recorded." },
+    ]} />
   );
 }

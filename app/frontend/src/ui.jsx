@@ -622,3 +622,29 @@ export function CheckChip({ ok, name, detail }) {
     </span>
   );
 }
+
+// How an agent works, as a left-to-right flowchart (stacks vertically on narrow screens).
+// steps: [{ who: "You" | "Code" | "Research" | "Agent" | "People", title, text }]
+const FLOW_WHO = { You: "grey", Code: "green", Research: "teal", Agent: "amber", People: "blue" };
+export function Flow({ title: t, steps }) {
+  return (
+    <div className="card mt flow-card">
+      {t && <div className="eyebrow blue" style={{ marginTop: 0 }}>{t}</div>}
+      <ol className="flow">
+        {steps.map((s, i) => (
+          <li key={s.title} className="flow-step">
+            <div className="flow-node">
+              <div className="flow-top">
+                <span className="flow-n">{i + 1}</span>
+                <Tag color={FLOW_WHO[s.who] || "grey"}>{s.who}</Tag>
+              </div>
+              <div className="flow-title">{s.title}</div>
+              <div className="flow-text">{s.text}</div>
+            </div>
+            {i < steps.length - 1 && <span className="flow-arrow" aria-hidden>→</span>}
+          </li>
+        ))}
+      </ol>
+    </div>
+  );
+}
