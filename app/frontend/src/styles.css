@@ -517,7 +517,7 @@ table.data th.sorted .sort-ic { opacity: 1; color: var(--blue); }
 /* recommendation card footer: one chip + round arrow */
 .client-card .card-foot { display: flex; justify-content: space-between; align-items: center; margin-top: 12px; }
 
-/* Client 360 exposure: same block layout as Risk, client colours (blue disbursed, teal undisbursed) */
+/* Client profile exposure: same block layout as Risk, client colours (blue disbursed, teal undisbursed) */
 .xb-dis { background: repeating-linear-gradient(-45deg, #2f66f6 0 6px, color-mix(in srgb, #2f66f6 78%, white) 6px 9px); color: #fff; }
 .xb-undc { background: repeating-linear-gradient(-45deg, #16a389 0 6px, color-mix(in srgb, #16a389 78%, white) 6px 9px); color: #fff; }
 .xb-legend i.xb-dis { background: #2f66f6; } .xb-legend i.xb-undc { background: #16a389; }

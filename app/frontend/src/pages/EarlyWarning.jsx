@@ -125,7 +125,7 @@ export default function EarlyWarning() {
                         <svg width="14" height="14" viewBox="0 0 14 14" aria-hidden><path d="M2.5 7.3l2.8 2.8L11.5 4" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" /></svg>
                       </button>
                       <button className="link small" onClick={() => nav("risk", { client: a.client_id })}>Projects</button>
-                      <button className="row-go" aria-label={`Open Client 360° for ${a.client_name}`} title={`Open Client 360° for ${a.client_name}`}
+                      <button className="row-go" aria-label={`Open the client profile for ${a.client_name}`} title={`Open the client profile for ${a.client_name}`}
                               onClick={() => nav("clients", { step: "profile", client: a.client_id })}>
                         <svg width="14" height="14" viewBox="0 0 14 14" aria-hidden><path d="M3 7h8M7.5 3.5L11 7l-3.5 3.5" fill="none" stroke="currentColor" strokeWidth="1.7" strokeLinecap="round" strokeLinejoin="round" /></svg>
                       </button>

@@ -52,7 +52,7 @@ export default function Clients({ params }) {
 
   return (
     <>
-      <div className="eyebrow green">WS3 · Client 360°</div>
+      <div className="eyebrow green">WS3 · Decision support</div>
       <div className="page-head">
         <div>
           <h1 className="title">Client intelligence</h1>
@@ -191,7 +191,7 @@ function BoardRecommendation({ selected, onSelect, onCompare }) {
   const recs = data?.recommendations || [];
   const openProfile = (id) => {
     onSelect(id);
-    setTimeout(() => document.getElementById("client-360")?.scrollIntoView({ behavior: "smooth", block: "start" }), 60);
+    setTimeout(() => document.getElementById("client-profile")?.scrollIntoView({ behavior: "smooth", block: "start" }), 60);
   };
   useEffect(() => {
     if (!selected && recs.length) onSelect(recs[0].client_id);
@@ -215,7 +215,7 @@ function BoardRecommendation({ selected, onSelect, onCompare }) {
               ]} />
               <div className="card-foot">
                 <Stats items={[{ label: "Active", value: r.n_active }]} />
-                <button className="row-go" aria-label={`Open Client 360° for ${r.client_name}`} title={`Open Client 360° for ${r.client_name}`}
+                <button className="row-go" aria-label={`Open the client profile for ${r.client_name}`} title={`Open the client profile for ${r.client_name}`}
                         onClick={(e) => { e.stopPropagation(); openProfile(r.client_id); }}>
                   <svg width="14" height="14" viewBox="0 0 14 14" aria-hidden><path d="M3 7h8M7.5 3.5L11 7l-3.5 3.5" fill="none" stroke="currentColor" strokeWidth="1.7" strokeLinecap="round" strokeLinejoin="round" /></svg>
                 </button>
@@ -225,7 +225,7 @@ function BoardRecommendation({ selected, onSelect, onCompare }) {
         })}
       </div>
       <div className="grid g-main mt">
-        <div id="client-360" style={{ scrollMarginTop: 16 }}>{selected && <Profile id={selected} onCompare={() => onCompare(recs.map((r) => r.client_id))} />}</div>
+        <div id="client-profile" style={{ scrollMarginTop: 16 }}>{selected && <Profile id={selected} onCompare={() => onCompare(recs.map((r) => r.client_id))} />}</div>
         <div className="side-first">
           <HumanReview clientId={selected} name={recs.find((r) => r.client_id === selected)?.client_name} />
         </div>
@@ -269,7 +269,7 @@ function HumanReview({ clientId, name }) {
   );
 }
 
-// ---------------------------------------------------------------- Client 360
+// ---------------------------------------------------------------- Client profile
 function Profile({ id, full, onCompare }) {
   const { nav } = useApp();
   const { data, error, loading } = useApi(`/api/clients/${encodeURIComponent(id)}`);
@@ -285,7 +285,7 @@ function Profile({ id, full, onCompare }) {
       <div className="card">
         <div className="card-head">
           <div>
-            <h3 style={{ fontSize: 22, fontWeight: 500 }}>Client 360° · {s.client_name}</h3>
+            <h3 style={{ fontSize: 22, fontWeight: 500 }}>Client profile · {s.client_name}</h3>
             <div className="card-sub">{s.client_id} · {s.primary_industry} · {s.primary_region} <Info align="left" text={s.band_evidence} /></div>
           </div>
           <Tag color={band.color} caps>{band.label}</Tag>
