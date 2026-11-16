@@ -54,7 +54,7 @@ Run in this order (Workspace → your Git folder → open the notebook → **Run
 3. **Settings**: SQL warehouse = *Serverless Starter Warehouse*. Title: `IFC CFO Portfolio`.
 4. **Instructions**: paste the business rules (count projects by `project_url`; totals use `total_approved_musd`; no status
    filter unless asked, A03; "last N years" anchored on `reporting_date`; North Africa = filter by country).
-5. Copy the space ID from the URL (`.../genie/rooms/<space-id>`) into `serving.genie_space_id` in `config/pipeline_config.yml`.
+5. Copy the space ID from the URL (`.../genie/rooms/<space-id>`) into `serving.genie_space_id` in `00_setup/config/pipeline_config.yml`.
 
 ## 3. Deploy the app
 
@@ -82,22 +82,22 @@ GRANT CREATE TABLE, MODIFY ON SCHEMA workspace.portfolio TO `<app-service-princi
 ## Local development (no Databricks)
 
 ```bash
-pip install -r app/requirements.txt duckdb pandas pyyaml
+pip install -r 03_demo/app/requirements.txt duckdb pandas pyyaml
 ```
 
 ```bash
-uvicorn app.backend.main:app --port 8000
+uvicorn app.backend.main:app --port 8000 --app-dir 03_demo
 ```
 
-Run it from the repo root and open http://localhost:8000. The first start builds `app/.preview/preview.duckdb` from
+Run it from the repo root and open http://localhost:8000. The first start builds `03_demo/app/.preview/preview.duckdb` from
 `data/` by running the real pipeline stages 1–3 locally, the same scorecard/early-warning SQL (`00_setup/portfolio_sql.py`)
 and the WS2/WS3 rules. Preview figures match the certified ones (WS2 and WS3 checked), but there are no text attributes or
-certified WS1 SQL, and Genie is off. Delete `app/.preview/` to rebuild.
+certified WS1 SQL, and Genie is off. Delete `03_demo/app/.preview/` to rebuild.
 
 To change the frontend:
 
 ```bash
-cd app/frontend && npm install && npm run dev
+cd 03_demo/app/frontend && npm install && npm run dev
 ```
 
 `npm run dev` serves on http://localhost:5173 and forwards `/api` to port 8000. Before committing, run `npm run build`
@@ -152,7 +152,7 @@ where should it be careful, and does that change the four-client recommendation?
 
     Rank 1 is best and the overall rank is the average of the four. A region above 25% of current exposure is flagged
     as concentrated.
-  - **The market (A24):** `ref_market_outlook`, built from `config/market_outlook.yml`. It holds eight curated sources
+  - **The market (A24):** `ref_market_outlook`, built from `00_setup/config/market_outlook.yml`. It holds eight curated sources
     (IMF, World Bank, IEA, GSMA, WTO, FAO), each with publisher, title, date, URL and stance. There is no live web
     access: every market claim is cited [S#] and dated.
 - **The decision rule is code, not the model:** `allocation_summary`.
@@ -174,5 +174,5 @@ where should it be careful, and does that change the four-client recommendation?
 - **API:** `GET /api/agents/capital-allocation`, `POST /api/agents/capital-allocation/ask`,
   `GET /api/agents/capital-allocation/runs`.
 - **Pipeline:** `01_data/00_reference` builds A23, A24 and `ref_market_outlook`. On 2026-11-16 they were loaded directly
-  with the same code. To add research, edit `config/market_outlook.yml` and rerun `00_reference`.
+  with the same code. To add research, edit `00_setup/config/market_outlook.yml` and rerun `00_reference`.
 

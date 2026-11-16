@@ -28,7 +28,7 @@ def ask(question: str, conversation_id: str = None) -> dict:
     if s.data_mode == "local" or not s.genie_space_id:
         why = ("Local preview: Genie is available only in the deployed app."
                if s.data_mode == "local" else
-               "No Genie space is configured. Add the 'genie-space' resource to the app (see app/README.md).")
+               "No Genie space is configured. Add the 'genie-space' resource to the app (see 03_demo/app/README.md).")
         return {**base, "available": False, "status": "UNAVAILABLE", "text": why, "sql": None, "columns": [],
                 "rows": [], "suggested_questions": [],
                 "trust": {"level": "HUMAN_REVIEW_REQUIRED", "color": "red", "counts": None,

@@ -2,10 +2,10 @@
 Cloudstruck (IFC CFO Office portfolio intelligence): FastAPI backend for the Databricks App.
 
   /api/*       JSON for the React frontend (every response carries its SQL evidence)
-  /            the built React app (app/frontend/dist)
+  /            the built React app (03_demo/app/frontend/dist)
 
 Run locally (DuckDB preview built from data/):
-    uvicorn app.backend.main:app --reload            # from the repo root
+    uvicorn app.backend.main:app --reload            # from the 03_demo folder
 """
 import logging
 from pathlib import Path

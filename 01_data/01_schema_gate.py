@@ -45,7 +45,7 @@ from pathlib import Path
 
 
 def _repo_root():
-    """Folder holding config/ and 00_setup/. Tries this file, the working directory, then the notebook path."""
+    """Folder holding 00_setup/ (which holds config/ and contracts/). Tries this file, the working directory, then the notebook path."""
     starts = []
     if "__file__" in globals():
         starts.append(Path(__file__).resolve().parent)
@@ -74,7 +74,7 @@ def _mirror_repo():
     ws_root = ws_root.rsplit("/", 2)[0]          # notebooks sit one folder below the repo root
     local = Path("/tmp/ifc_repo_mirror")
     w = WorkspaceClient()
-    for sub in ["00_setup", "config", "contracts", "data"]:
+    for sub in ["00_setup", "data"]:  # config/ and contracts/ live inside 00_setup/
         for obj in w.workspace.list(f"{ws_root}/{sub}", recursive=True):
             if obj.object_type != ObjectType.FILE or obj.path.lower().endswith((".pdf", ".xlsx")):
                 continue

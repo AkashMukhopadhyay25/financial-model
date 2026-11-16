@@ -1,7 +1,7 @@
 """
 App settings. Order of precedence for each value:
   1. environment variables set by app.yaml (IFC_CATALOG, IFC_SCHEMA, IFC_WAREHOUSE_ID, IFC_GENIE_SPACE_ID);
-  2. config/pipeline_config.yml, when the app runs from the repo (local development, or deployed from the repo root).
+  2. 00_setup/config/pipeline_config.yml, when the app runs from the repo (local development, or deployed from the repo root).
 
 IFC_DATA_MODE = "databricks" (default when a warehouse ID is known) or "local" (DuckDB preview built from data/).
 """
@@ -11,7 +11,7 @@ from functools import lru_cache
 from pathlib import Path
 
 APP_DIR = Path(__file__).resolve().parents[1]
-REPO_CONFIG = APP_DIR.parent / "config" / "pipeline_config.yml"
+REPO_CONFIG = APP_DIR.parents[1] / "00_setup" / "config" / "pipeline_config.yml"
 
 
 def _repo_config() -> dict:

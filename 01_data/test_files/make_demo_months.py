@@ -26,7 +26,7 @@
 
 # COMMAND ----------
 
-# MAGIC %run ../00_setup/00_config
+# MAGIC %run ../../00_setup/00_config
 
 # COMMAND ----------
 

@@ -4,9 +4,9 @@
 #   databricks bundle deploy   -t prod
 #   databricks bundle run cloudstruck_full_pipeline -t prod      # rebuilds every table: run after a new delivery
 #
-# Settings (catalog, schema, warehouse, models, thresholds) stay in config/pipeline_config.yml; the bundle only says
-# what runs where. The SQL warehouse, Genie space and model endpoint are attached to the app as resources (app/app.yaml
-# reads them); grant the app's service principal access as in app/README.md.
+# Settings (catalog, schema, warehouse, models, thresholds) stay in 00_setup/config/pipeline_config.yml; the bundle only says
+# what runs where. The SQL warehouse, Genie space and model endpoint are attached to the app as resources (03_demo/app/app.yaml
+# reads them); grant the app's service principal access as in 03_demo/app/README.md.
 #
 # Note (2026-11-16): the job "cloudstruck_full_pipeline" (id 1001364789587332) in workspace dbc-ba139e62-9140 was created
 # with the same tasks, pointing at the notebooks already in /Workspace/Shared/Cloudstruck (the versions that
@@ -116,7 +116,7 @@ resources:
     ifc_cfo_intelligence:
       name: ifc-cfo-intelligence
       description: "Cloudstruck: portfolio intelligence for IFC's CFO Office (FastAPI + React)"
-      source_code_path: ./app
+      source_code_path: ./03_demo/app
 
 targets:
   prod:

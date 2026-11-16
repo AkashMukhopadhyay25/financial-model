@@ -10,7 +10,7 @@ engine (no language model). A phrasing passes when:
                 deterministic consistency checks pass.
 Results go to ops_agent_evaluation (one row per phrasing) and 02_agent/agent_evaluation_report.md.
 
-Run from the repo root:  PYTHONPATH=. python -m app.backend.evaluate
+Run from the repo root:  PYTHONPATH=03_demo python -m app.backend.evaluate
 """
 import json
 import re

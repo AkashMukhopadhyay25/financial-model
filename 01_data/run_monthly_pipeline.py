@@ -19,8 +19,8 @@
 # MAGIC    `06_dq_checks` (blocking failures stop here) → `07_snapshot_month`.
 # MAGIC 5. `08_trends`: KPIs per month, month-over-month assessment, project-level changes.
 # MAGIC
-# MAGIC Widgets: `config_path` (blank = `config/pipeline_config.yml`; for the dev schema use
-# MAGIC `config/pipeline_config_monthly_dev.yml`), `reprocess_months` (optional, e.g. `2026-07,2026-08`: rebuild these
+# MAGIC Widgets: `config_path` (blank = `00_setup/config/pipeline_config.yml`; for the dev schema use
+# MAGIC `00_setup/config/pipeline_config_monthly_dev.yml`), `reprocess_months` (optional, e.g. `2026-07,2026-08`: rebuild these
 # MAGIC months even if their uploads did not change, e.g. after a rule change).
 
 # COMMAND ----------

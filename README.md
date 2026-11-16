@@ -22,7 +22,7 @@ on first:
    - Wait until the status reads **Running**. This takes 2–3 minutes: Databricks starts the compute and then
      redeploys the app automatically.
    - If, after starting, the page says the app has no active deployment, click **Deploy**. The source code path is
-     `/Workspace/Shared/Cloudstruck/app`. Wait for **Running** again.
+     `/Workspace/Shared/Cloudstruck/03_demo/app`. Wait for **Running** again.
 2. **Wake the SQL warehouse (only if pages show an error).** The app reads its data through **Serverless Starter
    Warehouse**, which stops after 10 idle minutes. It normally restarts by itself on the first page load (the first
    load can take 10–20 seconds). If a page still shows "Could not load data", open left sidebar → **SQL Warehouses**
@@ -95,16 +95,16 @@ also shown in §2 below.
 |---|---|
 | Data tables | Databricks → **Catalog** → `workspace` → `portfolio`: the certified tables, `ref_assumptions` (A01–A24), `ref_market_outlook` (research sources), `answers_register`, `ws3_recommendations`, `ops_*` (data issues, review queue, agent runs) |
 | Data pipelines | `01_data/` notebooks, run in order by the job **`cloudstruck_full_pipeline`** (Jobs & Pipelines) |
-| Data contracts | `contracts/` (the expected columns, rules and owners of each source file) |
-| Settings | `config/pipeline_config.yml` (every name, threshold and model in one place) |
-| Our agents' code | `app/backend/agent_core.py` (shared core), `stress_agent.py` + `stress.py`, `allocation_agent.py` + `allocation.py` |
+| Data contracts | `00_setup/contracts/` (the expected columns, rules and owners of each source file) |
+| Settings | `00_setup/config/pipeline_config.yml` (every name, threshold and model in one place) |
+| Our agents' code | `03_demo/app/backend/agent_core.py` (shared core), `stress_agent.py` + `stress.py`, `allocation_agent.py` + `allocation.py` |
 | Agent evaluation | `02_agent/agent_evaluation_report.md` (results); job **`cloudstruck_agent_evaluation`** (rerun) |
 | Agent traces | Databricks → **Experiments** → `/Shared/cloudstruck_agents` |
 | Demo walkthrough | `03_demo/README.md` |
-| Monthly history pipeline (Monthly review page) | workspace folder `/Workspace/Shared/Cloudstruck/monthly/`: its own README explains every subfolder (copy in `docs/monthly_folder_README.md`) |
-| Requirements and success criteria | `docs/requirements_and_success.md` |
-| Business case and adoption plan | `docs/business_case.md` |
-| Request trace, failure scenarios, design choices, pilot to scale | `docs/architecture_defense.md` |
+| Monthly history pipeline (Monthly review page) | workspace folder `/Workspace/Shared/Cloudstruck/01_data/monthly/`: its own README explains every subfolder (copy in `assets/docs/monthly_folder_README.md`) |
+| Requirements and success criteria | `assets/docs/requirements_and_success.md` |
+| Business case and adoption plan | `assets/docs/business_case.md` |
+| Request trace, failure scenarios, design choices, pilot to scale | `assets/docs/architecture_defense.md` |
 
 The workspace copy of this repository is at `/Workspace/Shared/Cloudstruck` (the monthly pipeline is in its `monthly/` subfolder).
 
@@ -192,7 +192,7 @@ pay-per-token endpoints.
 
 1. **Code.** Import this repository into the workspace (Workspace → Create → Git folder), or upload it with the
    workspace import API.
-2. **Settings.** Edit `config/pipeline_config.yml`:
+2. **Settings.** Edit `00_setup/config/pipeline_config.yml`:
    - `environment.catalog` and `schema`;
    - `serving.sql_warehouse_id`;
    - `serving.agents.*` model names.
@@ -223,8 +223,8 @@ pay-per-token endpoints.
    - Genie space (`genie-space`, Can run);
    - serving endpoint `databricks-qwen3-next-80b-a3b-instruct` (`stress-agent-model`, Can query).
 
-   Then grant the app's service principal access: `app/README.md` has the exact SQL.
-7. **Check.** Open the app: the header shows the data date. Then run `PYTHONPATH=. python -m app.backend.evaluate`;
+   Then grant the app's service principal access: `03_demo/app/README.md` has the exact SQL.
+7. **Check.** Open the app: the header shows the data date. Then run `PYTHONPATH=03_demo python -m app.backend.evaluate`;
    it should report 24 of 24 consistent.
 
 ## 5. Operate
@@ -241,14 +241,14 @@ pay-per-token endpoints.
 
 ## 6. Maintain and extend
 
-- **Change a threshold or definition:** edit `config/pipeline_config.yml` (the assumption text is generated from it),
+- **Change a threshold or definition:** edit `00_setup/config/pipeline_config.yml` (the assumption text is generated from it),
   rerun `00_reference` and the affected stages. Bump the contract version if a rule changes.
 - **Add a column from a new delivery:** add it to the contract (version and changelog), then rerun the schema gate. A
   file with an unannounced column is held, by design.
-- **Add market research:** add a row to `config/market_outlook.yml` (publisher, title, date, URL, stance, finding) and
+- **Add market research:** add a row to `00_setup/config/market_outlook.yml` (publisher, title, date, URL, stance, finding) and
   rerun `00_reference`. Always check the source is the latest edition: the October 2025 WTO outlook was superseded in
   October 2026.
-- **Swap the agents' model:** change `serving.agents.*` and `app/app.yaml`, update the app resource, then rerun the
+- **Swap the agents' model:** change `serving.agents.*` and `03_demo/app/app.yaml`, update the app resource, then rerun the
   evaluation.
 - **Add an agent:** write a `*_agent.py` with instructions, tools (deterministic functions returning rows plus SQL) and
   optional prefetch and consistency checks; add an API route and a panel. The core supplies figure tracing, trust
@@ -256,7 +256,7 @@ pay-per-token endpoints.
 - **Run the app locally:**
 
   ```bash
-  uvicorn app.backend.main:app --reload
+  uvicorn app.backend.main:app --reload --app-dir 03_demo
   ```
 
   With no warehouse configured, it builds a DuckDB preview from `data/`.
@@ -282,19 +282,39 @@ pay-per-token endpoints.
 
 ## 8. Repository map
 
+The layout follows the challenge's handover template; everything else sits inside those folders.
+
 ```
-config/          pipeline_config.yml (all settings) · market_outlook.yml (A24 sources) · monthly dev config
-contracts/       data contracts for the two source files
-00_setup/        config loader, shared helpers, monthly helpers, shared portfolio SQL
-01_data/         pipeline notebooks (schema gate → certified, DQ checks, client views, monthly history, trends)
-02_agent/        agent evaluation report · Genie phrasing test sheet
-03_demo/         business-user walkthrough of the app
-docs/            requirements and success criteria · business case and adoption · architecture defense
-04_answers/      ws1, ws2, ws3 (notebooks + Board memo)
-app/             Databricks App: backend (FastAPI, agents, engines) · frontend (React; built files in frontend/dist)
-assets/          architecture diagram
-tests/           Stage 3 SQL run locally on SQLite
-test_files/      broken files for the schema-gate demo · demo months
-reference/       an earlier prototype, superseded by app/ and not used by the solution
-data/            source CSVs (not in Git)
+README.md
+00_setup/
+├── 00_config                      settings for every notebook (catalog, tables, thresholds)
+├── config/                        pipeline_config.yml (all settings) · market_outlook.yml (A24 sources) · monthly dev config
+├── contracts/                     data contracts for the two source files (columns, rules, owners)
+└── ifc_common.py · ifc_monthly.py · portfolio_sql.py   shared helpers and the shared scorecard SQL
+01_data/
+├── 01_load_and_prepare            runs the whole pipeline in order (the stage notebooks below)
+├── 01_schema_gate … 07_client_views   one notebook per stage: schema gate → raw → validate → enrich → certify → checks
+├── 07_snapshot_month · 08_trends · run_monthly_pipeline   monthly history and trends
+├── tests/                         Stage 3 SQL run locally on SQLite
+└── test_files/                    broken files for the schema-gate demo · demo months
+02_agent/
+├── 02_agent_capabilities          what Genie and the two agents can do, each tool called directly
+├── 03_build_agent                 how the agents are built (model, instructions, tools, checks) and evaluated
+├── agent_setup                    shared setup for the two notebooks above
+└── run_agent_evaluation.py · agent_evaluation_report.md · genie_phrasing_test.md
+03_demo/
+├── 04_app.py                      the app: status, link and deploy
+├── app/                           Databricks App: backend (FastAPI, agents, engines) · frontend (React; built files in frontend/dist)
+└── README.md                      business-user walkthrough and demo script
+04_answers/
+├── ws1/                           answers to the 30 questions
+├── ws2/                           answers to the two Board questions
+└── ws3/                           recommendation to the CFO
+assets/
+├── architecture_diagram_agentic_solution.png (+ .svg)
+└── docs/                          requirements and success criteria · business case and adoption · architecture defense
+databricks.yml                     Asset Bundle: the pipeline job, the evaluation job and the app
 ```
+
+Not in the workspace copy: `reference/` (an earlier prototype, not used by the solution) and `data/` (source CSVs, not
+in Git). In the workspace, the monthly-history pipeline that feeds the Monthly review page is in `01_data/monthly/`.

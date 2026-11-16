@@ -7,7 +7,7 @@ A plain Python file (not a notebook) so it can be imported on Databricks and loc
     from ifc_common import load_config, T
 
 Rules:
-- Settings live in config/pipeline_config.yml only.
+- Settings live in 00_setup/config/pipeline_config.yml only.
 - Table names come from T(cfg, "raw_projects") -> "workspace.portfolio.raw_projects".
 """
 import os
@@ -15,7 +15,7 @@ from pathlib import Path
 
 import yaml
 
-CONFIG_RELATIVE = Path("config") / "pipeline_config.yml"
+CONFIG_RELATIVE = Path("00_setup") / "config" / "pipeline_config.yml"
 
 
 def read_text(path):
@@ -33,7 +33,7 @@ def read_text(path):
 
 
 def find_repo_root(start=None):
-    """Walk up from `start` (default: current directory) to the folder that holds config/pipeline_config.yml."""
+    """Walk up from `start` (default: current directory) to the folder that holds 00_setup/config/pipeline_config.yml."""
     here = Path(start or os.getcwd()).resolve()
     for folder in [here, *here.parents]:
         if (folder / CONFIG_RELATIVE).is_file():
@@ -42,7 +42,7 @@ def find_repo_root(start=None):
 
 
 def resolve_config_path(widget_value=None, repo_root=None):
-    """Config path, in order: env var IFC_PIPELINE_CONFIG -> widget -> <repo root>/config/pipeline_config.yml."""
+    """Config path, in order: env var IFC_PIPELINE_CONFIG -> widget -> <repo root>/00_setup/config/pipeline_config.yml."""
     env = os.environ.get("IFC_PIPELINE_CONFIG")
     if env:
         return str(Path(env).resolve())
@@ -52,7 +52,7 @@ def resolve_config_path(widget_value=None, repo_root=None):
     if root and (root / CONFIG_RELATIVE).is_file():
         return str(root / CONFIG_RELATIVE)
     raise FileNotFoundError(
-        "Could not find config/pipeline_config.yml. Set the notebook widget `config_path`, "
+        "Could not find 00_setup/config/pipeline_config.yml. Set the notebook widget `config_path`, "
         "or the environment variable IFC_PIPELINE_CONFIG, to its full path.")
 
 

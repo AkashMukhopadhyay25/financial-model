@@ -1,8 +1,8 @@
 """
 Local preview database for developing the app without Databricks.
 
-Builds `app/.preview/preview.duckdb` from the source CSVs in `data/`:
-  1. runs the real pipeline stages 1-3 (schema gate -> raw -> validate) locally, with the SQLite adapter in tests/;
+Builds `03_demo/app/.preview/preview.duckdb` from the source CSVs in `data/`:
+  1. runs the real pipeline stages 1-3 (schema gate -> raw -> validate) locally, with the SQLite adapter in 01_data/tests/;
   2. builds a simplified `certified_investment_portfolio` (the columns the app reads; no text attributes) in DuckDB;
   3. builds `certified_client_scorecard` and `certified_early_warning` with the SAME SQL as 01_data/07_client_views
      (00_setup/portfolio_sql.py);
@@ -11,7 +11,7 @@ Builds `app/.preview/preview.duckdb` from the source CSVs in `data/`:
 
 Preview figures are for UI work only. The certified figures are the ones on Databricks.
 
-    python -m app.backend.local_preview          # from the repo root
+    python -m app.backend.local_preview          # from the 03_demo folder
 """
 import json
 import os
@@ -26,8 +26,9 @@ import duckdb
 import pandas as pd
 import yaml
 
-REPO = Path(__file__).resolve().parents[2]
-PREVIEW_DIR = REPO / "app" / ".preview"
+APP_DIR = Path(__file__).resolve().parents[1]   # 03_demo/app
+REPO = APP_DIR.parents[1]
+PREVIEW_DIR = APP_DIR / ".preview"
 DB_PATH = PREVIEW_DIR / "preview.duckdb"
 SOURCE_FILES = ["synthetic_ifc_projects_5000.csv", "synthetic_project_monitoring.csv"]
 PREVIEW_MONTH = "2026-06"  # reporting month of the first delivery (latest As of Date 2026-06-30)
@@ -42,11 +43,11 @@ def _run_stages_1_to_3(work: Path, cfg: dict) -> Path:
         shutil.copy(REPO / "data" / f, month_dir / f)
     cfg = json.loads(json.dumps(cfg))
     cfg["environment"]["landing_root"] = str(landing)
-    cfg["environment"]["contracts_dir"] = str(REPO / "contracts")
+    cfg["environment"]["contracts_dir"] = str(REPO / "00_setup" / "contracts")
     cfg_path = work / "config.yml"
     cfg_path.write_text(yaml.safe_dump(cfg))
     os.environ["IFC_PIPELINE_CONFIG"] = str(cfg_path)
-    for p in [REPO / "tests", REPO / "00_setup"]:
+    for p in [REPO / "01_data" / "tests", REPO / "00_setup"]:
         if str(p) not in sys.path:
             sys.path.insert(0, str(p))
     runpy.run_path(str(REPO / "01_data" / "01_schema_gate.py"), run_name="__main__")
@@ -127,7 +128,7 @@ def build(force: bool = False) -> Path:
     sys.path.insert(0, str(REPO / "00_setup"))
     from portfolio_sql import client_scorecard_sql, early_warning_sql
 
-    cfg = yaml.safe_load((REPO / "config" / "pipeline_config.yml").read_text())
+    cfg = yaml.safe_load((REPO / "00_setup" / "config" / "pipeline_config.yml").read_text())
     PREVIEW_DIR.mkdir(parents=True, exist_ok=True)
     work = PREVIEW_DIR / "work"
     shutil.rmtree(work, ignore_errors=True)
@@ -179,7 +180,7 @@ def build(force: bool = False) -> Path:
 
     # answers_register: WS1 questions (no SQL in preview), WS2 Q2 computed with its certified SQL
     now = datetime.now(timezone.utc).isoformat()
-    lib = json.loads((REPO / "app" / "backend" / "question_library.json").read_text())
+    lib = json.loads((APP_DIR / "backend" / "question_library.json").read_text())
     ws2 = con.execute(WS2_Q2_SQL).df()
     rows = [dict(workstream="WS1", question_id=q["question_id"], question=q["question"], sql_text=None,
                  assumptions="Certified SQL is available on Databricks (local preview).", assumption_ids=None,

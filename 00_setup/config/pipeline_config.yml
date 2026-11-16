@@ -1,5 +1,5 @@
 # Pipeline configuration: the ONE place for settings. No notebook hard-codes a catalog, schema,
-# threshold, endpoint or ID. Data shape rules live in contracts/, not here.
+# threshold, endpoint or ID. Data shape rules live in 00_setup/contracts/, not here.
 #
 # Notebooks find this file in this order (see 00_setup/ifc_common.py):
 #   1. environment variable IFC_PIPELINE_CONFIG (used for local tests)
@@ -76,7 +76,7 @@ serving:
   # From the Genie space URL: .../genie/rooms/<id>. Left empty on purpose: the space is rebuilt on the
   # merged tables in phase 8, then its ID goes here.
   genie_space_id: 01f1dfb2b45c126bb81182a497d5866f   # "IFC Certified Investment Portfolio" in dbc-ba139e62-9140
-  # The team's own agents in the app (app/backend/*_agent.py): Databricks-hosted open-weight models (Serving ->
+  # The team's own agents in the app (03_demo/app/backend/*_agent.py): Databricks-hosted open-weight models (Serving ->
   # Foundation Model API, pay-per-token). Swap a model here; the app also reads IFC_STRESS_AGENT_MODEL from app.yaml.
   # Chosen 2026-11-16 on the stress-test questions: qwen3-next-80b fastest (~5 s) with every figure traced;
   # gpt-oss-120b close; llama-3.3-70b slower and added a filter nobody asked for.
@@ -106,7 +106,7 @@ business:
     max_segment_share: 0.25               # concentration: a segment above this share of current exposure is flagged
     # Ranked on four credit metrics from our certified data (rank 1 = best, overall = average rank):
     # distressed share of exposure (Past Due + Watchlist), ECL / exposure (A11), share of closed disbursed exited at a loss,
-    # exposure-weighted internal risk rating. External outlooks (A24, config/market_outlook.yml) are shown beside the
+    # exposure-weighted internal risk rating. External outlooks (A24, 00_setup/config/market_outlook.yml) are shown beside the
     # ranking, never blended into it, so the data view and the market view stay separable.
   early_warning:                          # A22: emerging-risk signals per client (clients with Active projects)
     min_watchlist_projects: 2             # "Multiple Watchlist projects"

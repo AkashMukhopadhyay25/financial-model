@@ -1,7 +1,7 @@
 # Demo months: synthetic monthly deliveries (June to October 2026)
 
 **These files are synthetic demo data.** IFC gave us one real delivery (as of 2026-06-30). To show month-on-month
-history, trends and a same-month correction, `test_files/make_demo_months.py` generated four follow-on months from
+history, trends and a same-month correction, `01_data/test_files/make_demo_months.py` generated four follow-on months from
 it. In production each month would be IFC's own delivery, uploaded the same way.
 
 ## Files
@@ -52,17 +52,17 @@ client IDs and names unchanged), so all blocking data-quality checks pass.
 |---|---|
 | Schema | `workspace.portfolio_monthly_dev` (separate from the team schema `workspace.portfolio`) |
 | Landing volume | `/Volumes/workspace/portfolio_monthly_dev/landing/incoming/YYYY-MM/` |
-| Config | `config/pipeline_config_monthly_dev.yml` |
+| Config | `00_setup/config/pipeline_config_monthly_dev.yml` |
 | Job | `run_monthly_pipeline` (job ID 824387683291203), parameter `config_path` = the dev config in the Git folder `/Users/ritvik.kohli@rotman.utoronto.ca/financial-model-monthly` |
 | Run time | Full 5-month backfill about 22 min; one month about 8 min |
-| App page | **Monthly review** in `ifc-cfo-intelligence` (`app/frontend/src/pages/Monthly.jsx`, `app/backend/monthly.py`) |
-| App settings | `IFC_MONTHLY_SCHEMA=portfolio_monthly_dev`, `IFC_MONTHLY_JOB_ID=824387683291203` in `app/app.yaml` |
+| App page | **Monthly review** in `ifc-cfo-intelligence` (`03_demo/app/frontend/src/pages/Monthly.jsx`, `03_demo/app/backend/monthly.py`) |
+| App settings | `IFC_MONTHLY_SCHEMA=portfolio_monthly_dev`, `IFC_MONTHLY_JOB_ID=824387683291203` in `03_demo/app/app.yaml` |
 | App access | The app's service principal has USE SCHEMA, SELECT, EXECUTE, READ/WRITE VOLUME on the schema, and Can Manage Run on the job |
 
 ## Rebuild from scratch
 
 1. Copy each month folder into the landing volume: `incoming/2026-06/`, …, `incoming/2026-10/` (October: the two
-   original files only). Or run `test_files/make_demo_months` with `step = generate` and the dev `config_path`.
+   original files only). Or run `01_data/test_files/make_demo_months` with `step = generate` and the dev `config_path`.
 2. Run the job `run_monthly_pipeline` (or the notebook `01_data/run_monthly_pipeline` with the dev `config_path`).
 3. For the correction demo: upload `synthetic_project_monitoring_2026-10_corrected.csv` for 2026-10 (app: Monthly
    review → Load a new month), or run `make_demo_months` with `step = reupload_october`, then run the job again.
