@@ -74,7 +74,7 @@ function Brief({ d, nav }) {
       <div className="grid g4">
         <Stat label="Approved investment" value={musd(k.approved_musd, { digits: 1 })}
               bar={<SplitBar format={(v) => musd(v)} segments={statuses.map((x) => ({ label: x.st, value: x.approved_musd || 0, color: STATUS_COLOR[x.st] }))} />}
-              note={`${int(k.projects)} projects, all statuses`} />
+              note={`${int(k.projects)} projects, all statuses · ${musd(k.approved_musd - (statuses.find((x) => x.st === "Dropped")?.approved_musd || 0), { digits: 1 })} excluding Dropped`} />
         <Stat label="Active projects" value={int(k.active_projects)}
               bar={<SplitBar segments={[{ label: "Active", value: k.active_projects, color: "#1f9d55" }, { label: "Other", value: k.projects - k.active_projects, color: "#d5d9e3" }]} />}
               note={`${int(k.clients)} clients`} />

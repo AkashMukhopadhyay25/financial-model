@@ -67,7 +67,8 @@ export default function Overview() {
       {k && (
         <div className="grid g3">
           <Kpi label="Approved investment" tag={`As of ${date(k.reporting_date)}`} tagColor="blue" value={musd(k.approved_musd, { digits: 1 })} bar={<SplitBar segments={byStatus("approved_musd")} format={(v) => musd(v)} legend />}
-               info={`Board-approved total, every status (A03, A08), as of ${date(k.reporting_date)}.`} onClick={() => setEvidence(true)} />
+               info={`Board-approved total, every status (A03, A08), as of ${date(k.reporting_date)}.`} onClick={() => setEvidence(true)}
+               foot={(() => { const dr = (data?.status_mix || []).find((x) => x.status === "Dropped"); return dr ? `${musd(k.approved_musd - dr.approved_musd, { digits: 1 })} excluding ${int(dr.projects)} Dropped projects` : null; })()} />
           <Kpi label="Projects" tag={`${int(k.active_projects)} Active`} tagColor="green" value={int(k.projects)} bar={<SplitBar segments={byStatus("projects")} legend />}
                info={`${int(k.active_projects)} Active. Counted by project URL (A01).`} onClick={() => nav("portfolio")} />
           <Kpi label="Clients" tag={`${int(byBand.find((b) => b.label === "Continue")?.value || 0)} strong · ${int(byBand.find((b) => b.label === "Review")?.value || 0)} to review`} tagColor="blue" value={int(k.clients)} bar={<SplitBar segments={byBand} legend />}
@@ -122,7 +123,7 @@ export default function Overview() {
   );
 }
 
-function Kpi({ label, tag, tagColor, value, info, onClick, bar }) {
+function Kpi({ label, tag, tagColor, value, info, onClick, bar, foot }) {
   return (
     <div className="card" style={{ cursor: "pointer" }} onClick={onClick}>
       <div className="kpi-label">
@@ -130,6 +131,7 @@ function Kpi({ label, tag, tagColor, value, info, onClick, bar }) {
       </div>
       <div className="kpi-value">{value}</div>
       {bar}
+      {foot && <div className="kpi-foot" style={{ marginTop: 8 }}>{foot}</div>}
     </div>
   );
 }

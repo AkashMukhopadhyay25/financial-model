@@ -56,7 +56,7 @@ export default function Clients({ params }) {
       <div className="page-head">
         <div>
           <h1 className="title">Client intelligence</h1>
-          <div className="subtitle">Client relationship recommendations</div>
+          <div className="subtitle">Client relationship recommendations <BandSummary /></div>
         </div>
         <div className="actions">
           <ClientSearch
@@ -102,6 +102,19 @@ export default function Clients({ params }) {
       {step === "profile" && (selected ? <Profile id={selected} full /> : <PickClient onPick={(id) => { setSelected(id); nav("clients", { step: "profile", client: id }); }} onDirectory={() => go("directory")} />)}
       {step === "compare" && <Compare ids={compareIds} setIds={setCompareIds} />}
     </>
+  );
+}
+
+// Strong relationships next to the ones to review: band counts for all clients (A15).
+function BandSummary() {
+  const { data } = useApi("/api/clients?limit=1");
+  const b = Object.fromEntries((data?.bands || []).map((x) => [x.band, x]));
+  if (!b.CONTINUE) return null;
+  return (
+    <span style={{ marginLeft: 6 }}>
+      · <b style={{ color: "var(--green)" }}>{int(b.CONTINUE.clients)} strong relationships</b> to grow with
+      · {int(b.MONITOR?.clients || 0)} to monitor · <span style={{ color: "#a86a00" }}>{int(b.REDUCE_OR_REVIEW?.clients || 0)} to review</span>
+    </span>
   );
 }
 
