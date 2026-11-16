@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useEffect, useRef, useState } from "react";
 import { createPortal } from "react-dom";
 import { flagReview, post } from "../api.js";
 import { useApp } from "../App.jsx";
@@ -11,7 +11,7 @@ import { LEVEL, PastRuns, Steps } from "./Stress.jsx";
 // Code applies the A23 ranking rule and attaches the cited market research (A24); the model explains and connects them.
 const STANCE = { prioritise: "green", neutral: "grey", caution: "amber" };
 
-export default function Allocation() {
+export default function Allocation({ embedded = false, pending = null }) {
   const { openAssumptions } = useApp();
   const info = useApi("/api/agents/capital-allocation");
   const [text, setText] = useState("");
@@ -19,6 +19,7 @@ export default function Allocation() {
   const [busy, setBusy] = useState(false);
   const [err, setErr] = useState(null);
   const [historyOpen, setHistoryOpen] = useState(false);
+  const lastPending = useRef(null);
 
   const ask = async (question) => {
     const qtext = (question || text).trim();
@@ -40,11 +41,18 @@ export default function Allocation() {
     }
   };
 
+  useEffect(() => {
+    if (pending && pending.id !== lastPending.current) {
+      lastPending.current = pending.id;
+      ask(pending.q);
+    }
+  }); // eslint-disable-line react-hooks/exhaustive-deps
+
   return (
     <>
       <div className="page-head" style={{ marginTop: 4 }}>
         <div>
-          <h1 className="title">Capital allocation</h1>
+          {embedded ? <h2 className="title" style={{ fontSize: 28, margin: 0 }}>Capital allocation</h2> : <h1 className="title">Capital allocation</h1>}
           <div className="subtitle">
             Where to put new commitments, and where to be careful: our track record beside cited market research.
           </div>

@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useEffect, useRef, useState } from "react";
 import { createPortal } from "react-dom";
 import { flagReview, get, post } from "../api.js";
 import { useApp } from "../App.jsx";
@@ -14,7 +14,7 @@ export const LEVEL = {
   HUMAN_REVIEW_REQUIRED: { label: "Red · Human review required", color: "red" },
 };
 
-export default function Stress() {
+export default function Stress({ embedded = false, pending = null }) {
   const { openAssumptions } = useApp();
   const info = useApi("/api/agents/stress-test");
   const [text, setText] = useState("");
@@ -22,6 +22,7 @@ export default function Stress() {
   const [busy, setBusy] = useState(false);
   const [err, setErr] = useState(null);
   const [historyOpen, setHistoryOpen] = useState(false);
+  const lastPending = useRef(null);
 
   const ask = async (question) => {
     const qtext = (question || text).trim();
@@ -44,11 +45,18 @@ export default function Stress() {
   };
 
   const presets = info.data?.presets || [];
+  useEffect(() => {
+    if (pending && pending.id !== lastPending.current) {
+      lastPending.current = pending.id;
+      ask(pending.q);
+    }
+  }); // eslint-disable-line react-hooks/exhaustive-deps
+
   return (
     <>
       <div className="page-head" style={{ marginTop: 4 }}>
         <div>
-          <h1 className="title">Reserve &amp; stress test</h1>
+          {embedded ? <h2 className="title" style={{ fontSize: 28, margin: 0 }}>Reserve &amp; stress test</h2> : <h1 className="title">Reserve &amp; stress test</h1>}
           <div className="subtitle">
             Ask a what-if in plain language. The agent chooses the scenario; certified SQL computes every figure.
           </div>

@@ -1,12 +1,12 @@
-import React, { createContext, useCallback, useContext, useEffect, useMemo, useState } from "react";
+import React, { createContext, useCallback, useContext, useEffect, useMemo, useRef, useState } from "react";
+import { createPortal } from "react-dom";
 import { get } from "./api.js";
 import { ago, date, dateTime, dateTimeFull } from "./format.js";
 import { QuestionLibrary } from "./Genie.jsx";
-import { AssumptionsDrawer, Toast } from "./ui.jsx";
+import { AssumptionsDrawer, SparkIcon, Toast } from "./ui.jsx";
 import Overview from "./pages/Overview.jsx";
 import Portfolio from "./pages/Portfolio.jsx";
 import Risk from "./pages/Risk.jsx";
-import Agents from "./pages/Agents.jsx";
 import Clients from "./pages/Clients.jsx";
 import EarlyWarning from "./pages/EarlyWarning.jsx";
 import Briefing from "./pages/Briefing.jsx";
@@ -16,10 +16,14 @@ export const PAGES = [
   { id: "overview", label: "Overview", el: Overview },
   { id: "portfolio", label: "Portfolio analytics", el: Portfolio },
   { id: "risk", label: "Risk & exposure", el: Risk },
-  { id: "clients", label: "Client intelligence", el: Clients },
+  { id: "clients", label: "Client intelligence", el: Clients, menu: [
+    { label: "Client recommendations", sub: "Directory, profiles, comparison, Board recommendation", params: { step: "board" } },
+    { sep: true },
+    { label: "Stress-test agent", sub: "Reserve & stress test: what if credit gets worse?", params: { step: "stress" }, agent: true },
+    { label: "Capital allocation agent", sub: "Where should new commitments go?", params: { step: "allocation" }, agent: true },
+  ] },
   { id: "early-warning", label: "Early warning", el: EarlyWarning },
   { id: "monthly", label: "Monthly review", el: Monthly },
-  { id: "agents", label: "Decision agents", el: Agents },
   { id: "briefing", label: "Board briefing", el: Briefing },
 ];
 
@@ -105,11 +109,12 @@ function Header() {
           <span className="wordmark">Bellwether</span>
         </div>
         <nav className="nav" aria-label="Pages">
-          {PAGES.map((p) => (
-            <button key={p.id} className={route.page === p.id ? "active" : ""} onClick={() => nav(p.id)}>
-              {p.label}
-            </button>
-          ))}
+          {PAGES.map((p) =>
+            p.menu ? <NavMenu key={p.id} page={p} /> : (
+              <button key={p.id} className={route.page === p.id ? "active" : ""} onClick={() => nav(p.id)}>
+                {p.label}
+              </button>
+            ))}
         </nav>
       </div>
       <div className="subbar">
@@ -129,6 +134,40 @@ function Header() {
         {open === "alerts" && <AlertsBox ov={ov} onClose={() => setOpen(null)} />}
       </div>
     </>
+  );
+}
+
+// A top-bar item with a dropdown (hover or click the caret). The menu is portalled to <body> so the scrolling
+// nav bar does not clip it.
+function NavMenu({ page }) {
+  const { nav, route } = useApp();
+  const [rect, setRect] = useState(null);
+  const btn = useRef(null);
+  const timer = useRef(null);
+  const show = () => { clearTimeout(timer.current); setRect(btn.current.getBoundingClientRect()); };
+  const hide = () => { timer.current = setTimeout(() => setRect(null), 150); };
+  useEffect(() => () => clearTimeout(timer.current), []);
+  const go = (params) => { setRect(null); nav(page.id, params); };
+  return (
+    <span onMouseEnter={show} onMouseLeave={hide} style={{ display: "inline-flex" }}>
+      <button ref={btn} className={route.page === page.id ? "active" : ""} aria-haspopup="menu" aria-expanded={!!rect}
+              onClick={() => nav(page.id)}>
+        {page.label}
+        <span aria-label="More" style={{ marginLeft: 6, fontSize: 9, opacity: 0.7 }}
+              onClick={(e) => { e.stopPropagation(); rect ? setRect(null) : show(); }}>▼</span>
+      </button>
+      {rect && createPortal(
+        <div className="nav-menu" role="menu" style={{ top: rect.bottom + 6, left: Math.max(8, rect.left) }}
+             onMouseEnter={show} onMouseLeave={hide}>
+          {page.menu.map((m, i) => m.sep ? <hr key={i} /> : (
+            <button key={i} role="menuitem" className={route.page === page.id && route.params.step === m.params.step ? "active" : ""}
+                    onClick={() => go(m.params)}>
+              {m.agent ? <SparkIcon size={12} color="var(--blue)" /> : <span style={{ width: 12 }} />}
+              <span><div>{m.label}</div><div className="sub">{m.sub}</div></span>
+            </button>
+          ))}
+        </div>, document.body)}
+    </span>
   );
 }
 

@@ -105,7 +105,7 @@ cd app/frontend && npm install && npm run dev
 `npm run dev` serves on http://localhost:5173 and forwards `/api` to port 8000. Before committing, run `npm run build`
 so `frontend/dist` is updated; the deployed app serves those built files.
 
-## Reserve & Stress-Test Agent (tab "Decision agents" → Reserve & stress test)
+## Reserve & Stress-Test Agent (Client intelligence → Stress-test agent)
 
 The team's own agent alongside Genie (WS3). Genie answers "what happened?"; this agent answers "what if?".
 
@@ -138,7 +138,7 @@ The team's own agent alongside Genie (WS3). Genie answers "what happened?"; this
   (60% × $16,849.08M Watchlist disbursed). In "rated 5–6 default", Bricor Finance and Wenhargal Renewables, the two
   WS3 reduce / review picks, are the top drivers.
 
-## Capital Allocation Agent (tab "Decision agents" → Capital allocation)
+## Capital Allocation Agent (Client intelligence → Capital allocation agent)
 
 The second of our own agents, on the same core (`agent_core.py`). It answers: where should IFC put new commitments,
 where should it be careful, and does that change the four-client recommendation? It covers the WS3 optional extension

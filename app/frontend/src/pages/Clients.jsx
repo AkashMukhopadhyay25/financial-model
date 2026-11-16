@@ -2,7 +2,9 @@ import React, { useEffect, useState } from "react";
 import { useApp } from "../App.jsx";
 import { flagReview, get } from "../api.js";
 import { int, musd, pct } from "../format.js";
-import { Check, DataTable, DqTag, ErrorBox, EvidenceDrawer, Info, Loading, Modal, SplitBar, Stats, StatusTag, Stripe, Tag, useApi } from "../ui.jsx";
+import { Check, DataTable, DqTag, ErrorBox, EvidenceDrawer, Info, Loading, Modal, SparkIcon, SplitBar, Stats, StatusTag, Stripe, Tag, useApi } from "../ui.jsx";
+import Allocation from "./Allocation.jsx";
+import Stress from "./Stress.jsx";
 
 const STEPS = [
   ["directory", "Client directory"],
@@ -10,6 +12,20 @@ const STEPS = [
   ["compare", "Client comparison"],
   ["board", "Board recommendation"],
 ];
+// The team's own agents (WS3, alongside Genie) live on this page: ask boxes at the top, full view as an agent step.
+export const AGENTS = [
+  { id: "stress", label: "Stress-test agent", title: "Reserve & stress test",
+    blurb: "What if credit conditions get worse? Baseline vs stressed expected credit loss, with the drivers.",
+    placeholder: "e.g. What if Watchlist projects in Latin America default?",
+    chips: [["Watchlist slips to Past Due", "What happens to our expected credit loss if every Watchlist project slips to Past Due?"],
+            ["Ratings 5-6 default", "If all Active projects rated 5 or 6 default, how much more would we need to set aside, and which clients drive it?"]] },
+  { id: "allocation", label: "Capital allocation agent", title: "Capital allocation",
+    blurb: "Where should new money go? Our track record beside cited market research, tested on the four clients.",
+    placeholder: "e.g. Which industry should we prioritise for new commitments?",
+    chips: [["Prioritise vs caution", "Which industry should IFC prioritise for new commitments, and which should it approach with caution? Does this change our four-client recommendation?"],
+            ["Concentration", "Where are we too concentrated, and what does the market outlook say about it?"]] },
+];
+const isAgent = (s) => AGENTS.some((a) => a.id === s);
 const BAND = {
   CONTINUE: { label: "Continue investing", color: "green", bar: "var(--green)" },
   MONITOR: { label: "Monitor", color: "blue", bar: "var(--blue)" },
@@ -24,6 +40,15 @@ export default function Clients({ params }) {
   const [search, setSearch] = useState("");
   const [compareIds, setCompareIds] = useState(params.compare ? params.compare.split(",") : []);
   const go = (s, extra = {}) => nav("clients", { step: s, client: selected, ...extra });
+  const [pending, setPending] = useState({}); // agent id -> {id, q}: a question handed over from the ask boxes
+  const [opened, setOpened] = useState(() => (isAgent(step) ? [step] : [])); // agents stay mounted once opened
+  useEffect(() => {
+    if (isAgent(step)) setOpened((o) => (o.includes(step) ? o : [...o, step]));
+  }, [step]);
+  const askAgent = (agent, q) => {
+    setPending((p) => ({ ...p, [agent]: { id: Date.now(), q } }));
+    nav("clients", { step: agent });
+  };
 
   return (
     <>
@@ -44,13 +69,30 @@ export default function Clients({ params }) {
           <button className="btn dark" onClick={() => nav("briefing")}>Export / briefing</button>
         </div>
       </div>
+      {!isAgent(step) && (
+        <div className="grid g2" style={{ marginBottom: 6 }}>
+          {AGENTS.map((a) => <AgentAsk key={a.id} agent={a} onAsk={(q) => askAgent(a.id, q)} onOpen={() => go(a.id)} />)}
+        </div>
+      )}
       <div className="steps">
         {STEPS.map(([id, label], i) => (
           <button key={id} className={step === id ? "active" : ""} onClick={() => go(id)}>
             <span className="n">{i + 1}</span> {label}
           </button>
         ))}
+        <span className="steps-sep" aria-hidden />
+        {AGENTS.map((a) => (
+          <button key={a.id} className={`agent ${step === a.id ? "active" : ""}`} onClick={() => go(a.id)}>
+            <span className="n"><SparkIcon size={11} /></span> {a.label}
+          </button>
+        ))}
       </div>
+      {opened.includes("stress") && (
+        <div style={{ display: step === "stress" ? "block" : "none" }}><Stress embedded pending={pending.stress} /></div>
+      )}
+      {opened.includes("allocation") && (
+        <div style={{ display: step === "allocation" ? "block" : "none" }}><Allocation embedded pending={pending.allocation} /></div>
+      )}
       {step === "board" && <BoardRecommendation selected={selected} onSelect={setSelected} onCompare={(ids) => { setCompareIds(ids); nav("clients", { step: "compare", compare: ids.join(",") }); }} />}
       {step === "directory" && (
         <Directory initial={params.search || ""} compareIds={compareIds} setCompareIds={setCompareIds}
@@ -60,6 +102,31 @@ export default function Clients({ params }) {
       {step === "profile" && (selected ? <Profile id={selected} full /> : <div className="card empty">Pick a client in the directory first.</div>)}
       {step === "compare" && <Compare ids={compareIds} setIds={setCompareIds} />}
     </>
+  );
+}
+
+// ---------------------------------------------------------------- agent ask box (top of the page)
+function AgentAsk({ agent, onAsk, onOpen }) {
+  const [text, setText] = useState("");
+  const submit = () => text.trim() && onAsk(text.trim());
+  return (
+    <div className="ask" style={{ padding: 12 }}>
+      <div className="ask-head" style={{ marginBottom: 6 }}>
+        <span style={{ display: "flex", alignItems: "center", gap: 6 }}>
+          <SparkIcon size={12} color="var(--blue)" /> <b>{agent.title}</b> <span className="muted">· our agent</span>
+        </span>
+        <button className="btn small" onClick={onOpen}>Open</button>
+      </div>
+      <div className="small muted" style={{ margin: "0 4px 8px" }}>{agent.blurb}</div>
+      <div className="ask-row">
+        <input value={text} placeholder={agent.placeholder} onChange={(e) => setText(e.target.value)}
+               onKeyDown={(e) => e.key === "Enter" && submit()} />
+        <button className="btn dark small" onClick={submit} disabled={!text.trim()}>Ask</button>
+      </div>
+      <div className="chips" style={{ marginTop: 8 }}>
+        {agent.chips.map(([label, q]) => <button key={label} className="chip plain" title={q} onClick={() => onAsk(q)}>{label}</button>)}
+      </div>
+    </div>
   );
 }
 
