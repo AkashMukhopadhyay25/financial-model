@@ -64,19 +64,3 @@ on the certified tables in `workspace.portfolio`; no setup is needed beyond `REA
 
    At the bottom is the **human review queue**: the item sent in step 4 is there; **Mark reviewed** records a decision.
    Finish with **Print / save as PDF**.
-
-## 3-minute video script
-
-Target: under 3:00, screen recording of the app plus the architecture diagram. Speed up waiting times if needed.
-
-| Time | On screen | Say |
-|---|---|---|
-| 0:00–0:20 | Title, then the Overview | "IFC's CFO Office needed three weeks to brief the Board, and two departments gave the Board different numbers for the same measure. Cloudstruck answers in minutes, with one set of definitions, and shows its working." |
-| 0:20–0:45 | `assets/architecture_diagram_agentic_solution.png` | "Two monthly files pass a contract-checked pipeline into certified tables in Unity Catalog. Nothing is silently dropped: 1,260 flagged projects stay in every figure, with owners. 24 written assumptions are used by every answer. On top sit Genie and our two agents, with a trust check computed by code." |
-| 0:45–1:10 | Overview: strengths, Category A vs portfolio ECL, project spotlight → project panel | "The CFO sees what's going well and what needs attention: 79% of active projects performing, a record FY2025, and risk labelled precisely: Category A provision $3.3B, whole portfolio $7.6B. Any number opens to the projects behind it." |
-| 1:10–1:30 | Ask Genie the Category A question; show the SQL and trust level | "Analysts ask in plain language. Genie writes the SQL; our app, not Genie, checks how many flagged projects are in scope and labels the answer." |
-| 1:30–2:05 | Client intelligence → stress-test agent: ratings 5–6 question, then "How the agent worked" | "Our own agents answer 'so what?'. The stress-test agent picks the scenario, but certified SQL computes every figure: $8.8B more reserve if high-risk projects default, with the two clients we recommend reviewing among the three largest drivers. Ask it four different ways and you get the same number: 24 out of 24 in our test." |
-| 2:05–2:35 | Capital allocation agent answer: tiles, rankings, cited sources | "The allocation agent puts our track record beside cited, dated research: prioritise Energy, where the IEA agrees, be cautious on Finance, and limit Sub-Saharan Africa, which is over our concentration limit. It tests the four-client recommendation against that." |
-| 2:35–3:00 | Send to Credit Risk Committee → Board briefing → review queue → Print | "Agents advise; people decide. The answer goes to the Credit Risk Committee's queue, the decision is recorded, and the Board pack is one click, with every figure traceable to certified SQL." |
-
-**Email the recording to bta@rotman.utoronto.ca by the deadline** (brief §5).
