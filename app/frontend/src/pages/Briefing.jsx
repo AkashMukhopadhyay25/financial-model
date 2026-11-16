@@ -2,7 +2,7 @@ import React, { useState } from "react";
 import { flagReview, invalidate } from "../api.js";
 import { useApp } from "../App.jsx";
 import { date, dateTime, int, musd, musdFull, pct } from "../format.js";
-import { DataTable, ErrorBox, Info, Loading, Modal, SplitBar, Tag, Toast, useApi } from "../ui.jsx";
+import { CheckChip, DataTable, ErrorBox, Info, Loading, Modal, SplitBar, Tag, Toast, useApi } from "../ui.jsx";
 import { ExposureBreakdown } from "./Risk.jsx";
 
 // Board briefing: every number below is read live from the certified tables, so the briefing never drifts from the app.
@@ -111,7 +111,11 @@ function Brief({ d, nav }) {
         <ExposureBreakdown bare pd={pdD} wl={wlD} ecl={tot.expected_credit_loss_musd || 0}
                            undisbursed={tot.undisbursed_commitment_musd || 0} approved={tot.approved_musd || 0} rate={rate} />
         <div className="chips" style={{ marginTop: 12 }}>
-          {d.risk.checks.map((c) => <Tag key={c.name} color={c.ok ? "green" : "amber"}>{c.ok ? "✓" : "!"} {c.name}</Tag>)}
+          <span className="chip-label">
+            {d.risk.checks.every((c) => c.ok) ? `${d.risk.checks.length} checks passed before these figures were used` : `${d.risk.checks.filter((c) => !c.ok).length} of ${d.risk.checks.length} checks failed: review before relying on these figures`}
+            {" "}(hover for details):
+          </span>
+          {d.risk.checks.map((c) => <CheckChip key={c.name} ok={c.ok} name={c.name} detail={c.detail} />)}
         </div>
         {d.risk.context && (
           <div className="small mt" style={{ color: "var(--green)" }}>

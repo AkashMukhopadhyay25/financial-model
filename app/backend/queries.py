@@ -323,15 +323,27 @@ FROM {P}"""
     needed = {"A01", "A09", "A10", "A11", "A17"}
     checks = [
         {"name": "Join logic", "ok": True,
-         "detail": "Projects joined to monitoring on project_url (A01). Project Number is not unique and is never used to join."},
+         "detail": "Each project is matched to its monitoring record by its unique web address (project_url, A01). "
+                   "Project Number is shared by several projects, so joining on it would double-count monitoring records "
+                   "(3,768 would become 6,477) and inflate these figures."},
         {"name": "Definitions", "ok": True,
-         "detail": "Approved = Board total; disbursed = monitoring amount; ECL = 60% of disbursed on Past Due only (A11)."},
+         "detail": "The agreed measures are used and never mixed: approved = the Board-approved total; disbursed = the "
+                   "amount paid out, from monitoring; expected credit loss = 60% of disbursed on Past Due projects only (A11)."},
         {"name": "Assumptions", "ok": needed <= asm,
-         "detail": f"Uses {', '.join(sorted(needed))}" + ("" if needed <= asm else " (missing from ref_assumptions)")},
+         "detail": (f"The written assumptions behind these figures ({', '.join(sorted(needed))}) are all recorded in "
+                    "ref_assumptions, so anyone can read exactly how they were calculated.") if needed <= asm else
+                   (f"Missing from ref_assumptions: {', '.join(sorted(needed - asm))}. Rerun 01_data/00_reference before "
+                    "relying on these figures.")},
         {"name": "Missing records", "ok": int(c["missing_monitoring"]) == 0 and int(c["dropped_but_monitored"]) == 0,
-         "detail": f"{c['missing_monitoring']} non-Dropped projects without monitoring; {c['dropped_but_monitored']} Dropped projects monitored."},
+         "detail": ("Every project that is not Dropped has a monitoring record, and no Dropped project is still being "
+                    "monitored, so no exposure is missing from the totals.")
+                   if int(c["missing_monitoring"]) == 0 and int(c["dropped_but_monitored"]) == 0 else
+                   (f"{c['missing_monitoring']} non-Dropped projects have no monitoring record and "
+                    f"{c['dropped_but_monitored']} Dropped projects are still monitored: the totals may be incomplete.")},
         {"name": "Duplicate checks", "ok": int(c["projects"]) == int(c["distinct_urls"]),
-         "detail": f"{c['projects']:,} rows, {c['distinct_urls']:,} distinct project URLs."},
+         "detail": (f"No project is counted twice: {int(c['projects']):,} rows and {int(c['distinct_urls']):,} distinct "
+                    "projects.") if int(c["projects"]) == int(c["distinct_urls"]) else
+                   (f"{int(c['projects']) - int(c['distinct_urls']):,} projects appear more than once: totals are overstated.")},
     ]
     register = try_q(f"SELECT question_id, question, sql_text, assumptions, assumption_ids, computed_at "
                      f"FROM {T('answers_register')} WHERE workstream = 'WS2' ORDER BY question_id")

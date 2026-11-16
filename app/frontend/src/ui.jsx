@@ -601,3 +601,24 @@ export function Toast({ message, onDone }) {
   }, [message, onDone]);
   return message ? <div className="toast">{message}</div> : null;
 }
+
+// A check that passed or failed, with its explanation on hover (portalled like the DQ popover).
+export function CheckChip({ ok, name, detail }) {
+  const [pos, setPos] = useState(null);
+  const show = (e) => {
+    const r = e.currentTarget.getBoundingClientRect();
+    setPos({ x: Math.min(window.innerWidth - 340, Math.max(10, r.left)), y: r.bottom + 6 });
+  };
+  return (
+    <span className="dqtag" onMouseEnter={show} onMouseLeave={() => setPos(null)} onFocus={show} onBlur={() => setPos(null)} tabIndex={0}>
+      <Tag color={ok ? "green" : "amber"}>{ok ? "✓" : "!"} {name}</Tag>
+      {pos && detail && createPortal(
+        <span className="dq-pop" style={{ left: pos.x, top: pos.y }} role="tooltip">
+          <span className="dq-pop-title">{ok ? "Check passed" : "Check failed: review before relying on the figures"}</span>
+          <span className="dq-pop-item">{detail}</span>
+        </span>,
+        document.body,
+      )}
+    </span>
+  );
+}
