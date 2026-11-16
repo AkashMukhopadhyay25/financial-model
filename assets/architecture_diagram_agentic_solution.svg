@@ -1,0 +1,105 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1600" height="1010" viewBox="0 0 1600 1010" font-family="Inter, 'Segoe UI', 'Helvetica Neue', Arial, sans-serif"><defs><marker id="ah" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0 0 L10 5 L0 10 z" fill="#8a93a8"/></marker><marker id="ahb" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0 0 L10 5 L0 10 z" fill="#2f66f6"/></marker><linearGradient id="g" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#2f66f6"/><stop offset="1" stop-color="#5b3df5"/></linearGradient><marker id="ah_e5484d" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="7" markerHeight="7" orient="auto"><path d="M0 0 L10 5 L0 10 z" fill="#e5484d"/></marker><marker id="ah_e08a2e" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="7" markerHeight="7" orient="auto"><path d="M0 0 L10 5 L0 10 z" fill="#e08a2e"/></marker></defs>
+<rect width="1600" height="1010" fill="#ffffff"/>
+<text x="40" y="46.0" font-size="24" font-weight="700" fill="#0d1b4c" text-anchor="start">Cloudstruck · from a monthly data delivery to a Board decision</text>
+<text x="40" y="72.0" font-size="15" font-weight="400" fill="#5b6378" text-anchor="start">IFC CFO Office portfolio intelligence on Databricks</text>
+<circle cx="55" cy="117" r="15" fill="#2f66f6"/>
+<text x="55" y="122.0" font-size="14" font-weight="700" fill="#fff" text-anchor="middle">1</text>
+<text x="80" y="122" fill="#0d1b4c"><tspan font-size="19" font-weight="700">Data pipeline</tspan><tspan font-size="14" fill="#5b6378" dx="14">Databricks Jobs, every month · nothing reaches the agents until it is certified</tspan></text>
+<rect x="30" y="140" width="1540" height="268" rx="18" fill="#f5f8ff" stroke="#dbe4fb" stroke-width="1.5"/>
+<rect x="55" y="162" width="222" height="128" rx="14" fill="#ffffff" stroke="#c9d5f5" stroke-width="1.6"/>
+<text x="166.0" y="194.0" font-size="16" font-weight="700" fill="#0d1b4c" text-anchor="middle">Incoming data</text>
+<text x="166.0" y="220.0" font-size="13" font-weight="400" fill="#5b6378" text-anchor="middle">Monthly files land in a</text>
+<text x="166.0" y="237.6" font-size="13" font-weight="400" fill="#5b6378" text-anchor="middle">Unity Catalog volume:</text>
+<text x="166.0" y="255.1" font-size="13" font-weight="400" fill="#5b6378" text-anchor="middle">structured tables +</text>
+<text x="166.0" y="272.6" font-size="13" font-weight="400" fill="#5b6378" text-anchor="middle">free-text descriptions</text>
+<rect x="310" y="162" width="222" height="128" rx="14" fill="#ffffff" stroke="#c9d5f5" stroke-width="1.6"/>
+<text x="421.0" y="194.0" font-size="16" font-weight="700" fill="#0d1b4c" text-anchor="middle">Schema gate</text>
+<text x="421.0" y="220.0" font-size="13" font-weight="400" fill="#5b6378" text-anchor="middle">Every column checked</text>
+<text x="421.0" y="237.6" font-size="13" font-weight="400" fill="#5b6378" text-anchor="middle">against its data contract</text>
+<text x="421.0" y="255.1" font-size="13" font-weight="400" fill="#5b6378" text-anchor="middle">before anything loads</text>
+<path d="M280 226.0 L305 226.0" fill="none" stroke="#2f66f6" stroke-width="2.2" marker-end="url(#ahb)"/>
+<rect x="565" y="162" width="222" height="128" rx="14" fill="#ffffff" stroke="#c9d5f5" stroke-width="1.6"/>
+<text x="676.0" y="194.0" font-size="16" font-weight="700" fill="#0d1b4c" text-anchor="middle">Raw</text>
+<text x="676.0" y="220.0" font-size="13" font-weight="400" fill="#5b6378" text-anchor="middle">Each delivery kept</text>
+<text x="676.0" y="237.6" font-size="13" font-weight="400" fill="#5b6378" text-anchor="middle">exactly as received,</text>
+<text x="676.0" y="255.1" font-size="13" font-weight="400" fill="#5b6378" text-anchor="middle">full history</text>
+<path d="M535 226.0 L560 226.0" fill="none" stroke="#2f66f6" stroke-width="2.2" marker-end="url(#ahb)"/>
+<rect x="820" y="162" width="222" height="128" rx="14" fill="#ffffff" stroke="#c9d5f5" stroke-width="1.6"/>
+<text x="931.0" y="194.0" font-size="16" font-weight="700" fill="#0d1b4c" text-anchor="middle">Validate</text>
+<text x="931.0" y="220.0" font-size="13" font-weight="400" fill="#5b6378" text-anchor="middle">Types and business rules;</text>
+<text x="931.0" y="237.6" font-size="13" font-weight="400" fill="#5b6378" text-anchor="middle">unusable rows quarantined,</text>
+<text x="931.0" y="255.1" font-size="13" font-weight="400" fill="#5b6378" text-anchor="middle">issues flagged with an owner</text>
+<path d="M790 226.0 L815 226.0" fill="none" stroke="#2f66f6" stroke-width="2.2" marker-end="url(#ahb)"/>
+<rect x="1075" y="162" width="222" height="128" rx="14" fill="#ffffff" stroke="#c9d5f5" stroke-width="1.6"/>
+<text x="1186.0" y="194.0" font-size="16" font-weight="700" fill="#0d1b4c" text-anchor="middle">Enrich with AI</text>
+<text x="1186.0" y="220.0" font-size="13" font-weight="400" fill="#5b6378" text-anchor="middle">An LLM turns free-text</text>
+<text x="1186.0" y="237.6" font-size="13" font-weight="400" fill="#5b6378" text-anchor="middle">descriptions into fields</text>
+<text x="1186.0" y="255.1" font-size="13" font-weight="400" fill="#5b6378" text-anchor="middle">(capacity, product, renewable)</text>
+<path d="M1045 226.0 L1070 226.0" fill="none" stroke="#2f66f6" stroke-width="2.2" marker-end="url(#ahb)"/>
+<rect x="1330" y="162" width="222" height="128" rx="14" fill="#2f66f6" stroke="#2f66f6" stroke-width="1.6"/>
+<text x="1441.0" y="194.0" font-size="16" font-weight="700" fill="#ffffff" text-anchor="middle">Certify</text>
+<text x="1441.0" y="220.0" font-size="13" font-weight="400" fill="#e8eeff" text-anchor="middle">One governed row per project,</text>
+<text x="1441.0" y="237.6" font-size="13" font-weight="400" fill="#e8eeff" text-anchor="middle">72 reconciliation checks:</text>
+<text x="1441.0" y="255.1" font-size="13" font-weight="400" fill="#e8eeff" text-anchor="middle">nothing lost or double counted</text>
+<path d="M1300 226.0 L1325 226.0" fill="none" stroke="#2f66f6" stroke-width="2.2" marker-end="url(#ahb)"/>
+<path d="M421.0 292 L421.0 317" fill="none" stroke="#e5484d" stroke-width="1.8" stroke-dasharray="5 4" marker-end="url(#ah_e5484d)"/>
+<rect x="310.0" y="322" width="222" height="64" rx="12" fill="#fdecec" stroke="#e5484d" stroke-width="1.4"/>
+<text x="421.0" y="348.0" font-size="13" font-weight="600" fill="#a3171c" text-anchor="middle">Structure problem: file held,</text>
+<text x="421.0" y="365.6" font-size="13" font-weight="600" fill="#a3171c" text-anchor="middle">job stops, data owner emailed</text>
+<path d="M931.0 292 L931.0 317" fill="none" stroke="#e08a2e" stroke-width="1.8" stroke-dasharray="5 4" marker-end="url(#ah_e08a2e)"/>
+<rect x="820.0" y="322" width="222" height="64" rx="12" fill="#fff5e6" stroke="#e08a2e" stroke-width="1.4"/>
+<text x="931.0" y="348.0" font-size="13" font-weight="600" fill="#7a4300" text-anchor="middle">Issues queued for the</text>
+<text x="931.0" y="365.6" font-size="13" font-weight="600" fill="#7a4300" text-anchor="middle">owning team to fix</text>
+<path d="M1186.0 292 L1186.0 317" fill="none" stroke="#e08a2e" stroke-width="1.8" stroke-dasharray="5 4" marker-end="url(#ah_e08a2e)"/>
+<rect x="1075.0" y="322" width="222" height="64" rx="12" fill="#fff5e6" stroke="#e08a2e" stroke-width="1.4"/>
+<text x="1186.0" y="348.0" font-size="13" font-weight="600" fill="#7a4300" text-anchor="middle">Uncertain readings sent</text>
+<text x="1186.0" y="365.6" font-size="13" font-weight="600" fill="#7a4300" text-anchor="middle">to a human reviewer</text>
+<text x="166.0" y="348.0" font-size="13" font-weight="600" fill="#5b6378" text-anchor="middle">Alerts go to the</text>
+<text x="166.0" y="365.6" font-size="13" font-weight="600" fill="#5b6378" text-anchor="middle">team that owns the fix</text>
+<path d="M258.0 354 L304.0 354" fill="none" stroke="#b8bfd0" stroke-width="1.4" stroke-dasharray="3 4" marker-end="url(#ah)"/>
+<rect x="30" y="426" width="1540" height="50" rx="12" fill="#eef2fb" stroke="#c9d5f5" stroke-width="1.5"/>
+<text x="800" y="457" font-size="15" fill="#0d1b4c" text-anchor="middle"><tspan font-weight="700">Unity Catalog</tspan><tspan dx="10">certified tables · 24 documented assumptions · lineage · access grants · every answer and agent run audited</tspan></text>
+<circle cx="55" cy="525" r="15" fill="#2f66f6"/>
+<text x="55" y="530.0" font-size="14" font-weight="700" fill="#fff" text-anchor="middle">2</text>
+<text x="80" y="530" fill="#0d1b4c"><tspan font-size="19" font-weight="700">Agentic intelligence</tspan><tspan font-size="14" fill="#5b6378" dx="14"></tspan></text>
+<path d="M300.0 478 L300.0 546" fill="none" stroke="#8a93a8" stroke-width="2" marker-end="url(#ah)"/>
+<rect x="110" y="552" width="380" height="150" rx="16" fill="#ffffff" stroke="#2f66f6" stroke-width="2"/>
+<text x="300.0" y="586.0" font-size="18" font-weight="700" fill="#0d1b4c" text-anchor="middle">Genie</text>
+<text x="300.0" y="612.0" font-size="15" font-weight="600" fill="#1d4ed8" text-anchor="middle">“What happened?”</text>
+<text x="300.0" y="640.0" font-size="13" font-weight="400" fill="#5b6378" text-anchor="middle">Plain-language questions</text>
+<text x="300.0" y="657.5" font-size="13" font-weight="400" fill="#5b6378" text-anchor="middle">turned into SQL on the</text>
+<text x="300.0" y="675.1" font-size="13" font-weight="400" fill="#5b6378" text-anchor="middle">certified tables</text>
+<path d="M800.0 478 L800.0 546" fill="none" stroke="#8a93a8" stroke-width="2" marker-end="url(#ah)"/>
+<rect x="610" y="552" width="380" height="150" rx="16" fill="#ffffff" stroke="#2f66f6" stroke-width="2"/>
+<text x="800.0" y="586.0" font-size="18" font-weight="700" fill="#0d1b4c" text-anchor="middle">Stress-test agent</text>
+<text x="800.0" y="612.0" font-size="15" font-weight="600" fill="#1d4ed8" text-anchor="middle">“What if credit worsens?”</text>
+<text x="800.0" y="640.0" font-size="13" font-weight="400" fill="#5b6378" text-anchor="middle">Runs downside scenarios</text>
+<text x="800.0" y="657.5" font-size="13" font-weight="400" fill="#5b6378" text-anchor="middle">on reserves and expected</text>
+<text x="800.0" y="675.1" font-size="13" font-weight="400" fill="#5b6378" text-anchor="middle">credit loss</text>
+<path d="M1300.0 478 L1300.0 546" fill="none" stroke="#8a93a8" stroke-width="2" marker-end="url(#ah)"/>
+<rect x="1110" y="552" width="380" height="150" rx="16" fill="#ffffff" stroke="#2f66f6" stroke-width="2"/>
+<text x="1300.0" y="586.0" font-size="18" font-weight="700" fill="#0d1b4c" text-anchor="middle">Capital allocation agent</text>
+<text x="1300.0" y="612.0" font-size="15" font-weight="600" fill="#1d4ed8" text-anchor="middle">“Where should new money go?”</text>
+<text x="1300.0" y="640.0" font-size="13" font-weight="400" fill="#5b6378" text-anchor="middle">Ranks sectors and regions</text>
+<text x="1300.0" y="657.5" font-size="13" font-weight="400" fill="#5b6378" text-anchor="middle">with portfolio data and</text>
+<text x="1300.0" y="675.1" font-size="13" font-weight="400" fill="#5b6378" text-anchor="middle">cited market research</text>
+<text x="800" y="728.0" font-size="13" font-weight="400" fill="#5b6378" text-anchor="middle">Guardrails on all three: figures come only from governed SQL, never from the model · trust check Green / Amber / Red · open-weight model on Databricks</text>
+<path d="M300.0 742 C300.0 750, 575.0 740, 575.0 784" fill="none" stroke="#2f66f6" stroke-width="2.6" marker-end="url(#ahb)"/>
+<path d="M800.0 742 C800.0 750, 800.0 740, 800.0 784" fill="none" stroke="#2f66f6" stroke-width="2.6" marker-end="url(#ahb)"/>
+<path d="M1300.0 742 C1300.0 750, 1025.0 740, 1025.0 784" fill="none" stroke="#2f66f6" stroke-width="2.6" marker-end="url(#ahb)"/>
+<circle cx="420.0" cy="820" r="15" fill="#2f66f6"/>
+<text x="420.0" y="825.0" font-size="14" font-weight="700" fill="#fff" text-anchor="middle">3</text>
+<rect x="450.0" y="790" width="700" height="104" rx="18" fill="url(#g)" stroke="#1d4ed8" stroke-width="2"/>
+<text x="800" y="828.0" font-size="20" font-weight="700" fill="#ffffff" text-anchor="middle">Decision brief for the CFO Office and Board</text>
+<text x="800" y="856.0" font-size="14" font-weight="400" fill="#e8eeff" text-anchor="middle">What happened + the downside + where to allocate, in one view:</text>
+<text x="800" y="874.9" font-size="14" font-weight="400" fill="#e8eeff" text-anchor="middle">which clients to back, which to review</text>
+<path d="M620.0 896 L620.0 934" fill="none" stroke="#8a93a8" stroke-width="2" marker-end="url(#ah)"/>
+<path d="M980.0 896 L980.0 934" fill="none" stroke="#8a93a8" stroke-width="2" marker-end="url(#ah)"/>
+<rect x="480.0" y="940" width="280" height="46" rx="12" fill="#f6f7fb" stroke="#c3c9d8" stroke-width="1.5"/>
+<text x="620.0" y="969.0" font-size="15" font-weight="600" fill="#0d1b4c" text-anchor="middle">CFO Office · Board</text>
+<rect x="820.0" y="940" width="320" height="46" rx="12" fill="#f6f7fb" stroke="#c3c9d8" stroke-width="1.5"/>
+<text x="980.0" y="969.0" font-size="15" font-weight="600" fill="#0d1b4c" text-anchor="middle">Credit Risk Committee · human review</text>
+<path d="M1140.0 963 L1540 963 L1540 482" fill="none" stroke="#8a93a8" stroke-width="1.6" stroke-dasharray="6 5" marker-end="url(#ah)"/>
+<text x="1530" y="870.0" font-size="12" font-weight="600" fill="#5b6378" text-anchor="end">decision</text>
+<text x="1530" y="886.2" font-size="12" font-weight="600" fill="#5b6378" text-anchor="end">recorded</text>
+</svg>
