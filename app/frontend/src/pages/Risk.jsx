@@ -51,7 +51,7 @@ export default function Risk({ params }) {
         </div>
         <div className="copilot" style={{ minHeight: 0, cursor: "default" }}>
           <div>
-            <div style={{ fontSize: 13, opacity: 0.9 }}>Expected credit loss</div>
+            <div style={{ fontSize: 13, opacity: 0.9 }}>Category A expected credit loss</div>
             <h2 style={{ margin: "8px 0 6px", fontSize: 38 }}>{musd(tot.expected_credit_loss_musd)}</h2>
             <p>{Math.round(data.ecl_loss_rate * 100)}% of Past Due disbursed</p>
           </div>

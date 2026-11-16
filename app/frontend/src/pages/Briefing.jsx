@@ -80,8 +80,8 @@ function Brief({ d, nav }) {
         <Stat label="Category A in distress" value={int(tot.projects)}
               bar={<SplitBar segments={[{ label: "Past Due", value: pd.projects, color: "#c9302c" }, { label: "Watchlist", value: wl.projects, color: "#e29a12" }]} />}
               note={`${int(pd.projects)} Past Due · ${int(wl.projects)} Watchlist`} />
-        <Stat label="Expected credit loss" value={musd(tot.expected_credit_loss_musd)} dark
-              note={`${Math.round(rate * 100)}% of ${musd(pdD)} Past Due disbursed`} />
+        <Stat label="Category A expected credit loss" value={musd(tot.expected_credit_loss_musd)} dark
+              note={`${Math.round(rate * 100)}% of ${musd(pdD)} Past Due disbursed · whole portfolio ${musd(d.overview.portfolio_risk?.expected_credit_loss_musd)}`} />
       </div>
 
       <Section n="1" title="Portfolio at a glance" sub={`As of ${date(k.reporting_date)} · board-approved, every status`} link="Portfolio analytics" onLink={() => nav("portfolio")}>
@@ -185,7 +185,8 @@ function toMarkdown(d) {
     `- ${k.projects} projects, ${musdFull(k.approved_musd)} approved by the Board (all statuses); ${k.active_projects} Active; ${k.clients} clients.`, ``,
     `## 2. Category A risk (WS2)`,
     `- ${t.projects} Category A projects are Past Due (${by["Past Due"]?.projects}) or on the Watchlist (${by.Watchlist?.projects}), across ${t.clients} clients, ${musdFull(t.approved_musd)} approved.`,
-    `- ${musdFull(t.disbursed_capital_tied_up_musd)} disbursed capital tied up; recommended provision ${musdFull(t.expected_credit_loss_musd)} (60% of Past Due disbursed).`, ``,
+    `- ${musdFull(t.disbursed_capital_tied_up_musd)} disbursed capital tied up; recommended provision for these Category A projects ${musdFull(t.expected_credit_loss_musd)} (60% of Past Due disbursed).`,
+    `- For context, expected credit loss on the whole portfolio is ${musdFull(d.overview.portfolio_risk?.expected_credit_loss_musd)} (${d.overview.portfolio_risk?.past_due_projects} Past Due projects, A11).`, ``,
     `## 3. Client recommendations (WS3) — for Credit Risk Committee review`,
     ...d.recommendations.map((r) => `- **${r.recommendation === "CONTINUE" ? "Continue to invest" : "Reduce / review"}: ${r.client_name} (${r.client_id})** — exposure affected ${musdFull(r.exposure_affected_musd)}. ${r.evidence_summary}. ${r.suggested_action}`),
     ``, `## 4. Early warning (highest priority)`,

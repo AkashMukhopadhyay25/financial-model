@@ -100,7 +100,7 @@ export default function Overview() {
             {data && !data.activity?.length && <div className="muted small">No activity logged yet.</div>}
           </div>
         </div>
-        <RiskCard r={data?.risk} onOpen={() => nav("risk")} />
+        <RiskCard r={data?.risk} pr={data?.portfolio_risk} onOpen={() => nav("risk")} />
       </div>
 
 
@@ -143,7 +143,7 @@ function AlertRow({ label, n, max, color }) {
 }
 
 // Credit risk at a glance: the WS2 Board answer (expected credit loss and the exposure behind it). Opens Risk & exposure.
-function RiskCard({ r, onOpen }) {
+function RiskCard({ r, pr, onOpen }) {
   // The bar is the disbursed exposure; its solid red part is the expected credit loss in the headline.
   const pd = r?.past_due_disbursed_musd || 0, wl = r?.watchlist_disbursed_musd || 0, ecl = r?.expected_credit_loss_musd || 0;
   const exposure = pd + wl;
@@ -159,7 +159,7 @@ function RiskCard({ r, onOpen }) {
           <Tag>Credit risk at a glance</Tag>
           <span className="small" style={{ opacity: 0.85 }}>Open ↗</span>
         </div>
-        <div className="risk-label">Expected credit loss</div>
+        <div className="risk-label">Category A expected credit loss</div>
         <div className="risk-value">{r ? musd(ecl) : "…"}</div>
         <div className="risk-sub">{exposure ? `${Math.round((100 * ecl) / exposure)}% of ${musd(exposure)} disbursed exposure` : ""}</div>
       </div>
@@ -172,7 +172,10 @@ function RiskCard({ r, onOpen }) {
           <span title={segs[1].t}><i className="pd" />Past Due rest<em className="amt">&nbsp;{musd(pd - ecl)}</em></span>
           <span title={segs[2].t}><i className="wl" />Watchlist<em className="amt">&nbsp;{musd(wl)}</em></span>
         </div>
-        <div className="risk-foot">{r ? `${int(r.projects)} Category A projects · ${int(r.clients)} clients` : ""}</div>
+        <div className="risk-foot">
+          {r ? `${int(r.projects)} Category A projects · ${int(r.clients)} clients` : ""}
+          {pr && <div style={{ marginTop: 4, opacity: 0.85 }}>Whole portfolio: {musd(pr.expected_credit_loss_musd)} ECL on {int(pr.past_due_projects)} Past Due projects (A11)</div>}
+        </div>
       </div>
     </div>
   );

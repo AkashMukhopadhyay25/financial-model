@@ -91,11 +91,17 @@ FROM {P}"""
        round(sum(expected_credit_loss_musd), 2) AS expected_credit_loss_musd
 FROM {P}
 WHERE {WS2_SCOPE}"""
+    # Portfolio-wide credit risk (A09, A11): the same ECL the stress test and Monthly review use as their baseline.
+    portfolio_risk_sql = f"""SELECT count_if(performance_status = 'Past Due' AND status = 'Active') AS past_due_projects,
+       round(sum(current_disbursed_exposure_musd), 2) AS current_exposure_musd,
+       round(sum(expected_credit_loss_musd), 2) AS expected_credit_loss_musd
+FROM {P}"""
     return {"kpis": kpis, "status_mix": status, "alerts": {k: by_p.get(k, 0) for k in ("HIGH", "MEDIUM", "REVIEW")},
-            "risk": q(risk_sql)[0],
+            "risk": q(risk_sql)[0], "portfolio_risk": q(portfolio_risk_sql)[0],
             "data_refreshed_at": data_refreshed_at(),
             "client_bands": try_q(f"SELECT band, count(*) AS clients FROM {T('certified_client_scorecard')} GROUP BY band"),
-            "activity": activity(), "evidence": {"kpis": kpi_sql, "credit_risk": risk_sql}}
+            "activity": activity(), "evidence": {"kpis": kpi_sql, "credit_risk": risk_sql,
+                                                         "portfolio_credit_risk": portfolio_risk_sql}}
 
 
 def data_refreshed_at():
