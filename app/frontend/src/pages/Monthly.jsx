@@ -46,14 +46,22 @@ export default function Monthly({ params }) {
       <div>
         <h1 className="title">{data?.ready ? `What changed in ${data.month_name}` : "Monthly review"}</h1>
         <div className="subtitle">
-          {data?.ready
-            ? `Compared with ${data.previous_name} · ${int(data.counts.Deteriorated + data.counts.Mixed)} clients deteriorated, ${int(data.counts.Improved)} improved and ${int(data.counts["New business"])} added new business, out of ${int(data.total_clients)}`
-            : "Month-on-month changes in the certified portfolio"}
+          {data?.ready ? (
+            <>
+              Compared with {data.previous_name}: of {int(data.total_clients)} clients,{" "}
+              <b style={{ color: "var(--red)" }}>{int(FILTERS[0].dirs.reduce((n, d) => n + (data.counts[d] || 0), 0))} need attention</b>,{" "}
+              <b style={{ color: "var(--green)" }}>{int(data.counts.Improved || 0)} improved</b> and{" "}
+              <b style={{ color: "var(--blue)" }}>{int(data.counts["New business"] || 0)} added new business</b>
+            </>
+          ) : "Month-on-month changes in the certified portfolio"}
+        </div>
+        <div className="small muted" style={{ marginTop: 4 }}>
+          Demo months July–October 2026 (synthetic deliveries). Every other page is as of 30 June 2026.
         </div>
       </div>
       <div className="actions">
         {data?.ready && (
-          <select className="btn" value={data.month} aria-label="Reporting month" onChange={(e) => { setMonth(e.target.value); setShown(8); }}>
+          <select className="btn select-btn" value={data.month} aria-label="Reporting month" onChange={(e) => { setMonth(e.target.value); setShown(8); }}>
             {data.months.slice(1).reverse().map((m) => <option key={m} value={m}>{monthName(m)}</option>)}
           </select>
         )}
@@ -70,7 +78,7 @@ export default function Monthly({ params }) {
   const clients = (data?.clients || []).filter((c) => dirs.includes(c.direction));
   return (
     <>
-      <div className="eyebrow blue">Monthly review · demo months July–October 2026 (synthetic deliveries; other pages are as of 30 June 2026)</div>
+      <div className="eyebrow blue">Monthly review</div>
       {head}
       {!data.ready && (
         <div className="card">

@@ -643,3 +643,9 @@ table.data th.sorted .sort-ic { opacity: 1; color: var(--blue); }
 .timeline small { display: block; color: var(--muted); }
 .dq-line { display: flex; gap: 8px; align-items: flex-start; font-size: 12.5px; padding: 6px 0; border-bottom: 1px solid var(--line-2); }
 .brief-note { margin-top: 10px; font-size: 13px; background: #fff8ec; border-color: #f4d39a; line-height: 1.5; }
+
+/* Dropdowns styled as buttons: custom chevron with breathing room (the native arrow sat against the edge) */
+select.btn.select-btn {
+  appearance: none; -webkit-appearance: none; cursor: pointer; padding-right: 40px; min-width: 170px;
+  background: #fff url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='8'%3E%3Cpath d='M1 1.5l5 5 5-5' stroke='%233b4155' fill='none' stroke-width='1.6' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E") no-repeat right 16px center;
+}
