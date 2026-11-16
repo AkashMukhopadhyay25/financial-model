@@ -1,5 +1,5 @@
 """
-Run the agents' paraphrase-consistency evaluation on Databricks (job "bellwether_agent_evaluation").
+Run the agents' paraphrase-consistency evaluation on Databricks (job "cloudstruck_agent_evaluation").
 
 It runs the same code as the app (app/backend), so every agent run is also an MLflow trace in the experiment named in
 config (serving.agents.mlflow_experiment). The evaluation itself is logged as an MLflow run in that experiment:
@@ -28,7 +28,7 @@ def _mirror(root: Path) -> Path:
     from databricks.sdk.service.workspace import ExportFormat
 
     w = WorkspaceClient()
-    dst = Path("/tmp/bellwether")
+    dst = Path("/tmp/cloudstruck")
     for rel in ["app/__init__.py", "app/backend/__init__.py", "config/pipeline_config.yml", "config/market_outlook.yml"] + [
             f"app/backend/{o.path.rsplit('/', 1)[-1]}" for o in w.workspace.list(f"{root}/app/backend")
             if o.path.endswith(".py")]:

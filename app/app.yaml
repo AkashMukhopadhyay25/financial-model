@@ -1,4 +1,4 @@
-# Databricks App: Bellwether (IFC CFO Office portfolio intelligence) (FastAPI backend + React frontend, built files in frontend/dist).
+# Databricks App: Cloudstruck (IFC CFO Office portfolio intelligence) (FastAPI backend + React frontend, built files in frontend/dist).
 # Create the app with source code path = this app/ folder. Setup steps: app/README.md.
 command: ["uvicorn", "backend.main:app", "--host", "0.0.0.0", "--port", "8000"]
 env:
@@ -20,7 +20,7 @@ env:
     value: "databricks-qwen3-next-80b-a3b-instruct"
   # MLflow experiment for agent traces (serving.agents.mlflow_experiment); the service principal needs Can edit on it.
   - name: IFC_AGENT_EXPERIMENT
-    value: "/Shared/bellwether_agents"
+    value: "/Shared/cloudstruck_agents"
   - name: IFC_ALLOC_MIN_ACTIVE
     value: "10"
   - name: IFC_ALLOC_MAX_SHARE

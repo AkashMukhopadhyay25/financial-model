@@ -1,20 +1,20 @@
-# Databricks Asset Bundle for Bellwether (IFC CFO Office portfolio intelligence).
+# Databricks Asset Bundle for Cloudstruck (IFC CFO Office portfolio intelligence).
 # One command deploys the pipeline job and the app to a workspace:
 #   databricks bundle validate -t prod
 #   databricks bundle deploy   -t prod
-#   databricks bundle run bellwether_full_pipeline -t prod      # rebuilds every table: run after a new delivery
+#   databricks bundle run cloudstruck_full_pipeline -t prod      # rebuilds every table: run after a new delivery
 #
 # Settings (catalog, schema, warehouse, models, thresholds) stay in config/pipeline_config.yml; the bundle only says
 # what runs where. The SQL warehouse, Genie space and model endpoint are attached to the app as resources (app/app.yaml
 # reads them); grant the app's service principal access as in app/README.md.
 #
-# Note (2026-11-16): the job "bellwether_full_pipeline" (id 1001364789587332) in workspace dbc-ba139e62-9140 was created
+# Note (2026-11-16): the job "cloudstruck_full_pipeline" (id 1001364789587332) in workspace dbc-ba139e62-9140 was created
 # with the same tasks, pointing at the notebooks already in /Workspace/Users/<owner>/financial-model (the versions that
 # passed phases 1-7). master also contains the monthly-history versions of the stage notebooks, which expect deliveries
 # in landing/incoming/YYYY-MM/; deploy them to the main schema only after the landing folder is organised by month.
 
 bundle:
-  name: bellwether
+  name: cloudstruck
 
 include: []
 
@@ -25,8 +25,8 @@ variables:
 
 resources:
   jobs:
-    bellwether_full_pipeline:
-      name: bellwether_full_pipeline
+    cloudstruck_full_pipeline:
+      name: cloudstruck_full_pipeline
       description: >-
         Full pipeline on the certified schema: schema gate -> Raw -> Validated -> reference data (A01-A24, market outlook)
         -> text enrichment -> certified tables -> 72 data-quality checks (blocking ones fail the job) -> client scorecard
@@ -42,7 +42,7 @@ resources:
         timezone_id: America/Toronto
         pause_status: PAUSED
       tags:
-        project: bellwether
+        project: cloudstruck
       environments:
         - environment_key: Default
           spec:
@@ -92,8 +92,8 @@ resources:
           environment_key: Default
           notebook_task: { notebook_path: ./04_answers/ws3/ws3_client_recommendations.py }
 
-    bellwether_agent_evaluation:
-      name: bellwether_agent_evaluation
+    cloudstruck_agent_evaluation:
+      name: cloudstruck_agent_evaluation
       description: >-
         Paraphrase-consistency evaluation of the two agents (24 phrasings; expected results from the deterministic
         engines). Results to ops_agent_evaluation and the MLflow experiment. Run after any change to a prompt, tool or model.
@@ -115,7 +115,7 @@ resources:
   apps:
     ifc_cfo_intelligence:
       name: ifc-cfo-intelligence
-      description: "Bellwether: portfolio intelligence for IFC's CFO Office (FastAPI + React)"
+      description: "Cloudstruck: portfolio intelligence for IFC's CFO Office (FastAPI + React)"
       source_code_path: ./app
 
 targets:

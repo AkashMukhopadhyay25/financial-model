@@ -58,7 +58,7 @@ class AgentSpec:
 # ---------------------------------------------------------------- MLflow tracing (best effort, never blocks an answer)
 # Every agent run becomes an MLflow trace in the experiment named in the config (serving.agents.mlflow_experiment):
 # one AGENT span with the question, answer and trust level, a CHAT_MODEL span per model call and a TOOL span per tool
-# call with its arguments and SQL. Reviewers open them in the workspace: Experiments -> bellwether_agents -> Traces.
+# call with its arguments and SQL. Reviewers open them in the workspace: Experiments -> cloudstruck_agents -> Traces.
 _mlflow = None
 _mlflow_ready = False
 

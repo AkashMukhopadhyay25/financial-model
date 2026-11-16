@@ -13,12 +13,12 @@ The calculation is simple on purpose: a reader can redo it in a minute.
 | V2 | Board risk packs per year | **4** (quarterly) | Typical Board risk cycle |
 | V3 | Monthly management packs per year | **8** (the other months), at **10 analyst-days** each | Smaller monthly version of the same work |
 | V4 | Ad hoc portfolio questions per year | **240** (about 20 a month), at **1 analyst-day** each | Recurring questions like the 30 in WS1 |
-| V5 | Effort with Bellwether | Board pack **3 days**; monthly pack **1.5 days**; ad hoc question **0.1 day** | Figures are certified and pre-assembled; analysts review, add judgment and present |
+| V5 | Effort with Cloudstruck | Board pack **3 days**; monthly pack **1.5 days**; ad hoc question **0.1 day** | Figures are certified and pre-assembled; analysts review, add judgment and present |
 | V6 | Fully loaded cost of an analyst-day | **USD 800** | Placeholder; replace with IFC's rate |
 
 ### Result
 
-| Work | Today (analyst-days a year) | With Bellwether | Saved |
+| Work | Today (analyst-days a year) | With Cloudstruck | Saved |
 |---|---|---|---|
 | Board risk packs (V1, V2) | 4 × 45 = 180 | 4 × 3 = 12 | **168** |
 | Monthly packs (V3) | 8 × 10 = 80 | 8 × 1.5 = 12 | **68** |
@@ -63,7 +63,7 @@ reasons; nothing is decided without a person.
 
 | Step | What happens | Who | Measure of success |
 |---|---|---|---|
-| 1. Champions | Two CFO Office analysts use Bellwether for the next monthly pack alongside the old process | CFO Office lead | Figures match; time spent |
+| 1. Champions | Two CFO Office analysts use Cloudstruck for the next monthly pack alongside the old process | CFO Office lead | Figures match; time spent |
 | 2. Train | 45-minute session per team: the Overview, asking Genie, reading the trust level, the two agents, sending for review | Champions | Every analyst completes one pack task |
 | 3. Switch | The next Board risk pack is built from the Board briefing page; spreadsheets kept only as a fallback | CFO | Pack ready in days, not weeks |
 | 4. Close the loop | Credit Risk Committee works its review queue; data owners clear their issues | Committee chair, data owners | Open review items and data issues fall month on month |

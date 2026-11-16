@@ -1,8 +1,8 @@
 # Users, requirements and success criteria
 
-## Who uses Bellwether, and how their work changes
+## Who uses Cloudstruck, and how their work changes
 
-| User | Today (from the brief) | With Bellwether |
+| User | Today (from the brief) | With Cloudstruck |
 |---|---|---|
 | **CFO Office analyst** | Pulls the project and monitoring files from two teams, rebuilds the calculations in spreadsheets, reconciles them by hand for each request; an exposure summary takes about three weeks | Asks in plain language (Genie) or opens a certified answer; every figure carries its SQL, assumptions and data-quality count. Builds the Board pack from the Board briefing page. |
 | **CFO** | Receives figures late, sometimes two versions of the same measure | One set of definitions (A01–A24) behind every page; the Overview balances what is going well against what needs attention; asks the agents "what if credit worsens?" and "where should new money go?" |
@@ -12,7 +12,7 @@
 
 ## Requirements, in priority order
 
-| Priority | Requirement (source) | How Bellwether meets it | Status |
+| Priority | Requirement (source) | How Cloudstruck meets it | Status |
 |---|---|---|---|
 | **Must** | Consistent figures, whoever asks and however it is phrased (brief §2) | One certified table and 24 written assumptions used by every channel; agents compute nothing themselves; Category A vs portfolio ECL always labelled | Met: 24 of 24 agent phrasings identical; Genie sheet ready for a person to run |
 | **Must** | Every answer traceable to source data and method (brief §2) | SQL shown with every page, Genie answer and agent step; assumption IDs on every certified answer; agent runs logged in `ops_agent_runs` | Met |
@@ -21,7 +21,7 @@
 | **Must** | WS1 30 questions with SQL; WS2 two Board questions; WS3 four-client recommendation (brief §4) | `answers_register`, `ws3_recommendations`, Board memo | Met |
 | **Must** | At least one agent of our own alongside Genie (brief WS3) | Reserve & Stress-Test Agent and Capital Allocation Agent | Met |
 | **Should** | State assumptions where data or questions are ambiguous (brief §4) | `ref_assumptions` A01–A24, shown in the app's Assumptions drawer | Met |
-| **Should** | Interface for business users (optional extension) | Databricks App "Bellwether", seven pages | Met |
+| **Should** | Interface for business users (optional extension) | Databricks App "Cloudstruck", seven pages | Met |
 | **Should** | External research, cited and dated (optional extension) | `ref_market_outlook`: eight sources (IMF, World Bank, IEA, GSMA, WTO, FAO) | Met |
 | **Could** | Month-on-month monitoring | Monthly review (demo months July–October 2026) | Met (demo data) |
 | **Could** | Scheduled pipeline, MLflow tracing, SSO roles | Described in the pilot-to-scale plan | Next phase |

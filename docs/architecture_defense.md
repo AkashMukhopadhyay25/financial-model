@@ -17,7 +17,7 @@ would we need to set aside?"*
 | 5 | Compute | SQL warehouse → `certified_investment_portfolio` | One deterministic SQL statement: baseline ECL $7,596M → stressed $16,427M (+$8,831M), with the breakdown and the 10 largest contributors | ~1–2 s |
 | 6 | Explain | Foundation Model API | The model writes the answer in a fixed structure (answer, drivers, assumptions, caveats), copying figures from the tool result | ~2 s |
 | 7 | Check | Agent core | Every number in the answer is matched against the tool results; any figure that cannot be traced is listed and the answer turns Amber. High-severity data issues among the shocked projects also make it Amber. | ms |
-| 8 | Log | `ops_agent_runs` + MLflow | Question, answer, every tool call with its SQL, trust level, model and latency; the same run is an MLflow trace (AGENT → CHAT_MODEL and TOOL spans) in `/Shared/bellwether_agents` | ms |
+| 8 | Log | `ops_agent_runs` + MLflow | Question, answer, every tool call with its SQL, trust level, model and latency; the same run is an MLflow trace (AGENT → CHAT_MODEL and TOOL spans) in `/Shared/cloudstruck_agents` | ms |
 | 9 | Show | React page | Baseline vs stressed ECL, drivers, projects (click opens the project record), the agent's steps with SQL, trust level. One click sends it to the Credit Risk Committee queue (`ops_review_requests`). | total **~5 s** |
 
 A Genie question follows the same shape:

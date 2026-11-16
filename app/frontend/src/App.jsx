@@ -109,8 +109,8 @@ function Header() {
     <>
       <div className="topbar">
         <div className="brand" onClick={() => nav("overview")}>
-          <BellwetherMark size={32} />
-          <span className="wordmark">Bellwether</span>
+          <CloudstruckMark size={32} />
+          <span className="wordmark">Cloudstruck</span>
         </div>
         <nav className="nav" aria-label="Pages">
           {PAGES.map((p) =>
@@ -245,28 +245,26 @@ function AlertsBox({ ov, onClose }) {
   );
 }
 
-// Bellwether mark: a lowercase "b" with a single signal arc, on the app's blue gradient (same art as public/favicon.svg).
-export function BellwetherMark({ size = 32 }) {
+// Cloudstruck mark: a lowercase "b" with a single signal arc, on the app's blue gradient (same art as public/favicon.svg).
+export function CloudstruckMark({ size = 32 }) {
+  // Cloudstruck: a cloud with a lightning strike, on the app's blue gradient tile
   return (
     <svg width={size} height={size} viewBox="0 0 48 48" aria-hidden className="brand-mark">
       <defs>
-        <linearGradient id="bw-base" x1="0" y1="0" x2="1" y2="1">
+        <linearGradient id="cs-base" x1="0" y1="0" x2="1" y2="1">
           <stop offset="0" stopColor="#5b86f7" />
           <stop offset=".55" stopColor="#2d45c4" />
           <stop offset="1" stopColor="#2f8f9a" />
         </linearGradient>
-        <radialGradient id="bw-glow" cx="1" cy="0" r=".75">
+        <radialGradient id="cs-glow" cx="1" cy="0" r=".75">
           <stop offset="0" stopColor="#ef8a4c" stopOpacity=".95" />
           <stop offset="1" stopColor="#ef8a4c" stopOpacity="0" />
         </radialGradient>
       </defs>
-      <rect width="48" height="48" rx="12" fill="url(#bw-base)" />
-      <rect width="48" height="48" rx="12" fill="url(#bw-glow)" />
-      <g fill="none" stroke="#fff" strokeLinecap="round">
-        <path d="M15.5 9.5V33" strokeWidth="4.4" />
-        <circle cx="22.6" cy="26.4" r="7.1" strokeWidth="4.4" />
-        <path d="M31.2 9.2a10 10 0 0 1 4.6 6.6" strokeWidth="2.8" />
-      </g>
+      <rect width="48" height="48" rx="12" fill="url(#cs-base)" />
+      <rect width="48" height="48" rx="12" fill="url(#cs-glow)" />
+      <path d="M14.6 27a6.4 6.4 0 0 1-.4-12.8 8.8 8.8 0 0 1 17-1.6 6.7 6.7 0 0 1 2 14.4z" fill="#fff" />
+      <path d="M26.4 20.5l-7.6 11.6h5.6l-2.8 10.4 10.2-13.6h-6l3.4-8.4z" fill="#ffd27a" stroke="#2d45c4" strokeWidth="1.4" strokeLinejoin="round" />
     </svg>
   );
 }

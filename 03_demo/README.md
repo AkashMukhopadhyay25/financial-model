@@ -1,4 +1,4 @@
-# Demo: Bellwether from a business user's point of view
+# Demo: Cloudstruck from a business user's point of view
 
 The demo is the Databricks App **`ifc-cfo-intelligence`** (Compute → Apps → ifc-cfo-intelligence → open the URL). It runs
 on the certified tables in `workspace.portfolio`; no setup is needed beyond `README.md` §5.
@@ -71,7 +71,7 @@ Target: under 3:00, screen recording of the app plus the architecture diagram. S
 
 | Time | On screen | Say |
 |---|---|---|
-| 0:00–0:20 | Title, then the Overview | "IFC's CFO Office needed three weeks to brief the Board, and two departments gave the Board different numbers for the same measure. Bellwether answers in minutes, with one set of definitions, and shows its working." |
+| 0:00–0:20 | Title, then the Overview | "IFC's CFO Office needed three weeks to brief the Board, and two departments gave the Board different numbers for the same measure. Cloudstruck answers in minutes, with one set of definitions, and shows its working." |
 | 0:20–0:45 | `assets/architecture_diagram_agentic_solution.png` | "Two monthly files pass a contract-checked pipeline into certified tables in Unity Catalog. Nothing is silently dropped: 1,260 flagged projects stay in every figure, with owners. 24 written assumptions are used by every answer. On top sit Genie and our two agents, with a trust check computed by code." |
 | 0:45–1:10 | Overview: strengths, Category A vs portfolio ECL, project spotlight → project panel | "The CFO sees what's going well and what needs attention: 79% of active projects performing, a record FY2025, and risk labelled precisely: Category A provision $3.3B, whole portfolio $7.6B. Any number opens to the projects behind it." |
 | 1:10–1:30 | Ask Genie the Category A question; show the SQL and trust level | "Analysts ask in plain language. Genie writes the SQL; our app, not Genie, checks how many flagged projects are in scope and labels the answer." |

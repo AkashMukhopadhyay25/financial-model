@@ -1,6 +1,6 @@
-# Bellwether app
+# Cloudstruck app
 
-Bellwether is the CFO Office portfolio-intelligence app. A bellwether is the early indicator that shows where things are
+Cloudstruck is the CFO Office portfolio-intelligence app. A cloudstruck is the early indicator that shows where things are
 heading, which is what the Early warning page does: it spots trouble before it becomes Past Due.
 
 A Databricks App with six pages, built from the UI mockups:

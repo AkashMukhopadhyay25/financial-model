@@ -60,13 +60,14 @@ This repo combines **two codebases** that are being merged. **Rule: everything o
   reasons (the same text as RATIONALE in the ws3 notebook); `03_demo/README.md` walkthrough + 3-minute script.
 
 **Orchestration + MLflow (2026-11-16):**
-- **Job `bellwether_full_pipeline`** (id 1001364789587332): 11 tasks, schema gate → … → ws3, serverless env 6, failure
+- **Rebrand (2026-11-16): Bellwether → Cloudstruck** (app, logo = cloud + lightning on the blue tile, docs, jobs `cloudstruck_*`, experiment `/Shared/cloudstruck_agents` renamed in place, same ids).
+- **Job `cloudstruck_full_pipeline`** (id 1001364789587332): 11 tasks, schema gate → … → ws3, serverless env 6, failure
   email, monthly schedule PAUSED, **not run**. It points at the tested notebooks in the workspace folder. Those differ
   from master's monthly-history versions, which expect month folders; don't sync them into the main schema without
   reorganising landing.
-- **Job `bellwether_agent_evaluation`** (id 602008111269609): `02_agent/run_agent_evaluation.py`. It mirrors
+- **Job `cloudstruck_agent_evaluation`** (id 602008111269609): `02_agent/run_agent_evaluation.py`. It mirrors
   app/backend through the Workspace API. The run on 2026-11-16 passed 24 of 24 and logged an MLflow run.
-- **MLflow:** experiment `/Shared/bellwether_agents` (id 2714232285130343); the app's service principal has Can edit on
+- **MLflow:** experiment `/Shared/cloudstruck_agents` (id 2714232285130343); the app's service principal has Can edit on
   it. `agent_core` wraps each run in AGENT / CHAT_MODEL / TOOL spans (best effort; `IFC_AGENT_EXPERIMENT` empty = off).
   The app requires `mlflow-tracing`.
 - **`databricks.yml`:** validated with CLI 0.270 (`DATABRICKS_BUNDLE_ENGINE=direct-exp`; the terraform download fails on an
