@@ -195,14 +195,14 @@ function Strengths() {
   if (!s) return null;
   const rec = s.record_fy, latest = s.latest_fy;
   const tiles = [
-    { v: pct(s.performing_projects / s.active_projects), l: "of Active projects performing",
+    { v: pct(s.performing_projects / s.active_projects), l: "Active projects performing",
       f: `${int(s.performing_projects)} of ${int(s.active_projects)} · ${pct(s.performing_exposure_share)} of current exposure`, go: () => nav("portfolio") },
-    { v: pct(s.completed_projects / s.closed_projects), l: "of closed projects completed",
+    { v: pct(s.completed_projects / s.closed_projects), l: "Closed projects completed",
       f: `${int(s.completed_projects)} of ${int(s.closed_projects)} met their obligations · ${pct(s.completed_disbursed_share)} of closed disbursed` },
-    { v: int(s.climate_projects), l: "climate-related projects", f: `${musd(s.climate_approved_musd, { digits: 1 })} approved` },
-    { v: `${(s.renewable_capacity_mw / 1000).toFixed(1)} GW`, l: "new renewable capacity", f: `${int(s.renewable_projects)} generation projects (A13)` },
-    { v: int(s.msme_projects), l: "small-business finance projects", f: `MSME lending through financial institutions (A14)` },
-    rec && { v: musd(rec.approved_musd, { digits: 1 }), l: `approved in FY${rec.approval_fy}, a record year`,
+    { v: int(s.climate_projects), l: "Climate-related projects", f: `${musd(s.climate_approved_musd, { digits: 1 })} approved` },
+    { v: `${(s.renewable_capacity_mw / 1000).toFixed(1)} GW`, l: "New renewable capacity", f: `${int(s.renewable_projects)} generation projects` },
+    { v: int(s.msme_projects), l: "Small-business finance projects", f: `MSME lending through financial institutions` },
+    rec && { v: musd(rec.approved_musd, { digits: 1 }), l: `Approved in FY${rec.approval_fy}, a record year`,
       f: `${int(rec.projects)} projects${latest && latest.approval_fy !== rec.approval_fy ? ` · FY${latest.approval_fy}: ${musd(latest.approved_musd, { digits: 1 })}` : ""} · ${int(s.countries)} countries` },
   ].filter(Boolean);
   return (

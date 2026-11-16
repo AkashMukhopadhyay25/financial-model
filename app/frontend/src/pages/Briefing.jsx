@@ -275,15 +275,15 @@ function WorkingPanel({ d, tot }) {
   const go = (n) => document.getElementById(`brief-${n}`)?.scrollIntoView({ behavior: "smooth", block: "start" });
   const working = [
     s && [`${pct(s.performing_projects / s.active_projects)} of Active projects are performing`, `${int(s.performing_projects)} of ${int(s.active_projects)}, ${pct(s.performing_exposure_share)} of current exposure`, 2],
-    s && [`${pct(s.completed_projects / s.closed_projects)} of closed projects were completed`, `track record: ${int(s.completed_projects)} of ${int(s.closed_projects)} met their obligations`, 2],
+    s && [`${pct(s.completed_projects / s.closed_projects)} of closed projects were completed`, `Track record: ${int(s.completed_projects)} of ${int(s.closed_projects)} met their obligations`, 2],
     s?.record_fy && [`Record approvals in FY${s.record_fy.approval_fy}`, `${musd(s.record_fy.approved_musd, { digits: 1 })} across ${int(s.record_fy.projects)} projects`, 2],
-    al && [`${al.prioritise_industry} is our strongest industry`, `rank ${al.prioritise_industry_rank} on our track record; the market outlook agrees`, 5],
-    bands.CONTINUE && [`${int(bands.CONTINUE)} strong client relationships`, "no distress, low risk ratings: candidates to grow with", 6],
+    al && [`${al.prioritise_industry} is our strongest industry`, `Rank ${al.prioritise_industry_rank} on our track record; the market outlook agrees`, 5],
+    bands.CONTINUE && [`${int(bands.CONTINUE)} strong client relationships`, "No distress, low risk ratings: candidates to grow with", 6],
   ].filter(Boolean);
   const notWorking = [
     [`${int(tot.projects)} Category A projects in distress`, `${musd(tot.expected_credit_loss_musd)} provision needed (60% of Past Due disbursed)`, 3],
-    al && [`Too concentrated in ${al.regions_to_limit.join(", ")}`, `above the ${pct(al.concentration_limit)} limit of current exposure and ranked last of the regions`, 5],
-    al && [`${al.caution_industry} is our weakest industry`, `rank ${al.caution_industry_rank}; the market outlook also counsels caution`, 5],
+    al && [`Too concentrated in ${al.regions_to_limit.join(", ")}`, `Above the ${pct(al.concentration_limit)} limit of current exposure and ranked last of the regions`, 5],
+    al && [`${al.caution_industry} is our weakest industry`, `Rank ${al.caution_industry_rank}; the market outlook also counsels caution`, 5],
     alerts.HIGH && [`${int(alerts.HIGH)} clients with high-priority risk signals`, `${int(bands.REDUCE_OR_REVIEW || 0)} clients in the reduce-or-review band`, 7],
     sw && [`Downside: +${musd(sw.summary.ecl_increase_musd)} if the Watchlist defaults`, `${int(sw.summary.shocked_projects)} Watchlist projects, ${musd(sw.summary.shocked_exposure_musd)} disbursed`, 4],
     [`${int(k.projects_needing_review)} projects with open data issues`, `${int(k.projects_high_severity)} high severity; included in every figure and routed to owners`, 8],
@@ -318,12 +318,12 @@ function BriefStrengths({ s }) {
   if (!s || s.error) return null;
   const rec = s.record_fy;
   const items = [
-    [pct(s.performing_projects / s.active_projects), "of Active projects are performing", `${int(s.performing_projects)} of ${int(s.active_projects)}; ${pct(s.performing_exposure_share)} of current exposure`],
-    [pct(s.completed_projects / s.closed_projects), "of closed projects were completed", `${int(s.completed_projects)} of ${int(s.closed_projects)} met their obligations`],
-    [int(s.climate_projects), "climate-related projects", `${musd(s.climate_approved_musd, { digits: 1 })} approved`],
-    [`${(s.renewable_capacity_mw / 1000).toFixed(1)} GW`, "new renewable capacity", `${int(s.renewable_projects)} generation projects`],
-    [int(s.msme_projects), "small-business finance projects", `across ${int(s.countries)} countries`],
-    rec && [musd(rec.approved_musd, { digits: 1 }), `approved in FY${rec.approval_fy}`, `record year: ${int(rec.projects)} projects`],
+    [pct(s.performing_projects / s.active_projects), "Active projects performing", `${int(s.performing_projects)} of ${int(s.active_projects)}; ${pct(s.performing_exposure_share)} of current exposure`],
+    [pct(s.completed_projects / s.closed_projects), "Closed projects completed", `${int(s.completed_projects)} of ${int(s.closed_projects)} met their obligations`],
+    [int(s.climate_projects), "Climate-related projects", `${musd(s.climate_approved_musd, { digits: 1 })} approved`],
+    [`${(s.renewable_capacity_mw / 1000).toFixed(1)} GW`, "New renewable capacity", `${int(s.renewable_projects)} generation projects`],
+    [int(s.msme_projects), "Small-business finance projects", `Across ${int(s.countries)} countries`],
+    rec && [musd(rec.approved_musd, { digits: 1 }), `Approved in FY${rec.approval_fy}`, `Record year: ${int(rec.projects)} projects`],
   ].filter(Boolean);
   return (
     <Section n="2" title="What is going well" sub="Same certified data and definitions as the risk sections">
