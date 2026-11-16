@@ -13,7 +13,7 @@ const FILTERS = [
 export default function Portfolio({ params }) {
   const { openLibrary, openAssumptions, openProject } = useApp();
   const genie = useGenie();
-  const [filters, setFilters] = useState({});
+  const [filters, setFilters] = useState(() => (params.status ? { status: params.status } : {})); // e.g. from the Board briefing
   const [lib, setLib] = useState([]);
   const [evidence, setEvidence] = useState(false);
   const [genieSql, setGenieSql] = useState(null);

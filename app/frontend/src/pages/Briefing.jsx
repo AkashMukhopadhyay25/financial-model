@@ -47,7 +47,7 @@ const SIGNAL_COLOR = {
 
 function Section({ n, title, sub, link, onLink, children }) {
   return (
-    <div className="card mt brief-sec">
+    <div className="card mt brief-sec" id={`brief-${n}`}>
       <div className="brief-head">
         <span className="brief-n">{n}</span>
         <div>
@@ -72,18 +72,24 @@ function Brief({ d, nav }) {
   return (
     <div className="brief">
       <div className="grid g4">
-        <Stat label="Approved investment" value={musd(k.approved_musd, { digits: 1 })}
+        <Stat label="Approved investment" value={musd(k.approved_musd, { digits: 1 })} cta="Portfolio analytics" onClick={() => nav("portfolio")}
+              info={`Total amount approved by IFC's Board for all 5,000 projects, every status: Active, Pending, Closed and Dropped (A03, A08). Bars show the split by status. Dropped projects were approved but cancelled, so the figure excluding them is shown underneath. As of ${date(k.reporting_date)}.`}
               bar={<SplitBar format={(v) => musd(v)} segments={statuses.map((x) => ({ label: x.st, value: x.approved_musd || 0, color: STATUS_COLOR[x.st] }))} />}
               note={`${int(k.projects)} projects, all statuses · ${musd(k.approved_musd - (statuses.find((x) => x.st === "Dropped")?.approved_musd || 0), { digits: 1 })} excluding Dropped`} />
-        <Stat label="Active projects" value={int(k.active_projects)}
+        <Stat label="Active projects" value={int(k.active_projects)} cta="Project list" onClick={() => nav("portfolio", { status: "Active" })}
+              info="Projects under way (status Active): the only projects carrying current credit exposure (A09). The bar shows their share of all projects; clients = distinct clients with monitored projects."
               bar={<SplitBar segments={[{ label: "Active", value: k.active_projects, color: "#1f9d55" }, { label: "Other", value: k.projects - k.active_projects, color: "#d5d9e3" }]} />}
               note={`${int(k.clients)} clients`} />
-        <Stat label="Category A in distress" value={int(tot.projects)}
+        <Stat label="Category A in distress" value={int(tot.projects)} cta="Risk & exposure" onClick={() => nav("risk")}
+              info="WS2 Board question: Active projects with environmental and social category A (potentially significant impact) whose latest monitoring status is Past Due (payments overdue) or Watchlist (early signs of difficulty)."
               bar={<SplitBar segments={[{ label: "Past Due", value: pd.projects, color: "#c9302c" }, { label: "Watchlist", value: wl.projects, color: "#e29a12" }]} />}
               note={`${int(pd.projects)} Past Due · ${int(wl.projects)} Watchlist`} />
-        <Stat label="Category A expected credit loss" value={musd(tot.expected_credit_loss_musd)} dark
+        <Stat label="Category A expected credit loss" value={musd(tot.expected_credit_loss_musd)} dark cta="Stress test" onClick={() => nav("clients", { step: "stress" })}
+              info="What IFC should set aside for the Category A projects above: Past Due projects are treated as in default and 60% of their disbursed amount is assumed lost (A11). Watchlist projects carry no provision in this model. The whole-portfolio figure, all categories, is shown underneath."
               note={`${Math.round(rate * 100)}% of ${musd(pdD)} Past Due disbursed · whole portfolio ${musd(d.overview.portfolio_risk?.expected_credit_loss_musd)}`} />
       </div>
+
+      <WorkingPanel d={d} tot={tot} />
 
       <Section n="1" title="Portfolio at a glance" sub={`As of ${date(k.reporting_date)} · board-approved, every status`} link="Portfolio analytics" onLink={() => nav("portfolio")}>
         <SplitBar format={(v) => musd(v)} height={12} segments={statuses.map((x) => ({ label: x.st, value: x.approved_musd || 0, color: STATUS_COLOR[x.st] }))} />
@@ -189,6 +195,55 @@ function Brief({ d, nav }) {
       </Section>
 
       <ReviewQueue q={d.review_queue} />
+    </div>
+  );
+}
+
+// ---------------------------------------------------------------- headline: what is working and what is not
+function WorkingPanel({ d, tot }) {
+  const s = d.strengths && !d.strengths.error ? d.strengths : null;
+  const al = d.allocation && !d.allocation.error ? d.allocation : null;
+  const k = d.overview.kpis;
+  const bands = Object.fromEntries((d.overview.client_bands || []).map((b) => [b.band, b.clients]));
+  const alerts = d.overview.alerts || {};
+  const sw = d.scenario_watchlist && !d.scenario_watchlist.error ? d.scenario_watchlist : null;
+  const go = (n) => document.getElementById(`brief-${n}`)?.scrollIntoView({ behavior: "smooth", block: "start" });
+  const working = [
+    s && [`${pct(s.performing_projects / s.active_projects)} of Active projects are performing`, `${int(s.performing_projects)} of ${int(s.active_projects)}, ${pct(s.performing_exposure_share)} of current exposure`, 2],
+    s && [`${pct(s.completed_projects / s.closed_projects)} of closed projects were completed`, `track record: ${int(s.completed_projects)} of ${int(s.closed_projects)} met their obligations`, 2],
+    s?.record_fy && [`Record approvals in FY${s.record_fy.approval_fy}`, `${musd(s.record_fy.approved_musd, { digits: 1 })} across ${int(s.record_fy.projects)} projects`, 2],
+    al && [`${al.prioritise_industry} is our strongest industry`, `rank ${al.prioritise_industry_rank} on our track record; the market outlook agrees`, 5],
+    bands.CONTINUE && [`${int(bands.CONTINUE)} strong client relationships`, "no distress, low risk ratings: candidates to grow with", 6],
+  ].filter(Boolean);
+  const notWorking = [
+    [`${int(tot.projects)} Category A projects in distress`, `${musd(tot.expected_credit_loss_musd)} provision needed (60% of Past Due disbursed)`, 3],
+    al && [`Too concentrated in ${al.regions_to_limit.join(", ")}`, `above the ${pct(al.concentration_limit)} limit of current exposure and ranked last of the regions`, 5],
+    al && [`${al.caution_industry} is our weakest industry`, `rank ${al.caution_industry_rank}; the market outlook also counsels caution`, 5],
+    alerts.HIGH && [`${int(alerts.HIGH)} clients with high-priority risk signals`, `${int(bands.REDUCE_OR_REVIEW || 0)} clients in the reduce-or-review band`, 7],
+    sw && [`Downside: +${musd(sw.summary.ecl_increase_musd)} if the Watchlist defaults`, `${int(sw.summary.shocked_projects)} Watchlist projects, ${musd(sw.summary.shocked_exposure_musd)} disbursed`, 4],
+    [`${int(k.projects_needing_review)} projects with open data issues`, `${int(k.projects_high_severity)} high severity; included in every figure and routed to owners`, 8],
+  ].filter(Boolean);
+  const List = ({ items, tone }) => (
+    <ul className={`wnw ${tone}`}>
+      {items.map(([t, sub, n]) => (
+        <li key={t} onClick={() => go(n)} title={`Go to section ${n}`}>
+          <span className="wnw-dot" />
+          <span><b>{t}</b><small>{sub}</small></span>
+          <span className="wnw-go no-print">§{n}</span>
+        </li>
+      ))}
+    </ul>
+  );
+  return (
+    <div className="grid g2 mt">
+      <div className="card wnw-card good">
+        <div className="eyebrow green" style={{ marginTop: 0 }}>What is working</div>
+        <List items={working} tone="good" />
+      </div>
+      <div className="card wnw-card bad">
+        <div className="eyebrow red" style={{ marginTop: 0 }}>What needs attention</div>
+        <List items={notWorking} tone="bad" />
+      </div>
     </div>
   );
 }
@@ -316,9 +371,13 @@ function ReviewQueue({ q }) {
   );
 }
 
-const Stat = ({ label, value, note, bar, dark }) => (
-  <div className={dark ? "copilot" : "card"} style={dark ? { minHeight: 0, cursor: "default" } : undefined}>
-    <div className="kpi-label" style={dark ? { color: "#fff", opacity: 0.9 } : undefined}>{label}</div>
+const Stat = ({ label, value, note, bar, dark, info, onClick, cta }) => (
+  <div className={`${dark ? "copilot" : "card"} stat-card`} style={dark ? { minHeight: 0 } : undefined} onClick={onClick}
+       role="button" tabIndex={0} onKeyDown={(e) => e.key === "Enter" && onClick && onClick()} title={cta}>
+    <div className="kpi-label" style={dark ? { color: "#fff", opacity: 0.9 } : undefined}>
+      <span>{label} {info && <Info text={info} align="left" />}</span>
+      {cta && <span className="stat-cta no-print">{cta} ↗</span>}
+    </div>
     <div className="kpi-value" style={{ fontSize: 34 }}>{value}</div>
     {bar}
     <div className="kpi-foot" style={dark ? { color: "#fff", opacity: 0.85 } : { marginTop: 8 }}>{note}</div>
