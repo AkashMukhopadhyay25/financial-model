@@ -39,6 +39,26 @@ This repo combines **two codebases** that are being merged. **Rule: everything o
 - Ritvik's older CFO Decision Advisor (`cfo_copilot/02_agent`) is deployed as endpoint
   `agents_workspace-cfo_copilot-cfo_decision_advisor` on his `cfo_copilot` schema; it is not used by the app.
 
+**Product pass (2026-11-16, deadline moved to 2026-11-17):**
+- **ECL labels:** Category A ECL $3.31B is always labelled as such, with portfolio ECL $7.60B beside it (Overview,
+  Risk, Board briefing).
+- **Positives** (user: "too negative"): Overview "What is going well" (`/api/strengths`, `app/backend/projects.py`);
+  context lines on Risk (298 of 393 Category A performing) and Early warning (136 of 351 clients with no signal);
+  Clients card "22 strong · 131 to review".
+- **Project depth:** Overview Project spotlight (largest / strong performers / recent / needs attention = the Early
+  warning definition, 502). The project detail drawer (`src/Project.jsx`, `useApp().openProject(url)`) also opens from
+  Top 25 and the stress-test tables.
+- **Board briefing**, 9 sections: strengths, downside scenarios (stress engine, no LLM), allocation view, concentration
+  note, and the human review queue (`/api/review-queue`, Mark reviewed + decision).
+- **Speed:** parallel queries, a 10-minute cache (`queries.cached`, cleared on review writes) and startup warm-up.
+  Briefing went from 11.5 s to about 1 s.
+- **Phrasing test:** `app/backend/evaluate.py` → `ops_agent_evaluation` + `02_agent/agent_evaluation_report.md`:
+  24 of 24 consistent. Genie sheet `02_agent/genie_phrasing_test.md` for the user to run.
+- **Docs:** README rewritten as the handover document (team name and members still placeholders for the user);
+  `assets/architecture_diagram_agentic_solution.{mmd,png}` (rendered with mermaid@10.9.1 via Playwright);
+  `04_answers/ws3/board_recommendation.md`; the `ws3_recommendations.team_rationale` rows were updated with the team's
+  reasons (the same text as RATIONALE in the ws3 notebook); `03_demo/README.md` walkthrough + 3-minute script.
+
 ## The case
 - Competition: Accenture/BTA "Forward Deployed: Agentic Innovation Challenge". Client: IFC CFO Office. Platform: **Databricks** (Unity Catalog, Genie, Databricks Apps). Submission deadline Sun Nov 15, 11:59 p.m. EST (see `IMPLEMENTATION_STRATEGY.md`).
 - Client pain: two departments showed the Board different figures for the same measure. They want **consistent figures regardless of phrasing, traceability, and flags for human review**. The brief: "where a question or the data is ambiguous, state the assumptions and apply them consistently."

@@ -14,6 +14,9 @@
 # MAGIC
 # MAGIC Expected picks on the first delivery (teammate's published result, re-verified locally): CONTINUE Rosar Telecom Holdings,
 # MAGIC Zansorzen Renewables Corp; REDUCE_OR_REVIEW Bricor Finance Group, Wenhargal Renewables Corp. Report any change.
+# MAGIC
+# MAGIC **Board-ready memo:** `04_answers/ws3/board_recommendation.md` (reasons, stress-test downside, the Sub-Saharan Africa
+# MAGIC concentration condition from the capital-allocation agent, and the other clients that stand out).
 
 # COMMAND ----------
 
@@ -113,8 +116,21 @@ print("\nIf a pick is not robust (fewer than 2 of 3), look at the shortlists and
 
 OVERRIDE_CONTINUE = None   # e.g. ["CL-0123", "CL-0456"]
 OVERRIDE_REDUCE = None
+# Team judgment (2026-11-16), checked with the stress-test and capital-allocation agents. Full memo:
+# 04_answers/ws3/board_recommendation.md
 RATIONALE = {
-    # "CL-0123": "Largest healthy relationship; undisbursed pipeline in priority sector",
+    "CL-0324": ("Largest fully healthy relationship: 21 Active projects, none Past Due or Watchlist, rating 1.62/6, "
+                "14 closed with no loss, 40 countries. Continue on condition that new commitments do not raise "
+                "Sub-Saharan Africa's share (27.8% > 25% limit, A23)."),
+    "CL-0088": ("Healthiest large scorecard (96.7): rating 1.41/6, no distressed project, 6 closed with no loss; Energy "
+                "ranks 1st of 5 (A23) and the IEA supports it [S3]. Continue, with new projects in South Asia / East Asia "
+                "& Pacific rather than Sub-Saharan Africa."),
+    "CL-0087": ("70.6% of exposure distressed (8 Past Due, 4 Watchlist), rating 5.2/6, 12 reviews overdue; stress test "
+                "+$613M ECL if its rating 5-6 projects default (+$1,008M severe). A client problem in a sector we "
+                "prioritise: freeze drawdowns pending credit review."),
+    "CL-0168": ("Largest distressed exposure: 77.2% (4 Past Due, 6 Watchlist), rating 5.31/6, 11 reviews overdue; "
+                "Finance ranks 5th of 5 and the World Bank/IMF counsel caution [S8]; stress test +$859M (+$1,125M "
+                "severe). Freeze drawdowns pending credit review."),
 }
 final_continue = OVERRIDE_CONTINUE or continue_picks
 final_reduce = OVERRIDE_REDUCE or reduce_picks
