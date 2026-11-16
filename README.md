@@ -101,6 +101,7 @@ also shown in §2 below.
 | Agent evaluation | `02_agent/agent_evaluation_report.md` (results); job **`cloudstruck_agent_evaluation`** (rerun) |
 | Agent traces | Databricks → **Experiments** → `/Shared/cloudstruck_agents` |
 | Demo walkthrough | `03_demo/README.md` |
+| Monthly history pipeline (Monthly review page) | workspace folder `/Workspace/Shared/Cloudstruck/monthly/`: its own README explains every subfolder (copy in `docs/monthly_folder_README.md`) |
 | Requirements and success criteria | `docs/requirements_and_success.md` |
 | Business case and adoption plan | `docs/business_case.md` |
 | Request trace, failure scenarios, design choices, pilot to scale | `docs/architecture_defense.md` |
