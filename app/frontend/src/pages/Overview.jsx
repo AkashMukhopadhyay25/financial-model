@@ -210,7 +210,6 @@ function Strengths() {
       <div className="card-head">
         <div>
           <h3>What is going well</h3>
-          <div className="card-sub">Same certified data and definitions as the risk views below</div>
         </div>
         <button className="btn small" onClick={() => setSql(true)}>Evidence / SQL</button>
       </div>

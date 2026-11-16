@@ -326,7 +326,7 @@ function BriefStrengths({ s }) {
     rec && [musd(rec.approved_musd, { digits: 1 }), `Approved in FY${rec.approval_fy}`, `Record year: ${int(rec.projects)} projects`],
   ].filter(Boolean);
   return (
-    <Section n="2" title="What is going well" sub="Same certified data and definitions as the risk sections">
+    <Section n="2" title="What is going well">
       <div className="strength-grid">
         {items.map(([v, l, f]) => (
           <div key={l} className="strength"><div className="sv">{v}</div><div className="sl">{l}</div><div className="sf">{f}</div></div>
