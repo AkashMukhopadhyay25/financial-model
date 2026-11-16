@@ -2,7 +2,7 @@ import React, { useEffect, useState } from "react";
 import { useApp } from "../App.jsx";
 import { flagReview, get } from "../api.js";
 import { int, musd, pct } from "../format.js";
-import { Check, DataTable, DqTag, ErrorBox, EvidenceDrawer, Info, Loading, Modal, SplitBar, Stats, StatusTag, Stripe, Tag, useApi } from "../ui.jsx";
+import { Check, DataTable, DqTag, ErrorBox, EvidenceDrawer, Info, Loading, Modal, SplitBar, Stats, StatusTag, Stripe, Tag, useApi, useHoverTip } from "../ui.jsx";
 import Allocation from "./Allocation.jsx";
 import Stress from "./Stress.jsx";
 
@@ -272,6 +272,7 @@ function HumanReview({ clientId, name }) {
 // ---------------------------------------------------------------- Client profile
 function Profile({ id, full, onCompare }) {
   const { nav } = useApp();
+  const [bindTip, tipEl] = useHoverTip();
   const { data, error, loading } = useApi(`/api/clients/${encodeURIComponent(id)}`);
   const [evidence, setEvidence] = useState(false);
   if (error) return <ErrorBox error={error} />;
@@ -291,6 +292,7 @@ function Profile({ id, full, onCompare }) {
           <Tag color={band.color} caps>{band.label}</Tag>
         </div>
         <div className="xb-client mt">
+          {tipEl}
           <div className="xb-row">
             <div className="xb-group" style={{ flex: 1 }}>
               <div className="xb-bracket">
@@ -298,8 +300,8 @@ function Profile({ id, full, onCompare }) {
                 <b>{musd(disb + und)}</b>
               </div>
               <div className="xb-blocks">
-                <div className="xb-block xb-dis" style={{ flex: disb || 0.001 }} title={`Disbursed on Active projects: ${musd(disb)}`}><span>{musd(disb)}</span></div>
-                <div className="xb-block xb-undc" style={{ flex: und || 0.001 }} title={`Approved but not yet disbursed: ${musd(und)}`}><span>{musd(und)}</span></div>
+                <div className="xb-block xb-dis" style={{ flex: disb || 0.001 }} {...bindTip(`Disbursed · ${musd(disb)} · ${Math.round((100 * disb) / ((disb + und) || 1))}% of exposure affected`)}><span>{musd(disb)}</span></div>
+                <div className="xb-block xb-undc" style={{ flex: und || 0.001 }} {...bindTip(`Undisbursed · ${musd(und)} · ${100 - Math.round((100 * disb) / ((disb + und) || 1))}% of exposure affected`)}><span>{musd(und)}</span></div>
               </div>
               <div className="xb-legend">
                 <span style={{ flex: disb || 0.001 }}><i className="xb-dis" />Disbursed</span>

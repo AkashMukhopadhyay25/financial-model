@@ -61,7 +61,19 @@ export function wholePercents(values) {
 }
 
 // Proportional bar: each segment's width is its share of the total. Hover a segment for the exact value.
-export function SplitBar({ segments, format = (v) => int(v), legend = false, height = 8 }) {
+// Hover bubble that follows the cursor (rendered on <body>, so no card or scroll area can clip it).
+export function useHoverTip() {
+  const [tip, setTip] = useState(null);
+  const bind = (text) => ({
+    onMouseMove: (e) => setTip({ text, x: e.clientX, y: e.clientY }),
+    onMouseLeave: () => setTip(null),
+  });
+  const el = tip ? createPortal(<span className="hover-tip" style={{ left: tip.x, top: tip.y }}>{tip.text}</span>, document.body) : null;
+  return [bind, el];
+}
+
+export function SplitBar({ segments, format = (v) => int(v), legend = false, height = 8, of }) {
+  const [bind, tipEl] = useHoverTip();
   const segs = (segments || []).filter((x) => Number(x.value) > 0);
   const total = segs.reduce((a, x) => a + Number(x.value), 0);
   if (!total) return <div className="stripe" style={{ height }} />;
@@ -71,7 +83,7 @@ export function SplitBar({ segments, format = (v) => int(v), legend = false, hei
       <div className="splitbar" style={{ height }}>
         {segs.map((x) => (
           <span key={x.label} style={{ flex: Number(x.value), "--c": x.color }}
-                title={`${x.label}: ${format(x.value)} (${pcts[segs.indexOf(x)]}%)`} />
+                {...bind(`${x.label} · ${format(x.value)} · ${pcts[segs.indexOf(x)]}%${of ? ` of ${of}` : ""}`)} />
         ))}
       </div>
       {legend && (
@@ -81,6 +93,7 @@ export function SplitBar({ segments, format = (v) => int(v), legend = false, hei
           ))}
         </div>
       )}
+      {tipEl}
     </div>
   );
 }

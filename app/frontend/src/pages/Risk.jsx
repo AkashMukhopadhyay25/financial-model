@@ -1,7 +1,7 @@
 import React, { useState } from "react";
 import { useApp } from "../App.jsx";
 import { int, musd, musdFull } from "../format.js";
-import { Check, DataTable, Dots, DqTag, ErrorBox, EvidenceDrawer, Info, Loading, SplitBar, Stats, Stripe, Tag, useApi } from "../ui.jsx";
+import { Check, DataTable, Dots, DqTag, ErrorBox, EvidenceDrawer, Info, Loading, SplitBar, Stats, Stripe, Tag, useApi, useHoverTip, wholePercents } from "../ui.jsx";
 
 export default function Risk({ params }) {
   const { nav, openAssumptions } = useApp();
@@ -175,8 +175,11 @@ export function ExposureBreakdown({ pd, wl, ecl, undisbursed, approved, rate, ba
     { key: "rec", label: "Recoverable", value: recoverable, tip: "Past Due disbursed not expected to be lost" },
     { key: "wl", label: "Watchlist · no loss", value: wl, tip: "Watchlist disbursed: no provision under the brief's model" },
   ];
-  const Block = ({ b }) => (
-    <div className={`xb-block xb-${b.key}`} style={{ flex: b.value || 0.001 }} title={`${b.tip}: ${musd(b.value)}`}>
+  const [bind, tipEl] = useHoverTip();
+  const pcts = wholePercents(blocks.map((b) => Number(b.value) || 0));
+  const undPct = approved ? Math.round((100 * undisbursed) / approved) : 0;
+  const Block = ({ b, i }) => (
+    <div className={`xb-block xb-${b.key}`} style={{ flex: b.value || 0.001 }} {...bind(`${b.label.replace(" · no loss", "")} · ${musd(b.value)} · ${pcts[i]}% of disbursed`)}>
       <span>{musd(b.value)}</span>
     </div>
   );
@@ -189,7 +192,7 @@ export function ExposureBreakdown({ pd, wl, ecl, undisbursed, approved, rate, ba
       <div className="xb-row">
         <div className="xb-group" style={{ flex: disbursed || 1 }}>
           <div className="xb-bracket"><span>Disbursed</span><b>{musd(disbursed)}</b></div>
-          <div className="xb-blocks">{blocks.map((b) => <Block key={b.key} b={b} />)}</div>
+          <div className="xb-blocks">{blocks.map((b, i) => <Block key={b.key} b={b} i={i} />)}</div>
           <div className="xb-legend">
             {blocks.map((b) => <span key={b.key} style={{ flex: b.value || 0.001 }}><i className={`xb-${b.key}`} />{b.label}</span>)}
           </div>
@@ -197,7 +200,7 @@ export function ExposureBreakdown({ pd, wl, ecl, undisbursed, approved, rate, ba
         <div className="xb-group" style={{ flex: undisbursed || 0.001 }}>
           <div className="xb-bracket dashed"><span>Not yet disbursed</span></div>
           <div className="xb-blocks">
-            <div className="xb-block xb-und" style={{ flex: 1 }} title={`Approved but not yet disbursed (A10): ${musd(undisbursed)}`}><span>{musd(undisbursed)}</span></div>
+            <div className="xb-block xb-und" style={{ flex: 1 }} {...bind(`Undisbursed · ${musd(undisbursed)} · ${undPct}% of approved`)}><span>{musd(undisbursed)}</span></div>
           </div>
           <div className="xb-legend"><span><i className="xb-und" />Undisbursed</span></div>
         </div>
@@ -207,6 +210,7 @@ export function ExposureBreakdown({ pd, wl, ecl, undisbursed, approved, rate, ba
         <span className="muted">= {Math.round(rate * 100)}% × {musd(pd)} Past Due</span>
         <span style={{ marginLeft: "auto" }} className="muted">Total approved <b style={{ color: "var(--ink)" }}>{musd(approved)}</b></span>
       </div>
+      {tipEl}
     </div>
   );
 }

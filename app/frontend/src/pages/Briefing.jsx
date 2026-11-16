@@ -93,7 +93,7 @@ function Brief({ d, nav }) {
       <WorkingPanel d={d} tot={tot} />
 
       <Section n="1" title="Portfolio at a glance" sub={`As of ${date(k.reporting_date)} · board-approved, every status`} link="Portfolio analytics" onLink={() => nav("portfolio")}>
-        <SplitBar format={(v) => musd(v)} height={12} segments={statuses.map((x) => ({ label: x.st, value: x.approved_musd || 0, color: STATUS_COLOR[x.st] }))} />
+        <SplitBar format={(v) => musd(v)} height={12} of="approved" segments={statuses.map((x) => ({ label: x.st, value: x.approved_musd || 0, color: STATUS_COLOR[x.st] }))} />
         <div className="grid g4 mt">
           {statuses.map((x) => (
             <div key={x.st} className="mini">
