@@ -27,7 +27,7 @@ export default function Risk({ params }) {
         <>
           <button className="btn" onClick={() => setMethod(true)}>Methodology</button>
           <button className="btn" onClick={() => setEvidence(true)}>Evidence / SQL</button>
-          <button className="btn" onClick={() => nav("stress")}>Stress-test this</button>
+          <button className="btn" onClick={() => nav("agents", { agent: "stress" })}>Stress-test this</button>
           <button className="btn dark" onClick={() => nav("briefing")}>Export / briefing</button>
         </>
       }

@@ -46,8 +46,7 @@ export default function Stress() {
   const presets = info.data?.presets || [];
   return (
     <>
-      <div className="eyebrow blue">WS3 · Decision support · Our agent</div>
-      <div className="page-head">
+      <div className="page-head" style={{ marginTop: 4 }}>
         <div>
           <h1 className="title">Reserve &amp; stress test</h1>
           <div className="subtitle">

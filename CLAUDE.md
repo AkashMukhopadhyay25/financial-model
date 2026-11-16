@@ -21,7 +21,7 @@ This repo combines **two codebases** that are being merged. **Rule: everything o
   - `app/backend/agent_core.py`: tool loop, figure tracing, trust level, `ops_agent_runs` audit;
   - `app/backend/stress.py`: deterministic scenario SQL;
   - `app/backend/stress_agent.py`: instructions and tools;
-  - page **Stress test** (`app/frontend/src/pages/Stress.jsx`), linked from Risk & exposure.
+  - UI: one nav tab **Decision agents** (`pages/Agents.jsx`, 2026-11-16, user asked for fewer top headings) with a switch: Reserve & stress test (`Stress.jsx`) | Capital allocation (`Allocation.jsx`); both stay mounted so conversations survive switching; Risk & exposure links to `#/agents?agent=stress`.
 - Model: Databricks-hosted open-weight `databricks-qwen3-next-80b-a3b-instruct` (`serving.agents.stress_test_model`;
   app resource `stress-agent-model`, Can query). Only open-weight models are served in this workspace.
 - The model never computes figures; every number in its answer must trace to a tool result, or the answer is Amber.
