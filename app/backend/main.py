@@ -16,7 +16,7 @@ from fastapi.responses import FileResponse, JSONResponse
 from fastapi.staticfiles import StaticFiles
 from pydantic import BaseModel, Field
 
-from . import genie, monthly, queries
+from . import agent_core, genie, monthly, queries, stress_agent
 from .settings import get_settings
 
 log = logging.getLogger("ifc_app")
@@ -214,6 +214,37 @@ class FeedbackBody(BaseModel):
 @app.post("/api/genie/feedback")
 def feedback(body: FeedbackBody):
     return genie.send_feedback(body.conversation_id, body.message_id, body.positive)
+
+
+# ---- the team's own agents (Genie answers "what happened?"; these answer "so what?")
+class AgentAskBody(BaseModel):
+    question: str = Field(min_length=2, max_length=2000)
+    history: list = Field(default_factory=list, max_length=12)  # earlier turns [{role, content}] for follow-ups
+
+
+@app.get("/api/agents/stress-test")
+def stress_agent_info():
+    s = stress_agent.spec()
+    return {"name": s.name, "title": s.title, "model": s.model, "presets": stress_agent.PRESETS,
+            "tools": [{"name": t.name, "description": t.description} for t in s.tools]}
+
+
+@app.post("/api/agents/stress-test/ask")
+def stress_agent_ask(body: AgentAskBody, request: Request):
+    return stress_agent.ask(body.question.strip(), body.history, _user(request))
+
+
+@app.get("/api/agents/stress-test/runs")
+def stress_agent_runs(limit: int = 20):
+    return agent_core.recent_runs("stress_test", min(limit, 100))
+
+
+@app.get("/api/agents/runs/{run_id}")
+def agent_run(run_id: str):
+    r = agent_core.get_run(run_id)
+    if not r:
+        raise HTTPException(404, "Not found")
+    return r
 
 
 class ReviewBody(BaseModel):

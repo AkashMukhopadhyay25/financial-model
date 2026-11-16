@@ -64,7 +64,9 @@ WS2/WS3 back up the teammate's earlier rows (`answers_register_ws2_teammate_back
 2. Left sidebar → **Compute** → **Apps** tab → **Create app** → **Create a custom app**. Name: `ifc-cfo-intelligence`.
 3. **App resources** → **Add resource**:
    - **SQL warehouse**: Serverless Starter Warehouse, permission *Can use*, resource key **`sql-warehouse`**;
-   - **Genie space**: the space from step 2, permission *Can run*, resource key **`genie-space`**.
+   - **Genie space**: the space from step 2, permission *Can run*, resource key **`genie-space`**;
+   - **Serving endpoint**: `databricks-qwen3-next-80b-a3b-instruct`, permission *Can query*, resource key
+     **`stress-agent-model`** (the Reserve & Stress-Test Agent's model; must match `IFC_STRESS_AGENT_MODEL` in `app.yaml`).
 4. Create the app, then **Deploy** → source code path = the `app` folder inside your Git folder
    (e.g. `/Workspace/Users/<you>/financial-model/app`).
 5. Grant the app's service principal access to the data. Its name is on the app's **Authorization** tab. In a SQL editor:
@@ -73,6 +75,8 @@ WS2/WS3 back up the teammate's earlier rows (`answers_register_ws2_teammate_back
 GRANT USE CATALOG ON CATALOG workspace TO `<app-service-principal>`;
 GRANT USE SCHEMA, SELECT ON SCHEMA workspace.portfolio TO `<app-service-principal>`;
 GRANT MODIFY ON TABLE workspace.portfolio.ops_review_requests TO `<app-service-principal>`;
+-- the app creates and appends ops_genie_history and ops_agent_runs (agent audit trail):
+GRANT CREATE TABLE, MODIFY ON SCHEMA workspace.portfolio TO `<app-service-principal>`;
 ```
 
 6. Open the app URL. The header shows "Genie space not configured" if the `genie-space` resource is missing.
@@ -100,3 +104,37 @@ cd app/frontend && npm install && npm run dev
 
 `npm run dev` serves on http://localhost:5173 and forwards `/api` to port 8000. Before committing, run `npm run build`
 so `frontend/dist` is updated; the deployed app serves those built files.
+
+## Reserve & Stress-Test Agent (page "Stress test")
+
+The team's own agent alongside Genie (WS3). Genie answers "what happened?"; this agent answers "what if?".
+
+- **How it works.** The user asks a what-if in plain language. The model (a Databricks-hosted open-weight model,
+  `serving.agents.stress_test_model` in the config / `IFC_STRESS_AGENT_MODEL` in `app.yaml`) turns it into scenario
+  parameters and calls governed tools. The tools are deterministic SQL on `certified_investment_portfolio` and
+  `ref_assumptions` (`backend/stress.py`):
+  - `run_stress_scenario`: baseline vs stressed expected credit loss. Projects that move to default: Watchlist
+    migration and/or rating ≥ N, within region, country (incl. "North Africa"), industry, client or E&S category
+    filters. Loss rate defaults to A11's 60%; an optional drawdown share of undisbursed commitments can be set.
+    Returns a summary, a breakdown and the 10 largest contributors.
+  - `get_risk_baseline`: where exposure, Past Due, Watchlist and ECL sit today.
+  - `get_assumptions`: A09–A11 and the other governed definitions.
+- **Guardrails** (`backend/agent_core.py`, shared by every agent we add):
+  - the model never computes a figure;
+  - after it answers, the app checks every figure against the tool results, and any figure it cannot trace is listed
+    and the answer is marked Amber;
+  - trust level Green / Amber / Red with reasons, plus data-quality counts for the shocked projects;
+  - every run is logged to `ops_agent_runs` (question, answer, tools, SQL, trust level, model, latency);
+  - "Send to Credit Risk Committee" files the result in `ops_review_requests`.
+- **API.** `GET /api/agents/stress-test` (model, presets, tools), `POST /api/agents/stress-test/ask`
+  `{question, history}`, `GET /api/agents/stress-test/runs`, `GET /api/agents/runs/{run_id}`.
+- **Model choice (2026-11-16)**, on the same three questions:
+  - qwen3-next-80b: about 5 s, every figure traced;
+  - gpt-oss-120b: close behind;
+  - llama-3.3-70b: 15–18 s, added a filter nobody asked for; the figure check caught its errors.
+
+  To swap the model, change the config, `app.yaml` and the app resource.
+- **Reconciles with WS2.** The baseline ECL is $7,596.21M. "Every Watchlist project defaults" adds $10,109.45M
+  (60% × $16,849.08M Watchlist disbursed). In "rated 5–6 default", Bricor Finance and Wenhargal Renewables, the two
+  WS3 reduce / review picks, are the top drivers.
+

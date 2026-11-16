@@ -6,6 +6,7 @@ import { AssumptionsDrawer, Toast } from "./ui.jsx";
 import Overview from "./pages/Overview.jsx";
 import Portfolio from "./pages/Portfolio.jsx";
 import Risk from "./pages/Risk.jsx";
+import Stress from "./pages/Stress.jsx";
 import Clients from "./pages/Clients.jsx";
 import EarlyWarning from "./pages/EarlyWarning.jsx";
 import Briefing from "./pages/Briefing.jsx";
@@ -15,6 +16,7 @@ export const PAGES = [
   { id: "overview", label: "Overview", el: Overview },
   { id: "portfolio", label: "Portfolio analytics", el: Portfolio },
   { id: "risk", label: "Risk & exposure", el: Risk },
+  { id: "stress", label: "Stress test", el: Stress },
   { id: "clients", label: "Client intelligence", el: Clients },
   { id: "early-warning", label: "Early warning", el: EarlyWarning },
   { id: "monthly", label: "Monthly review", el: Monthly },

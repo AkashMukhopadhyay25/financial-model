@@ -33,6 +33,7 @@ class Settings:
     genie_space_id: str
     data_mode: str  # "databricks" | "local"
     ecl_loss_rate: float
+    stress_agent_model: str
 
     def table(self, name: str) -> str:
         """Fully qualified name on Databricks; bare name in the local DuckDB preview."""
@@ -52,4 +53,6 @@ def get_settings() -> Settings:
         genie_space_id=os.getenv("IFC_GENIE_SPACE_ID") or srv.get("genie_space_id") or "",
         data_mode=mode,
         ecl_loss_rate=float(os.getenv("IFC_ECL_LOSS_RATE") or biz.get("ecl_loss_rate") or 0.6),
+        stress_agent_model=os.getenv("IFC_STRESS_AGENT_MODEL") or (srv.get("agents") or {}).get("stress_test_model")
+        or "databricks-qwen3-next-80b-a3b-instruct",
     )

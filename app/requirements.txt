@@ -3,3 +3,5 @@ uvicorn>=0.30
 pydantic>=2.7
 databricks-sdk>=0.60
 sqlglot>=25
+openai>=1.40
+httpx>=0.27

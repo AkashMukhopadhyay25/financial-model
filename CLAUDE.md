@@ -13,6 +13,21 @@ This repo combines **two codebases** that are being merged. **Rule: everything o
 
 **Workspaces (2026-11-13): moved to `dbc-ba139e62-9140`** (user is admin). Catalog **`workspace`**, schema `portfolio` (its metastore has no storage root, so `ifc_challenge` cannot be created without a storage location). Warehouse `a7792da7c24287a3`. Code via a Git folder; data copied from the repo's `data/` into the `landing` volume; cached LLM results exported from the old workspace and loaded as `llm_text_extractions` (carried over by phase 4). `run_llm_extraction: false` for the first run. **Phases 1–7 re-run here (2026-11-13), all pass**: 5,000/3,768, 0 quarantined, 22 flags `same`; A01–A21; full LLM extraction run (no cache could be copied): 4,969 descriptions, 0 errors, 16 min; rule new-renewable 277, final 276; 95 text rows need review (93 product, 1 capacity, 1 renewable; was 91); certified 5,000 × 100, status 1302/1233/1233/1232, overdue 324, Board passed 237, Q28 146, needs_review 1,260 (78 high); 72/72 checks pass (34 blocking, 3 warning, 35 info); 1,559 issues (was 1,555, the 4 extra text reviews); 36 WS1 answers, Q1 $52,375.81M vs $42,661.29M, W01–W14 pass. **Serverless here cannot reliably read workspace files** (random `[Errno 5] Input/output error`, also breaks Git folder pulls), so `ifc_common.read_text` and the notebook bootstrap fall back to the Workspace API, and code is deployed with the workspace import API to `/Workspace/Users/pruthvi.doshi@rotman.utoronto.ca/financial-model` from branch `deploy/new-workspace`. Run `00_reference` after `03_validate` (it reads `validated_projects`). Earlier: the target was the team workspace `dbc-83823297-5832` (catalog `ifc_challenge` already exists there, owned by Ritvik Kohli, who must grant access). The old `ifc_cfo` catalog is in a different workspace, so Stages 1–2 run fresh here. Ritvik's live copy of his code is at `/Workspace/Users/ritvik.kohli@rotman.utoronto.ca/ifc-cfo-copilot`. It is newer than `reference/` in `cfo_agent.py`, `03_build_agent.py` and `04_app.py`; pick those changes up in phases 8–9.
 
+**Stress-Test Agent (2026-11-16): the team's own agent (WS3 requires one alongside Genie).**
+- The user chose a CFO-facing **Reserve & Stress-Test Agent** first. A **Capital Allocation Agent** comes next, on the
+  same core, with curated, cited external research in a ref table (no live web).
+- Two specialised agents on one shared core, routed by page (no router model).
+- Code:
+  - `app/backend/agent_core.py`: tool loop, figure tracing, trust level, `ops_agent_runs` audit;
+  - `app/backend/stress.py`: deterministic scenario SQL;
+  - `app/backend/stress_agent.py`: instructions and tools;
+  - page **Stress test** (`app/frontend/src/pages/Stress.jsx`), linked from Risk & exposure.
+- Model: Databricks-hosted open-weight `databricks-qwen3-next-80b-a3b-instruct` (`serving.agents.stress_test_model`;
+  app resource `stress-agent-model`, Can query). Only open-weight models are served in this workspace.
+- The model never computes figures; every number in its answer must trace to a tool result, or the answer is Amber.
+- Ritvik's older CFO Decision Advisor (`cfo_copilot/02_agent`) is deployed as endpoint
+  `agents_workspace-cfo_copilot-cfo_decision_advisor` on his `cfo_copilot` schema; it is not used by the app.
+
 ## The case
 - Competition: Accenture/BTA "Forward Deployed: Agentic Innovation Challenge". Client: IFC CFO Office. Platform: **Databricks** (Unity Catalog, Genie, Databricks Apps). Submission deadline Sun Nov 15, 11:59 p.m. EST (see `IMPLEMENTATION_STRATEGY.md`).
 - Client pain: two departments showed the Board different figures for the same measure. They want **consistent figures regardless of phrasing, traceability, and flags for human review**. The brief: "where a question or the data is ambiguous, state the assumptions and apply them consistently."
