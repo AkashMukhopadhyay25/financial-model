@@ -38,6 +38,24 @@ departments recently showed the Board **different figures for the same measure**
 - **Consistency:** 24 of 24 paraphrased questions to our agents returned the identical figure
   (`02_agent/agent_evaluation_report.md`).
 
+**Who it is for:** CFO Office analysts, the CFO, Board directors, the Credit Risk Committee and the data owners.
+Their workflows before and after are in `docs/requirements_and_success.md`.
+
+**Success criteria, measured:**
+
+| Criterion | Target | Result |
+|---|---|---|
+| Time to answer | minutes, not weeks | certified answer ~1 s; Board briefing ~1 s; stress-test agent 4.9 s; capital-allocation agent 11 s |
+| Same figure however asked | 100% | 24 of 24 agent phrasings |
+| Every agent figure traced to SQL | 100% | enforced by code; untraced figures turn the answer Amber |
+| Reconciliation | 0 unexplained differences | 72 of 72 data checks; 14 of 14 WS1 checks |
+| Coverage | WS1–WS3 | 30 of 30 questions, 2 of 2 Board questions, four-client recommendation, both optional extensions |
+
+**Value, with stated assumptions** (`docs/business_case.md`): about **450 analyst-days a year** freed from building Board
+and monthly packs and from answering recurring questions. That is about two analysts, or **USD 360,000 a year** at an
+assumed USD 800 per day. Directors' follow-up questions are answered in the meeting, and one definition per measure
+ends conflicting figures. The same document has the adoption plan.
+
 ## 2. Where each deliverable is
 
 | Brief item | Location |
@@ -54,6 +72,9 @@ departments recently showed the Board **different figures for the same measure**
 | WS2 answers + SQL | `04_answers/ws2/ws2_board_questions` → `answers_register` (WS2) |
 | WS3 recommendation | `04_answers/ws3/board_recommendation.md` (Board-ready), notebook `04_answers/ws3/ws3_client_recommendations` → `ws3_recommendations` |
 | Architecture diagram | `assets/architecture_diagram_agentic_solution.png` (Mermaid source `.mmd` next to it) |
+| Users, requirements, success criteria | `docs/requirements_and_success.md` |
+| Value case and adoption plan | `docs/business_case.md` |
+| Request trace, failure scenarios, tradeoffs, pilot to scale | `docs/architecture_defense.md` |
 
 In the Databricks workspace the code is at `/Workspace/Users/pruthvi.doshi@rotman.utoronto.ca/financial-model`, and the
 data is in catalog `workspace`, schema `portfolio`.
@@ -175,6 +196,9 @@ pay-per-token endpoints.
 
 ## 8. Limitations and the path from pilot to scale
 
+The full version is in `docs/architecture_defense.md`: a phased pilot plan with exit criteria, failure scenarios, the
+design alternatives we rejected, and how the solution scales.
+
 - **The data is synthetic**, and expected credit loss uses the brief's simplified model (60% of Past Due disbursed).
   A production version would use IFC's own probability-of-default and loss-given-default models and recovery data.
 - **No last-review date exists** in the monitoring data, so "review overdue" is derived (A18).
@@ -200,6 +224,7 @@ contracts/       data contracts for the two source files
 01_data/         pipeline notebooks (schema gate → certified, DQ checks, client views, monthly history, trends)
 02_agent/        agent evaluation report · Genie phrasing test sheet
 03_demo/         business-user walkthrough and 3-minute video script
+docs/            requirements and success criteria · business case and adoption · architecture defense
 04_answers/      ws1, ws2, ws3 (notebooks + Board memo)
 app/             Databricks App: backend (FastAPI, agents, engines) · frontend (React; built files in frontend/dist)
 assets/          architecture diagram
