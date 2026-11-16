@@ -79,9 +79,11 @@ This repo combines **two codebases** that are being merged. **Rule: everything o
   subfolder. That is a copy of Ritvik's `financial-model-monthly` without `.git`, data or the old prototype;
   `run_monthly_pipeline` (824387683291203) points there, with config_path `…/monthly/config/pipeline_config_monthly_dev.yml`.
 - The app's service principal has Can read on the folder. Deploy the app with source path `/Workspace/Shared/Cloudstruck/app`.
-- The old copies are **not deleted yet** (user's choice): `/Users/pruthvi.doshi@…/financial-model` and
-  `financial-model-git`; Ritvik's `financial-model`, `-app`, `-run`, `-monthly` and `ifc-cfo-copilot-new`. Export a
-  backup before deleting; Ritvik must agree for his.
+- **Old copies deleted (2026-11-16, user's decision)**, each backed up first as a zip in the volume
+  `/Volumes/workspace/portfolio/code_archive/` (`<owner>__<folder>__2026-11-16.zip`). Deleted:
+  `/Users/pruthvi.doshi@…/financial-model` and `financial-model-git`; Ritvik's `financial-model`, `-app`, `-run`,
+  `-monthly` and `ifc-cfo-copilot-new`. Kept: the app's service-principal `src` (managed by Databricks), Ritvik's Drafts,
+  scratch notebook, log file and the `cfo_decision_advisor` experiment.
 
 ## The case
 - Competition: Accenture/BTA "Forward Deployed: Agentic Innovation Challenge". Client: IFC CFO Office. Platform: **Databricks** (Unity Catalog, Genie, Databricks Apps). Submission deadline Sun Nov 15, 11:59 p.m. EST (see `IMPLEMENTATION_STRATEGY.md`).
