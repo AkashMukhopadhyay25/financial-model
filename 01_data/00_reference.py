@@ -69,7 +69,7 @@ def read_facts() -> dict:
 # COMMAND ----------
 
 # MAGIC %md ## Assumptions A01–A24
-# MAGIC A01–A17 are the teammate's definitions, updated where the merged pipeline changed them (A03, A06, A07, A08,
+# MAGIC A01–A17 are the core definitions, refined where later analysis required it (A03, A06, A07, A08,
 # MAGIC A11, A15, A17). A18–A24 are new: review overdue, Board date passed, quarantine vs flag, data contracts, early-warning signals,
 # MAGIC capital-allocation ranking, curated external research.
 

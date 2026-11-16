@@ -16,7 +16,7 @@ contract:
               to high-severity flag (which row is wrong cannot be determined automatically)."
     - "1.2.0  Moved to one schema ({catalog}.{schema} from config). Targets are bare table names with layer
               prefixes (raw_, validated_). No rule changes."
-    - "1.3.0  Added flag P-F13 invested_before_signed (from the teammate's checks). The region as received
+    - "1.3.0  Added flag P-F13 invested_before_signed (from the lifecycle checks). The region as received
               is kept in the validated table as region_as_reported."
 
 targets:   # table names inside {catalog}.{schema} from pipeline_config.yml

@@ -1,5 +1,5 @@
 """
-Deterministic trust check for an answer's SQL (MERGE_PLAN phase 8.3).
+Deterministic trust check for an answer's SQL.
 
 Genie writes the SQL; this module, not Genie, decides the caveat. If the SQL reads only certified_investment_portfolio,
 the projects in scope are counted with Genie's own WHERE clause, and the answer carries

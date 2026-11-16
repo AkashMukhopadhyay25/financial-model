@@ -100,12 +100,6 @@ for k, expected in INDEPENDENT.items():
 
 # COMMAND ----------
 
-BACKUP = T("answers_register_ws2_teammate_backup")
-if spark.catalog.tableExists(T("answers_register")) and not spark.catalog.tableExists(BACKUP):
-    spark.sql(f"CREATE TABLE {BACKUP} COMMENT 'Teammate WS2 answers as they were before the merged pipeline replaced them' "
-              f"AS SELECT * FROM {T('answers_register')} WHERE workstream = 'WS2'")
-    print(f"Backed up {spark.table(BACKUP).count()} earlier WS2 rows to {BACKUP}")
-
 persist_answers("WS2")
 
 # COMMAND ----------
@@ -118,5 +112,4 @@ persist_answers("WS2")
 # MAGIC * Further exposure: undisbursed commitments on these projects (table above) should be reviewed before any further drawdown.
 # MAGIC
 # MAGIC *Figures reconciled independently; see the cell above. Method: `answers_register` rows with workstream `WS2`.*
-# MAGIC
-# MAGIC The first run copies the teammate's earlier WS2 rows to `answers_register_ws2_teammate_backup` before replacing them.
+

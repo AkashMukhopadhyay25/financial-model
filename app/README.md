@@ -46,8 +46,6 @@ Run in this order (Workspace → your Git folder → open the notebook → **Run
 3. `04_answers/ws2/ws2_board_questions` (expected: 95 projects, $15,473.36M approved, $11,447.52M disbursed, $3,311.72M ECL)
 4. `04_answers/ws3/ws3_client_recommendations` (expected picks: Rosar Telecom Holdings, Zansorzen Renewables Corp; Bricor Finance Group, Wenhargal Renewables Corp)
 
-WS2/WS3 back up the teammate's earlier rows (`answers_register_ws2_teammate_backup`, `answers_register_ws3_teammate_backup`,
-`ws3_recommendations_teammate_backup`) the first time they run.
 
 ## 2. Create the Genie space (once)
 

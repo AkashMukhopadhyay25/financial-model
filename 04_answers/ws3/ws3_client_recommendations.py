@@ -12,7 +12,7 @@
 # MAGIC
 # MAGIC The app's Client intelligence page and Genie read the same tables, so the CFO gets identical figures however they ask.
 # MAGIC
-# MAGIC Expected picks on the first delivery (teammate's published result, re-verified locally): CONTINUE Rosar Telecom Holdings,
+# MAGIC Expected picks on the first delivery: CONTINUE Rosar Telecom Holdings,
 # MAGIC Zansorzen Renewables Corp; REDUCE_OR_REVIEW Bricor Finance Group, Wenhargal Renewables Corp. Report any change.
 # MAGIC
 # MAGIC **Board-ready memo:** `04_answers/ws3/board_recommendation.md` (reasons, stress-test downside, the Sub-Saharan Africa
@@ -188,11 +188,7 @@ for rec, ids in [("CONTINUE", final_continue), ("REDUCE_OR_REVIEW", final_reduce
         })
 
 rec_df = spark.createDataFrame(pd.DataFrame(rows)).withColumn("generated_at", F.current_timestamp())
-REC_TABLE, REC_BACKUP = T("ws3_recommendations"), T("ws3_recommendations_teammate_backup")
-if spark.catalog.tableExists(REC_TABLE) and not spark.catalog.tableExists(REC_BACKUP):
-    spark.sql(f"CREATE TABLE {REC_BACKUP} COMMENT 'Teammate WS3 recommendations before the merged pipeline replaced them' "
-              f"AS SELECT * FROM {REC_TABLE}")
-    print(f"Backed up the earlier recommendations to {REC_BACKUP}")
+REC_TABLE = T("ws3_recommendations")
 rec_df.write.mode("overwrite").option("overwriteSchema", "true").saveAsTable(REC_TABLE)
 display(spark.table(REC_TABLE).drop("evidence_projects_json"))
 
@@ -219,7 +215,4 @@ answer("WS3_recommendation", "Recommend the two clients IFC should continue to i
        f"SELECT recommendation, client_name, client_id, exposure_affected_musd, current_disbursed_exposure_musd, undisbursed_commitment_musd, expected_credit_loss_musd, evidence_summary, suggested_action FROM {REC_TABLE} ORDER BY recommendation, exposure_affected_musd DESC",
        "Bands and thresholds per A15; exposure affected = current disbursed exposure + undisbursed commitments (A09, A10). Requires Credit Risk Committee review.",
        assumption_ids="A09,A10,A11,A15")
-BACKUP = T("answers_register_ws3_teammate_backup")
-if spark.catalog.tableExists(T("answers_register")) and not spark.catalog.tableExists(BACKUP):
-    spark.sql(f"CREATE TABLE {BACKUP} AS SELECT * FROM {T('answers_register')} WHERE workstream = 'WS3'")
 persist_answers("WS3")

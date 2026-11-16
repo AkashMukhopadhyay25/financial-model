@@ -64,9 +64,9 @@ ai:
   llm_extraction_limit: 5
   llm_batch_size: 250               # rows per committed batch (progress is saved after each batch)
   llm_parallelism: 32               # parallel model calls
-  # Earlier pipeline's LLM results (same cache key), copied once into enriched_llm_extractions so those
-  # descriptions are never sent to the model again. Empty = nothing to carry over.
-  legacy_llm_cache_table: llm_text_extractions
+  # Optional shared LLM cache from another schema (same cache key), copied into enriched_llm_extractions so those
+  # descriptions are never sent to the model again. Empty here; the monthly pipeline points it at this schema's cache.
+  legacy_llm_cache_table: ""
 
 # --- Serving IDs (workspace-specific) --------------------------------------------------------------
 serving:

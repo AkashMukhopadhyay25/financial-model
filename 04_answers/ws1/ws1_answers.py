@@ -601,56 +601,11 @@ print(f"All {len(recon_rows)} reconciliation checks passed.")
 
 # MAGIC %md
 # MAGIC ## Save the certified answers
-# MAGIC The first time this runs, the teammate's earlier WS1 answers are copied to `answers_register_ws1_teammate_backup`
-# MAGIC (only if that backup does not exist yet). Then this workstream's rows in `answers_register` are replaced; WS2 and WS3
-# MAGIC rows are not touched.
+# MAGIC This workstream's rows in `answers_register` are replaced; WS2 and WS3 rows are not touched.
 
 # COMMAND ----------
-
-BACKUP = T("answers_register_ws1_teammate_backup")
-if spark.catalog.tableExists(T("answers_register")) and not spark.catalog.tableExists(BACKUP):
-    spark.sql(f"CREATE TABLE {BACKUP} COMMENT 'Teammate WS1 answers as they were before the merged pipeline replaced them' "
-              f"AS SELECT * FROM {T('answers_register')} WHERE workstream = 'WS1'")
-    print(f"Backed up {spark.table(BACKUP).count()} earlier WS1 rows to {BACKUP}")
 
 persist_answers("WS1")
-
-# COMMAND ----------
-
-# MAGIC %md
-# MAGIC ## Compare with the teammate's earlier answers
-# MAGIC Same question id → same number of rows, and the same sum of every number in the result (a fingerprint that ignores
-# MAGIC column order and names). Differences are expected only where a definition changed; each one must be explained.
-
-# COMMAND ----------
-
-import json  # noqa: E402
-
-
-def fingerprint(preview_json):
-    total = 0.0
-    for row in json.loads(preview_json or "[]"):
-        for k, v in row.items():
-            if isinstance(v, (int, float)) and not isinstance(v, bool) and k not in ("rank",):
-                total += float(v)
-    return round(total, 2)
-
-
-if spark.catalog.tableExists(BACKUP):
-    old = {r.question_id: r for r in spark.table(BACKUP).collect()}
-    new = {r.question_id: r for r in spark.table(T("answers_register")).where("workstream = 'WS1'").collect()}
-    comparison = []
-    for qid in sorted(set(old) | set(new)):
-        o, n_ = old.get(qid), new.get(qid)
-        same_rows = o is not None and n_ is not None and o.row_count == n_.row_count
-        fo = fingerprint(o.result_preview_json) if o else None
-        fn = fingerprint(n_.result_preview_json) if n_ else None
-        same_values = fo is not None and fn is not None and abs(fo - fn) <= max(0.05, abs(fo) * 1e-7)
-        comparison.append((qid, o.row_count if o else None, n_.row_count if n_ else None,
-                           fingerprint(o.result_preview_json) if o else None, fingerprint(n_.result_preview_json) if n_ else None,
-                           "same" if same_rows and same_values else ("only teammate" if n_ is None else "only merged" if o is None else "DIFFERENT")))
-    display(spark.createDataFrame(comparison, "question_id STRING, teammate_rows BIGINT, merged_rows BIGINT, "  # noqa: F821
-                                              "teammate_fingerprint DOUBLE, merged_fingerprint DOUBLE, verdict STRING"))
 
 # COMMAND ----------
 

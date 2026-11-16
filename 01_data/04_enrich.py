@@ -14,8 +14,8 @@
 # MAGIC    sets `needs_review = true` with a `review_reason`. → `enriched_project_text_features`
 # MAGIC
 # MAGIC **Cost control.** The LLM sees a description only once: results are cached by (`project_url`, `sha2(description_clean)`),
-# MAGIC so only new or changed descriptions are sent. Results from the earlier pipeline (`ai.legacy_llm_cache_table`) are copied
-# MAGIC in once. `ai.llm_extraction_limit` in the config caps calls per run (5 for smoke tests); a full run needs explicit
+# MAGIC so only new or changed descriptions are sent. Results already cached in another schema (`ai.legacy_llm_cache_table`, optional) are
+# MAGIC copied in once. `ai.llm_extraction_limit` in the config caps calls per run (5 for smoke tests); a full run needs explicit
 # MAGIC approval. Extraction runs **once in the pipeline**, not at question time, so every user gets the same answer.
 # MAGIC
 # MAGIC Reads `validated_projects` (Stage 3). Run after `03_validate`.
@@ -123,7 +123,7 @@ CREATE TABLE IF NOT EXISTS {LLM_TABLE} (
 COMMENT 'Audit trail of LLM extraction from project descriptions (one row per project per description version). Never replaced: it is the LLM cache.'
 """)
 
-# One-time carry-over of the earlier pipeline's results, so those descriptions are never sent to the model again.
+# Optional copy of results cached in another schema, so those descriptions are never sent to the model again.
 # Only rows not already present are inserted, so re-running this cell changes nothing.
 # A bare name is looked up in this schema; a full catalog.schema.table name (e.g. the team schema's cache, when this
 # pipeline runs in a separate schema) is used as given. Read-only: the source table is never changed.
@@ -139,9 +139,9 @@ if LEGACY_FQN and LEGACY_FQN != LLM_TABLE and spark.catalog.tableExists(LEGACY_F
     LEFT ANTI JOIN {LLM_TABLE} e
       ON e.project_url = s.project_url AND e.description_hash = s.description_hash AND e.extracted_at = s.extracted_at
     """)
-    print(f"Carried over {spark.table(LLM_TABLE).count() - before} rows from {LEGACY_FQN} (earlier pipeline).")
+    print(f"Copied {spark.table(LLM_TABLE).count() - before} cached rows from {LEGACY_FQN}.")
 else:
-    print("No earlier LLM cache to carry over.")
+    print("No shared LLM cache configured.")
 
 # COMMAND ----------
 
