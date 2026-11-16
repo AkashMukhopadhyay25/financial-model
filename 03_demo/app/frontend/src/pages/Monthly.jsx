@@ -56,9 +56,6 @@ export default function Monthly({ params }) {
             </>
           ) : "Month-on-month changes in the certified portfolio"}
         </div>
-        <div className="small muted" style={{ marginTop: 4 }}>
-          Demo months July–October 2026 (synthetic deliveries). Every other page is as of 30 June 2026.
-        </div>
       </div>
       <div className="actions">
         {data?.ready && (
