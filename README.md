@@ -86,7 +86,7 @@ Every page has **Evidence / SQL** and **Assumptions** buttons that show exactly 
   - the table: `ws3_recommendations`;
   - in the app: Client intelligence (Board recommendation step and the two agents).
 
-**Architecture diagram:** `assets/architecture_diagram_agentic_solution.png` (SVG and its generator `make_architecture_diagram.py` in the same folder),
+**Architecture diagram:** `assets/architecture_diagram_agentic_solution.png` (SVG in the same folder),
 also shown in §2 below.
 
 ### Everything else

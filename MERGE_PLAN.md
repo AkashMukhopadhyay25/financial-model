@@ -82,7 +82,7 @@ ifc-cfo-copilot/
   02_agent/ 02_agent_capabilities.py  03_build_agent.py  cfo_agent.py  04_evaluate_genie.py (new)
   03_demo/04_app.py
   04_answers/ws1/ws1_answers.py  ws2/ws2_board_questions.py  ws3/ws3_client_recommendations.py
-  assets/architecture_diagram_agentic_solution.svg (+ make_architecture_diagram.py)
+  assets/architecture_diagram_agentic_solution.svg
   tests/ sqlite_dialect.py  README.md        test_files/  (broken demo files)
   reference/teammate_original/       # untouched
 ```
