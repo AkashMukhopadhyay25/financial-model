@@ -54,7 +54,7 @@ This repo combines **two codebases** that are being merged. **Rule: everything o
   Briefing went from 11.5 s to about 1 s.
 - **Phrasing test:** `app/backend/evaluate.py` → `ops_agent_evaluation` + `02_agent/agent_evaluation_report.md`:
   24 of 24 consistent. Genie sheet `02_agent/genie_phrasing_test.md` for the user to run.
-- **Docs:** README rewritten as the handover document (team name and members still placeholders for the user);
+- **Docs:** README rewritten as the handover document (team: Cloudstruck; Akash Mukhopadhyay, Pruthvi Doshi, Sneha Chandrasekaran, Ritvik Kohli);
   `assets/architecture_diagram_agentic_solution.{mmd,png}` (rendered with mermaid@10.9.1 via Playwright);
   `04_answers/ws3/board_recommendation.md`; the `ws3_recommendations.team_rationale` rows were updated with the team's
   reasons (the same text as RATIONALE in the ws3 notebook); `03_demo/README.md` walkthrough + 3-minute script.

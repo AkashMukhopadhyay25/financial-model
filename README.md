@@ -1,6 +1,6 @@
 # Cloudstruck: portfolio intelligence for IFC's CFO Office
 
-**Team:** _<team name>_ · _<team members>_ · Accenture / BTA "Forward Deployed: Agentic Innovation Challenge", 2026
+**Team Cloudstruck:** Akash Mukhopadhyay, Pruthvi Doshi, Sneha Chandrasekaran, Ritvik Kohli · Accenture / BTA "Forward Deployed: Agentic Innovation Challenge", 2026
 
 This README is the **handover document**: what the solution does, where every deliverable is, and how a client team
 deploys, operates and maintains it without further support.
