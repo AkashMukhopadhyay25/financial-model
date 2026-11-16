@@ -1,0 +1,128 @@
+# Databricks Asset Bundle for Bellwether (IFC CFO Office portfolio intelligence).
+# One command deploys the pipeline job and the app to a workspace:
+#   databricks bundle validate -t prod
+#   databricks bundle deploy   -t prod
+#   databricks bundle run bellwether_full_pipeline -t prod      # rebuilds every table: run after a new delivery
+#
+# Settings (catalog, schema, warehouse, models, thresholds) stay in config/pipeline_config.yml; the bundle only says
+# what runs where. The SQL warehouse, Genie space and model endpoint are attached to the app as resources (app/app.yaml
+# reads them); grant the app's service principal access as in app/README.md.
+#
+# Note (2026-11-16): the job "bellwether_full_pipeline" (id 1001364789587332) in workspace dbc-ba139e62-9140 was created
+# with the same tasks, pointing at the notebooks already in /Workspace/Users/<owner>/financial-model (the versions that
+# passed phases 1-7). master also contains the monthly-history versions of the stage notebooks, which expect deliveries
+# in landing/incoming/YYYY-MM/; deploy them to the main schema only after the landing folder is organised by month.
+
+bundle:
+  name: bellwether
+
+include: []
+
+variables:
+  notify:
+    description: Who is emailed when a pipeline run fails
+    default: ${workspace.current_user.userName}
+
+resources:
+  jobs:
+    bellwether_full_pipeline:
+      name: bellwether_full_pipeline
+      description: >-
+        Full pipeline on the certified schema: schema gate -> Raw -> Validated -> reference data (A01-A24, market outlook)
+        -> text enrichment -> certified tables -> 72 data-quality checks (blocking ones fail the job) -> client scorecard
+        and early warning -> WS1/WS2/WS3 answers. Fails on purpose when a delivery's columns change.
+      max_concurrent_runs: 1
+      queue:
+        enabled: true
+      email_notifications:
+        on_failure:
+          - ${var.notify}
+      schedule:
+        quartz_cron_expression: "0 0 6 5 * ?"   # 06:00 on the 5th of each month, after deliveries arrive
+        timezone_id: America/Toronto
+        pause_status: PAUSED
+      tags:
+        project: bellwether
+      environments:
+        - environment_key: Default
+          spec:
+            client: "1"
+      tasks:
+        - task_key: schema_gate
+          environment_key: Default
+          notebook_task: { notebook_path: ./01_data/01_schema_gate.py }
+        - task_key: load_raw
+          depends_on: [{ task_key: schema_gate }]
+          environment_key: Default
+          notebook_task: { notebook_path: ./01_data/02_load_raw.py }
+        - task_key: validate
+          depends_on: [{ task_key: load_raw }]
+          environment_key: Default
+          notebook_task: { notebook_path: ./01_data/03_validate.py }
+        - task_key: reference
+          depends_on: [{ task_key: validate }]
+          environment_key: Default
+          notebook_task: { notebook_path: ./01_data/00_reference.py }
+        - task_key: enrich
+          depends_on: [{ task_key: reference }]
+          environment_key: Default
+          notebook_task: { notebook_path: ./01_data/04_enrich.py }
+        - task_key: certify
+          depends_on: [{ task_key: enrich }]
+          environment_key: Default
+          notebook_task: { notebook_path: ./01_data/05_certify.py }
+        - task_key: dq_checks
+          depends_on: [{ task_key: certify }]
+          environment_key: Default
+          notebook_task: { notebook_path: ./01_data/06_dq_checks.py }
+        - task_key: client_views
+          depends_on: [{ task_key: dq_checks }]
+          environment_key: Default
+          notebook_task: { notebook_path: ./01_data/07_client_views.py }
+        - task_key: ws1_answers
+          depends_on: [{ task_key: client_views }]
+          environment_key: Default
+          notebook_task: { notebook_path: ./04_answers/ws1/ws1_answers.py }
+        - task_key: ws2_board_questions
+          depends_on: [{ task_key: client_views }]
+          environment_key: Default
+          notebook_task: { notebook_path: ./04_answers/ws2/ws2_board_questions.py }
+        - task_key: ws3_client_recommendations
+          depends_on: [{ task_key: client_views }]
+          environment_key: Default
+          notebook_task: { notebook_path: ./04_answers/ws3/ws3_client_recommendations.py }
+
+    bellwether_agent_evaluation:
+      name: bellwether_agent_evaluation
+      description: >-
+        Paraphrase-consistency evaluation of the two agents (24 phrasings; expected results from the deterministic
+        engines). Results to ops_agent_evaluation and the MLflow experiment. Run after any change to a prompt, tool or model.
+      max_concurrent_runs: 1
+      email_notifications:
+        on_failure:
+          - ${var.notify}
+      environments:
+        - environment_key: Default
+          spec:
+            client: "1"
+            dependencies: ["openai>=1.40", "httpx>=0.27", "sqlglot>=25", "fastapi>=0.115", "mlflow-tracing>=3.1"]
+      tasks:
+        - task_key: evaluate_agents
+          environment_key: Default
+          spark_python_task:
+            python_file: ./02_agent/run_agent_evaluation.py
+
+  apps:
+    ifc_cfo_intelligence:
+      name: ifc-cfo-intelligence
+      description: "Bellwether: portfolio intelligence for IFC's CFO Office (FastAPI + React)"
+      source_code_path: ./app
+
+targets:
+  prod:
+    mode: production
+    default: true
+    run_as:
+      user_name: ${workspace.current_user.userName}
+    workspace:
+      root_path: /Workspace/Users/${workspace.current_user.userName}/.bundle/${bundle.name}/${bundle.target}

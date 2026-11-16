@@ -85,6 +85,8 @@ serving:
   agents:
     stress_test_model: databricks-qwen3-next-80b-a3b-instruct
     capital_allocation_model: databricks-qwen3-next-80b-a3b-instruct
+    # MLflow experiment that receives a trace of every agent run (app + evaluation job). Empty = tracing off.
+    mlflow_experiment: /Shared/bellwether_agents
 
 # --- Business parameters (also recorded in ref_assumptions) ---------------------------------------
 business:

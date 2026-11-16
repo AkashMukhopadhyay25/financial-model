@@ -59,6 +59,20 @@ This repo combines **two codebases** that are being merged. **Rule: everything o
   `04_answers/ws3/board_recommendation.md`; the `ws3_recommendations.team_rationale` rows were updated with the team's
   reasons (the same text as RATIONALE in the ws3 notebook); `03_demo/README.md` walkthrough + 3-minute script.
 
+**Orchestration + MLflow (2026-11-16):**
+- **Job `bellwether_full_pipeline`** (id 1001364789587332): 11 tasks, schema gate → … → ws3, serverless env 6, failure
+  email, monthly schedule PAUSED, **not run**. It points at the tested notebooks in the workspace folder. Those differ
+  from master's monthly-history versions, which expect month folders; don't sync them into the main schema without
+  reorganising landing.
+- **Job `bellwether_agent_evaluation`** (id 602008111269609): `02_agent/run_agent_evaluation.py`. It mirrors
+  app/backend through the Workspace API. The run on 2026-11-16 passed 24 of 24 and logged an MLflow run.
+- **MLflow:** experiment `/Shared/bellwether_agents` (id 2714232285130343); the app's service principal has Can edit on
+  it. `agent_core` wraps each run in AGENT / CHAT_MODEL / TOOL spans (best effort; `IFC_AGENT_EXPERIMENT` empty = off).
+  The app requires `mlflow-tracing`.
+- **`databricks.yml`:** validated with CLI 0.270 (`DATABRICKS_BUNDLE_ENGINE=direct-exp`; the terraform download fails on an
+  expired key). Not deployed, because that would duplicate the two jobs above.
+- The app was found STOPPED on 2026-11-16 and was started before deploying.
+
 ## The case
 - Competition: Accenture/BTA "Forward Deployed: Agentic Innovation Challenge". Client: IFC CFO Office. Platform: **Databricks** (Unity Catalog, Genie, Databricks Apps). Submission deadline Sun Nov 15, 11:59 p.m. EST (see `IMPLEMENTATION_STRATEGY.md`).
 - Client pain: two departments showed the Board different figures for the same measure. They want **consistent figures regardless of phrasing, traceability, and flags for human review**. The brief: "where a question or the data is ambiguous, state the assumptions and apply them consistently."

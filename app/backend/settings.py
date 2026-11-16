@@ -35,6 +35,7 @@ class Settings:
     ecl_loss_rate: float
     stress_agent_model: str
     allocation_agent_model: str
+    agent_experiment: str
     alloc_min_active_projects: int
     alloc_max_segment_share: float
 
@@ -60,6 +61,7 @@ def get_settings() -> Settings:
         or "databricks-qwen3-next-80b-a3b-instruct",
         allocation_agent_model=os.getenv("IFC_ALLOCATION_AGENT_MODEL")
         or (srv.get("agents") or {}).get("capital_allocation_model") or "databricks-qwen3-next-80b-a3b-instruct",
+        agent_experiment=os.getenv("IFC_AGENT_EXPERIMENT", (srv.get("agents") or {}).get("mlflow_experiment") or ""),
         alloc_min_active_projects=int(os.getenv("IFC_ALLOC_MIN_ACTIVE") or (biz.get("capital_allocation") or {}).get("min_active_projects") or 10),
         alloc_max_segment_share=float(os.getenv("IFC_ALLOC_MAX_SHARE") or (biz.get("capital_allocation") or {}).get("max_segment_share") or 0.25),
     )

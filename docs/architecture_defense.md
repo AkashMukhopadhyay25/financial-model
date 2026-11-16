@@ -17,7 +17,7 @@ would we need to set aside?"*
 | 5 | Compute | SQL warehouse → `certified_investment_portfolio` | One deterministic SQL statement: baseline ECL $7,596M → stressed $16,427M (+$8,831M), with the breakdown and the 10 largest contributors | ~1–2 s |
 | 6 | Explain | Foundation Model API | The model writes the answer in a fixed structure (answer, drivers, assumptions, caveats), copying figures from the tool result | ~2 s |
 | 7 | Check | Agent core | Every number in the answer is matched against the tool results; any figure that cannot be traced is listed and the answer turns Amber. High-severity data issues among the shocked projects also make it Amber. | ms |
-| 8 | Log | `ops_agent_runs` | Question, answer, every tool call with its SQL, trust level, model and latency | ms |
+| 8 | Log | `ops_agent_runs` + MLflow | Question, answer, every tool call with its SQL, trust level, model and latency; the same run is an MLflow trace (AGENT → CHAT_MODEL and TOOL spans) in `/Shared/bellwether_agents` | ms |
 | 9 | Show | React page | Baseline vs stressed ECL, drivers, projects (click opens the project record), the agent's steps with SQL, trust level. One click sends it to the Credit Risk Committee queue (`ops_review_requests`). | total **~5 s** |
 
 A Genie question follows the same shape:
@@ -66,7 +66,7 @@ A Genie question follows the same shape:
 | **0. Prototype** (done) | 3 weeks | Synthetic data; WS1–WS3; two agents; app | Brief covered; 72/72 checks; 24/24 consistency |
 | **1. Pilot** | 6–8 weeks | Real monthly deliveries from both teams; two champion analysts; one monthly pack in parallel with the old process | Figures match the manual pack; time to pack < 3 days; no Red answers left unexplained |
 | **2. First Board cycle** | 1 quarter | Board risk pack built from the Board briefing; Credit Risk Committee works the review queue | Pack time cut from weeks to days; follow-up questions answered in the meeting |
-| **3. Scale** | 2 quarters | More users and teams; SSO groups (analyst, committee, data owner); scheduled Jobs; Databricks Asset Bundle for repeatable deployment; MLflow tracing and an evaluation gate before any prompt or model change; IFC's own probability-of-default and loss-given-default models in place of the 60% rule; more agents on the same core (Board-prep, figure reconciliation) | Consistency stays at 100%; cost per answer measured and accepted |
+| **3. Scale** | 2 quarters | More users and teams; SSO groups (analyst, committee, data owner); the monthly schedule of the pipeline job unpaused; the evaluation job as a required CI gate (job, Asset Bundle and MLflow tracing already exist); IFC's own probability-of-default and loss-given-default models in place of the 60% rule; more agents on the same core (Board-prep, figure reconciliation) | Consistency stays at 100%; cost per answer measured and accepted |
 
 **What changes for production, honestly:**
 - the data is synthetic and the ECL model is the brief's simplification;

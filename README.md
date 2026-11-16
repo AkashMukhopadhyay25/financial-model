@@ -66,7 +66,9 @@ ends conflicting figures. The same document has the adoption plan.
 | Data contracts | `contracts/projects_contract.yml`, `contracts/monitoring_contract.yml` |
 | Agent capabilities (tools) | `app/backend/stress.py` (stress engine), `app/backend/allocation.py` (A23 ranking, A24 research), `config/market_outlook.yml` (cited sources) |
 | Agent build | `app/backend/agent_core.py` (shared core), `stress_agent.py`, `allocation_agent.py`. The agents run inside the Databricks App, which calls the Foundation Model API. |
-| Agent evaluation | `app/backend/evaluate.py` → `02_agent/agent_evaluation_report.md` and table `ops_agent_evaluation`; Genie test sheet `02_agent/genie_phrasing_test.md` |
+| Agent evaluation | Job `bellwether_agent_evaluation` (`02_agent/run_agent_evaluation.py` → `app/backend/evaluate.py`): results to `ops_agent_evaluation`, `02_agent/agent_evaluation_report.md` and an MLflow run; Genie test sheet `02_agent/genie_phrasing_test.md` |
+| Agent traces (MLflow) | Experiment `/Shared/bellwether_agents`: one trace per agent run (question → model calls → tool calls with SQL → answer, trust level), from the app and the evaluation job |
+| Orchestration | Job `bellwether_full_pipeline` (11 tasks, failure email, monthly schedule paused); `databricks.yml` (Asset Bundle: both jobs + the app, validated) |
 | Demo (business user's view) | the Databricks App `ifc-cfo-intelligence` (`app/`); walkthrough and video script `03_demo/README.md` |
 | WS1 answers + SQL | `04_answers/ws1/ws1_answers` → `answers_register` (workstream WS1) |
 | WS2 answers + SQL | `04_answers/ws2/ws2_board_questions` → `answers_register` (WS2) |
@@ -135,7 +137,10 @@ pay-per-token endpoints.
 
    Nothing else hard-codes a name.
 3. **Data.** Upload the two CSVs to the `landing` volume. For monthly runs, use `incoming/YYYY-MM/`.
-4. **Pipeline.** Run, in order:
+4. **Pipeline.** Run the job **`bellwether_full_pipeline`**: Workflows → Jobs → bellwether_full_pipeline → Run now.
+   It rebuilds every table, in the order below. A step's failure emails the owner; a changed column fails it on purpose.
+   The same tasks are in `databricks.yml`, so `databricks bundle deploy -t prod` recreates the jobs and the app in a new
+   workspace. The stages, for running by hand:
    1. `00_setup/00_config`
    2. `01_data/01_schema_gate`
    3. `02_load_raw`
@@ -169,7 +174,8 @@ pay-per-token endpoints.
 | **Work the data-quality list** | `ops_dq_issues` lists open issues by owner, and the app shows them on every page. Text-attribute decisions go into `ref_text_feature_overrides`. That table is never overwritten; it holds human decisions. |
 | **Human review** | Items sent from the app appear in Board briefing → "Human review queue". "Mark reviewed" records the decision with the reviewer's name and time (`ops_review_requests`, append-only). |
 | **Audit an agent answer** | `ops_agent_runs` holds every question, answer, tool call, SQL, trust level, model and latency. Reopen any run in the app with "Past runs". |
-| **Monitor quality** | Rerun `app/backend/evaluate.py` after any change to a prompt, tool or model. Have a person rerun `02_agent/genie_phrasing_test.md` after changing the Genie space. |
+| **Monitor quality** | Run the job `bellwether_agent_evaluation` after any change to a prompt, tool or model. It fails if consistency drops below 100%, and logs an MLflow run with the metrics and report. Have a person rerun `02_agent/genie_phrasing_test.md` after changing the Genie space. |
+| **Debug an agent answer** | Experiments → `/Shared/bellwether_agents` → Traces: every run, step by step (model calls, tool calls with their SQL, latency, trust level). |
 | **Board pack** | Board briefing → "Print / save as PDF" or "Download (.md)". Every figure comes live from the certified tables. |
 
 ## 7. Maintain and extend
@@ -209,11 +215,12 @@ design alternatives we rejected, and how the solution scales.
 - **The model's wording can be imprecise** (for example "low" for a mid-ranked rate). The figure check guarantees the
   numbers, not the adjectives.
 - **Path to scale:**
-  1. Run the pipeline as a scheduled Databricks Job with failure alerts.
+  1. Unpause the monthly schedule of `bellwether_full_pipeline` once deliveries arrive in month folders. The job,
+     failure alerts, Asset Bundle, MLflow traces and evaluation job are already in place.
   2. Move the app to SSO groups (analyst / committee roles).
   3. Add a Board-prep agent and a figure-reconciliation agent on the same core.
-  4. Add MLflow tracing and an evaluation gate before every model or prompt change.
-  5. Package everything as a Databricks Asset Bundle (`databricks.yml`) for one-command deployment to new workspaces.
+  4. Make the evaluation job a required gate in CI before any model or prompt change reaches the app.
+  5. Deploy to new workspaces with the Asset Bundle (`databricks.yml`), one command per environment.
 
 ## 9. Repository map
 

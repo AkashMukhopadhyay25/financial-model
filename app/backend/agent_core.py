@@ -55,6 +55,83 @@ class AgentSpec:
     prefetch: list = field(default_factory=list)
 
 
+# ---------------------------------------------------------------- MLflow tracing (best effort, never blocks an answer)
+# Every agent run becomes an MLflow trace in the experiment named in the config (serving.agents.mlflow_experiment):
+# one AGENT span with the question, answer and trust level, a CHAT_MODEL span per model call and a TOOL span per tool
+# call with its arguments and SQL. Reviewers open them in the workspace: Experiments -> bellwether_agents -> Traces.
+_mlflow = None
+_mlflow_ready = False
+
+
+def _tracer():
+    global _mlflow, _mlflow_ready
+    if _mlflow_ready:
+        return _mlflow
+    _mlflow_ready = True
+    try:
+        import mlflow
+
+        from .settings import get_settings
+
+        exp = get_settings().agent_experiment
+        if not exp:
+            return None
+        mlflow.set_tracking_uri("databricks")
+        mlflow.set_experiment(exp)
+        _mlflow = mlflow
+    except Exception:
+        log.warning("MLflow tracing disabled", exc_info=True)
+        _mlflow = None
+    return _mlflow
+
+
+class _NoSpan:
+    def set_inputs(self, *_):
+        pass
+
+    def set_outputs(self, *_):
+        pass
+
+    def set_attributes(self, *_):
+        pass
+
+
+class _Span:
+    """with _Span(name, type, inputs) as sp: ... -> a real MLflow span when tracing is on, a no-op otherwise."""
+    def __init__(self, name, span_type, inputs=None):
+        self.name, self.span_type, self.inputs, self.cm = name, span_type, inputs, None
+
+    def __enter__(self):
+        mf = _tracer()
+        if mf is None:
+            return _NoSpan()
+        try:
+            self.cm = mf.start_span(name=self.name, span_type=self.span_type)
+            sp = self.cm.__enter__()
+            if self.inputs is not None:
+                sp.set_inputs(self.inputs)
+            return sp
+        except Exception:
+            self.cm = None
+            return _NoSpan()
+
+    def __exit__(self, *exc):
+        if self.cm is not None:
+            try:
+                self.cm.__exit__(*exc)
+            except Exception:
+                pass
+        return False
+
+
+def _trace_id():
+    mf = _tracer()
+    try:
+        return mf.get_last_active_trace_id() if mf else None
+    except Exception:
+        return None
+
+
 def _client():
     from databricks.sdk import WorkspaceClient
 
@@ -149,6 +226,16 @@ def untraced_figures(answer: str, tool_results: list) -> list:
 
 # ---------------------------------------------------------------- the loop
 def run(spec: AgentSpec, question: str, history: list = None, user: str = "") -> dict:
+    with _Span(f"agent:{spec.name}", "AGENT", {"question": question, "turns_of_history": len(history or [])}) as root:
+        out = _run(spec, question, history, user)
+        root.set_outputs({"answer": out.get("answer"), "error": out.get("error"), "trust": out.get("trust")})
+        root.set_attributes({"agent": spec.name, "model": spec.model, "trust_level": out["trust"]["level"],
+                             "latency_ms": out["latency_ms"], "run_id": out.get("run_id") or "", "user": user or ""})
+    out["mlflow_trace_id"] = _trace_id()
+    return out
+
+
+def _run(spec: AgentSpec, question: str, history: list = None, user: str = "") -> dict:
     t0 = time.time()
     tools = {t.name: t for t in spec.tools}
     convo = [{"role": "system", "content": spec.instructions}]
@@ -161,16 +248,19 @@ def run(spec: AgentSpec, question: str, history: list = None, user: str = "") ->
 
     def call(name, args, call_id):
         tool = tools.get(name)
-        if tool is None:
-            result = {"error": f"unknown tool {name}"}
-        else:
-            try:
-                result = tool.fn(**args)
-            except TypeError as e:
-                result = {"error": f"bad arguments: {e}"}
-            except Exception as e:  # SQL or connection failure: report, never guess
-                log.exception("tool %s failed", name)
-                result = {"error": f"{type(e).__name__}: {e}"}
+        with _Span(f"tool:{name}", "TOOL", {"arguments": args, "prefetched": call_id.startswith("prefetch")}) as sp:
+            if tool is None:
+                result = {"error": f"unknown tool {name}"}
+            else:
+                try:
+                    result = tool.fn(**args)
+                except TypeError as e:
+                    result = {"error": f"bad arguments: {e}"}
+                except Exception as e:  # SQL or connection failure: report, never guess
+                    log.exception("tool %s failed", name)
+                    result = {"error": f"{type(e).__name__}: {e}"}
+            sp.set_outputs({"error": result.get("error"), "rows": _row_count(result), "sql": result.get("sql"),
+                            "summary": result.get("summary")})
         results.append({"tool": name, "arguments": args, "result": result})
         trace.append({"tool": name, "arguments": args, "error": result.get("error"), "sql": result.get("sql"),
                       "rows": _row_count(result), "prefetched": call_id.startswith("prefetch")})
@@ -189,9 +279,13 @@ def run(spec: AgentSpec, question: str, history: list = None, user: str = "") ->
                 call(n, a, cid)
         llm = _client()
         for _ in range(spec.max_steps):
-            resp = llm.chat.completions.create(model=spec.model, messages=convo, tools=[t.spec() for t in spec.tools],
-                                               temperature=0.0, max_tokens=1800)
-            msg = resp.choices[0].message
+            with _Span(f"llm:{spec.model}", "CHAT_MODEL", {"messages": len(convo), "last": convo[-1]}) as sp:
+                resp = llm.chat.completions.create(model=spec.model, messages=convo, tools=[t.spec() for t in spec.tools],
+                                                   temperature=0.0, max_tokens=1800)
+                msg = resp.choices[0].message
+                sp.set_outputs({"content": _text(msg.content)[:4000],
+                                "tool_calls": [{"name": tc.function.name, "arguments": tc.function.arguments}
+                                               for tc in (msg.tool_calls or [])]})
             if not msg.tool_calls:
                 answer = _text(msg.content).strip()
                 break

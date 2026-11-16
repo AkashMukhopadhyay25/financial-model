@@ -18,6 +18,9 @@ env:
   # business.capital_allocation of the config.
   - name: IFC_ALLOCATION_AGENT_MODEL
     value: "databricks-qwen3-next-80b-a3b-instruct"
+  # MLflow experiment for agent traces (serving.agents.mlflow_experiment); the service principal needs Can edit on it.
+  - name: IFC_AGENT_EXPERIMENT
+    value: "/Shared/bellwether_agents"
   - name: IFC_ALLOC_MIN_ACTIVE
     value: "10"
   - name: IFC_ALLOC_MAX_SHARE
