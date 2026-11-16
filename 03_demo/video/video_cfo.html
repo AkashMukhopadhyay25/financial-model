@@ -1,0 +1,210 @@
+<!doctype html><html><head><meta charset="utf-8"><style>
+*{box-sizing:border-box;margin:0;padding:0}
+html,body{width:1920px;height:1080px;overflow:hidden;background:#07040f;font-family:Inter,sans-serif;color:#efeaff}
+#bg{position:absolute;inset:0;background:radial-gradient(1200px 700px at 20% 10%,#2a1150 0%,transparent 60%),radial-gradient(1000px 700px at 90% 90%,#1b0d3d 0%,transparent 60%),#07040f}
+#grid{position:absolute;inset:0;background-image:linear-gradient(#ffffff08 1px,transparent 1px),linear-gradient(90deg,#ffffff08 1px,transparent 1px);background-size:60px 60px;animation:pan 180s linear both}
+@keyframes pan{to{background-position:0 600px}}
+.scene{position:absolute;inset:0;opacity:0;display:flex;flex-direction:column;align-items:center;justify-content:center}
+.k{opacity:0;animation-fill-mode:both;animation-timing-function:cubic-bezier(.2,.7,.2,1)}
+@keyframes up{from{opacity:0;transform:translateY(40px)}to{opacity:1;transform:none}}
+@keyframes fade{from{opacity:0}to{opacity:1}}
+@keyframes out{to{opacity:0}}
+@keyframes grow{from{opacity:1;transform:scaleX(0)}to{opacity:1;transform:scaleX(1)}}
+@keyframes pop{0%{opacity:0;transform:scale(.85)}100%{opacity:1;transform:scale(1)}}
+@keyframes flow{from{stroke-dashoffset:40}to{stroke-dashoffset:0}}
+h1{font-size:96px;font-weight:700;letter-spacing:-2px;text-align:center}
+h2{font-size:64px;font-weight:650;letter-spacing:-1px;text-align:center}
+.sub{font-size:34px;color:#b9acd9;text-align:center;margin-top:24px}
+.eyebrow{font-size:22px;letter-spacing:6px;text-transform:uppercase;color:#a77bff;margin-bottom:28px}
+.grad{background:linear-gradient(90deg,#c69bff,#7d4dff 50%,#4fb3ff);-webkit-background-clip:text;color:transparent}
+.card{background:linear-gradient(160deg,#1d1236ee,#120a24ee);border:1px solid #4b2f86;border-radius:24px;padding:40px 48px;box-shadow:0 0 60px #7d4dff22}
+.big{font-size:88px;font-weight:700;letter-spacing:-2px}
+.row{display:flex;gap:48px;align-items:center}
+.tag{display:inline-block;padding:8px 18px;border-radius:999px;font-size:22px;font-weight:600}
+.green{background:#0f3a26;color:#5fe39a}.amber{background:#3d2b07;color:#ffc24d}.red{background:#3f0e18;color:#ff6b81}.purple{background:#2a1757;color:#c9a8ff}
+.lbl{font-size:24px;color:#9d90c0}
+.bar{height:34px;border-radius:8px;transform-origin:left}
+.pill{font-size:28px;padding:18px 28px;border:1px solid #4b2f86;border-radius:16px;background:#150c2a}
+
+.phone{width:440px;height:760px;border-radius:56px;background:#0d0a16;border:3px solid #3a2a60;padding:70px 26px;display:flex;flex-direction:column;gap:18px;box-shadow:0 0 80px #7d4dff33}
+.bub{max-width:340px;padding:18px 22px;border-radius:24px;font-size:24px;line-height:1.35}
+.in{background:#2a2340;align-self:flex-start;border-bottom-left-radius:6px}
+.me{background:#6b3fd6;align-self:flex-end;border-bottom-right-radius:6px}
+.who{font-size:18px;color:#9d90c0;margin-bottom:4px}
+#clock{position:absolute;top:40px;right:56px;text-align:right;z-index:9;opacity:0;animation:fade .6s 1s both}
+#clock .t{font-size:64px;font-weight:700;font-variant-numeric:tabular-nums}
+#clock .l{font-size:22px;color:#ff8fa3}
+.screen{width:1300px;border-radius:22px;background:#0f0a1d;border:2px solid #3a2a60;padding:40px 50px;box-shadow:0 0 90px #7d4dff22}
+.bar3{display:flex;gap:10px;margin-bottom:26px}.bar3 i{width:14px;height:14px;border-radius:50%;background:#3a2a60}
+@keyframes bob{0%,100%{transform:translateY(0)}50%{transform:translateY(-8px)}}
+@keyframes walk{from{transform:translateX(-500px)}to{transform:translateX(330px)}}
+@keyframes shake{0%,100%{transform:rotate(0)}25%{transform:rotate(-6deg)}75%{transform:rotate(6deg)}}
+@keyframes toGreen{to{background:#0f3a26;color:#5fe39a}}
+</style></head><body><div id="bg"></div><div id="grid"></div>
+<div id="clock"><div class="t" id="ct">7:58</div><div class="l" id="cl">Board meeting at 9:00</div></div>
+
+<!-- A cold open 0-15 -->
+<div class="scene" style="animation:fade .6s 0s both, out .6s 14.4s forwards">
+ <div class="row" style="gap:160px;align-items:center">
+  <div style="position:relative">
+   <div class="k" style="animation:fade .8s .3s both, bob 3s 0s infinite"><svg viewBox="0 0 300 560" width="300" height="560" >
+ <ellipse cx="150" cy="545" rx="95" ry="12" fill="#00000066"/>
+ <rect x="112" y="400" width="32" height="140" rx="14" fill="#2b1d4a"/><rect x="156" y="400" width="32" height="140" rx="14" fill="#2b1d4a"/>
+ <path d="M90 200 Q150 175 210 200 L225 420 L75 420 Z" fill="#6b3fd6"/>
+ <path d="M150 200 L135 300 L150 330 L165 300 Z" fill="#efeaff"/>
+ <rect x="138" y="160" width="24" height="40" fill="#d9a07a"/>
+ <circle cx="150" cy="120" r="58" fill="#d9a07a"/>
+ <path d="M92 125 Q90 50 150 52 Q215 50 212 130 Q205 90 150 88 Q105 90 98 160 Z" fill="#1c1030"/>
+ <circle cx="130" cy="125" r="5" fill="#1c1030"/><circle cx="170" cy="125" r="5" fill="#1c1030"/>
+ <path class="mouth" d="M136 150 Q150 160 164 150" stroke="#1c1030" stroke-width="4" fill="none" stroke-linecap="round"/>
+</svg></div>
+   <div class="k" style="position:absolute;left:200px;top:250px;animation:fade .6s .5s both"><svg width="70" height="80"><rect x="5" y="15" width="44" height="55" rx="8" fill="#efeaff"/><path d="M49 28 h10 a10 10 0 0 1 0 22 h-10" stroke="#efeaff" stroke-width="6" fill="none"/><path d="M18 8 q5 -8 0 -14 M32 8 q5 -8 0 -14" stroke="#9d90c0" stroke-width="3" fill="none"/></svg></div>
+   <div class="k" style="animation:fade .5s 9s both;position:absolute;left:-40px;top:-20px;font-size:30px;color:#c9a8ff">Maya · CFO</div>
+  </div>
+  <div class="phone k" style="animation:up .7s 1.5s both, shake .15s 2.2s 4">
+   <div class="k" style="animation:pop .5s 2.4s both"><div class="who">Board Chair</div><div class="bub in">Risk says the portfolio is <b>$42.7B</b>. Finance says <b>$52.4B</b>.</div></div>
+   <div class="k" style="animation:pop .5s 4.6s both"><div class="bub in">Which number do I present at 9?</div></div>
+   <div class="k" style="animation:pop .5s 8s both"><div class="who">#finance-ops</div><div class="bub in" style="background:#1d1830">which spreadsheet is <b>final_v3_FINAL.xlsx</b>? 🙃</div></div>
+  </div>
+ </div>
+</div>
+
+<!-- B title 15-27 -->
+<div class="scene" style="animation:fade .6s 15s both, out .6s 26.4s forwards">
+ <h2 class="k" style="animation:up 1s 15.3s both">One hour. Two numbers. One Board.</h2>
+ <div class="eyebrow k" style="animation:fade .8s 17.5s both;margin-top:60px">Maya opens</div>
+ <h1 class="k grad" style="animation:pop 1s 18s both;font-size:130px">Cloudstruck</h1>
+ <div class="row" style="margin-top:50px;gap:28px">
+  <div class="pill k" style="animation:up .6s 20s both"><b>5,000</b> projects + <b>3,768</b> monitoring rows</div>
+  <div class="pill k" style="animation:up .6s 21s both"><b>72 / 72</b> quality checks pass</div>
+  <div class="pill k" style="animation:up .6s 22s both"><b>0</b> rows lost</div>
+ </div>
+ <div class="sub k" style="animation:fade .8s 23s both">One certified portfolio on Databricks. Every figure traceable.</div>
+</div>
+
+<!-- C consistency 27-70 -->
+<div class="scene" style="animation:fade .6s 27s both, out .6s 69.4s forwards;align-items:flex-start;padding-left:70px">
+ <div class="screen k" style="animation:up .8s 27.2s both">
+  <div class="bar3"><i></i><i></i><i></i></div>
+  <div class="lbl" style="margin-bottom:24px">Maya asks the same thing three ways</div>
+  <div style="display:flex;flex-direction:column;gap:22px">
+   <div class="row k" style="animation:up .5s 29s both;gap:26px"><div class="pill" style="flex:1"><span class="type" data-start="29.2" data-cps="26">What is IFC's total approved investment?</span></div><div class="card k" style="animation:pop .4s 31.8s both;padding:16px 28px"><b style="font-size:36px">$52,375.81M</b> <span class="tag green">Green · A03</span></div></div>
+   <div class="row k" style="animation:up .5s 33.5s both;gap:26px"><div class="pill" style="flex:1"><span class="type" data-start="33.7" data-cps="28">How much has the Board approved across the whole portfolio?</span></div><div class="card k" style="animation:pop .4s 36.8s both;padding:16px 28px"><b style="font-size:36px">$52,375.81M</b> <span class="tag green">Green · A03</span></div></div>
+   <div class="row k" style="animation:up .5s 38.5s both;gap:26px"><div class="pill" style="flex:1"><span class="type" data-start="38.7" data-cps="28">Give me the portfolio's total approved value</span></div><div class="card k" style="animation:pop .4s 41.3s both;padding:16px 28px"><b style="font-size:36px">$52,375.81M</b> <span class="tag green">Green · A03</span></div></div>
+  </div>
+  <div class="k" style="animation:fade .6s 44s both;margin-top:30px;font-size:28px;line-height:1.5"><span class="tag purple">A03</span> All statuses unless the question names one. <span style="color:#b9acd9">Excluding Dropped: <b style="color:#fff">$42,661.29M</b>, stated every time.</span></div>
+  <div class="k" style="animation:fade .6s 48s both;margin-top:18px;font-size:28px"><b style="color:#5fe39a">24 of 24</b> <span style="color:#b9acd9">phrasing tests give the same figure</span></div>
+ </div>
+ <div class="phone k" style="position:absolute;right:50px;top:210px;transform:scale(.62);transform-origin:top right;animation:up .7s 53s both">
+  <div class="bub me k" style="animation:pop .4s 54s both">Both are right. <b>$52.4B</b> includes the 1,232 Dropped projects, <b>$42.7B</b> doesn't. Rule A03 attached.</div>
+  <div class="k" style="animation:pop .4s 59s both"><div class="who">Board Chair</div><div class="bub in">Finally. 👏</div></div>
+ </div>
+</div>
+
+<!-- D risk 70-112 -->
+<div class="scene" style="animation:fade .6s 70s both, out .6s 111.4s forwards">
+ <div class="phone k" style="position:absolute;left:60px;top:150px;transform:scale(.62);transform-origin:top left;animation:up .6s 70.3s both">
+  <div class="k" style="animation:pop .4s 71s both"><div class="who">Board Chair</div><div class="bub in">And are we exposed anywhere?</div></div>
+ </div>
+ <div style="margin-left:330px;display:flex;flex-direction:column;gap:30px;width:1300px">
+  <div class="row" style="gap:30px;align-items:stretch">
+   <div class="card k" style="animation:up .7s 74s both;flex:1">
+    <div class="lbl">Category A projects · highest E&amp;S risk</div>
+    <div class="big" data-count="393" data-from="74.5" data-dur="1.2" data-fmt="#">0</div>
+    <div style="margin-top:20px;display:flex;height:46px;border-radius:10px;overflow:hidden"><div class="k" style="animation:grow 1.2s 76s both;transform-origin:left;width:75.8%;background:#2fbf75"></div><div class="k" style="animation:grow .8s 77.2s both;transform-origin:left;width:24.2%;background:linear-gradient(90deg,#ffc24d,#ff6b81)"></div></div>
+    <div style="display:flex;justify-content:space-between;margin-top:14px;font-size:24px"><span><b style="color:#5fe39a">298</b> performing</span><span><b style="color:#ffc24d">95</b> Watchlist or Past Due</span></div>
+   </div>
+   <div class="card k" style="animation:up .7s 80s both;flex:1">
+    <div class="lbl">Expected credit loss = 60% of Past Due disbursed (A11)</div>
+    <div class="big" style="color:#ff8fa3" data-count="3.31" data-from="81" data-dur="1.3" data-fmt="$#B" data-dec="2">$0</div>
+    <div class="lbl">Category A ECL</div>
+    <div style="margin-top:16px;font-size:28px">of a portfolio ECL of <b>$7.60B</b></div>
+   </div>
+  </div>
+  <div class="card k" style="animation:up .7s 88s both;padding:26px 40px">
+   <div class="lbl" style="margin-bottom:14px">Human review queue</div>
+   <div class="row" style="justify-content:space-between;font-size:28px"><span>Flagged project · data-quality warning</span>
+    <span style="position:relative"><span class="tag amber" style="animation:out .2s 95s forwards">Amber · needs review</span><span class="tag green k" style="position:absolute;right:0;top:0;white-space:nowrap;animation:pop .3s 95.1s both">Green · reviewed</span></span></div>
+   <div class="row" style="justify-content:flex-end;margin-top:16px;gap:20px">
+    <span class="k" style="animation:fade .4s 95.3s both;color:#5fe39a;font-size:26px">✓ Reviewed by Maya · now Green</span>
+    <span class="pill k" style="animation:fade .4s 90s both, out .3s 95s forwards;font-size:24px;padding:12px 22px;background:#6b3fd6">Mark reviewed</span>
+   </div>
+  </div>
+  <div class="sub k" style="animation:fade .8s 100s both;margin-top:0">The agent never computes a figure. Every number traces to a query, or it's flagged.</div>
+ </div>
+</div>
+
+<!-- E decisions 112-150 -->
+<div class="scene" style="animation:fade .6s 112s both, out .6s 149.4s forwards">
+ <div class="phone k" style="position:absolute;left:60px;top:150px;transform:scale(.62);transform-origin:top left;animation:up .6s 112.3s both">
+  <div class="k" style="animation:pop .4s 113s both"><div class="who">Board Chair</div><div class="bub in">Last one. Which clients do we back?</div></div>
+ </div>
+ <div style="margin-left:330px;width:1300px">
+  <div style="display:grid;grid-template-columns:1fr 1fr;gap:22px">
+   <div class="card k" style="animation:pop .6s 116s both;padding:22px 32px"><span class="tag green">Continue investing</span><div style="font-size:34px;font-weight:700;margin:12px 0 4px">Rosar Telecom Holdings</div><div class="lbl">$3,141M · 21 Active projects, none Past Due</div></div>
+   <div class="card k" style="animation:pop .6s 117.5s both;padding:22px 32px"><span class="tag green">Continue investing</span><div style="font-size:34px;font-weight:700;margin:12px 0 4px">Zansorzen Renewables Corp</div><div class="lbl">$2,833M · Energy, the top-ranked industry</div></div>
+   <div class="card k" style="animation:pop .6s 119s both;padding:22px 32px;border-color:#7a2a3d"><span class="tag red">Review exposure</span><div style="font-size:34px;font-weight:700;margin:12px 0 4px">Wenhargal Renewables Corp</div><div class="lbl">$3,966M · freeze drawdowns · $853M ECL</div></div>
+   <div class="card k" style="animation:pop .6s 120.5s both;padding:22px 32px;border-color:#7a2a3d"><span class="tag red">Review exposure</span><div style="font-size:34px;font-weight:700;margin:12px 0 4px">Bricor Finance Group</div><div class="lbl">$3,817M · freeze drawdowns · $536M ECL</div></div>
+  </div>
+  <div class="k" style="animation:up .7s 124s both;margin-top:30px;font-size:32px;text-align:center">Freezing two clients protects <b class="grad" style="font-size:52px" data-count="2415" data-from="124.5" data-dur="1.3" data-fmt="$#,M">$0</b> of undisbursed commitments</div>
+  <div class="card k" style="animation:up .7s 131s both;margin-top:26px;padding:22px 36px">
+   <div style="font-size:26px;margin-bottom:14px">Capital allocation agent · Sub-Saharan Africa share of exposure <span class="tag amber">limit 25%</span></div>
+   <div style="position:relative;height:36px;background:#ffffff10;border-radius:8px"><div class="bar k" style="animation:grow 1.3s 132s both;height:36px;width:55.6%;background:linear-gradient(90deg,#a77bff,#ff6b81)"></div><div style="position:absolute;left:50%;top:-8px;bottom:-8px;width:3px;background:#ffc24d"></div></div>
+   <div class="k" style="animation:fade .5s 134s both;font-size:24px;margin-top:12px;color:#b9acd9"><b style="color:#ff8fa3">27.8%</b>, over the limit, and all four clients are there. Put new commitments in Energy in South Asia and East Asia &amp; Pacific.</div>
+  </div>
+ </div>
+</div>
+
+<!-- F board door 150-168 -->
+<div class="scene" style="animation:fade .6s 150s both, out .6s 167.4s forwards">
+ <svg width="1920" height="1080" style="position:absolute;inset:0">
+  <rect x="1180" y="230" width="420" height="760" rx="10" fill="#1d1236" stroke="#7d4dff" stroke-width="4"/>
+  <rect x="1215" y="265" width="350" height="725" fill="#120a24"/>
+  <circle cx="1530" cy="620" r="14" fill="#c69bff"/>
+  <rect x="1250" y="170" width="280" height="50" rx="10" fill="#2a1757"/><text x="1390" y="204" fill="#efeaff" font-size="28" text-anchor="middle" font-weight="600">BOARD ROOM</text>
+  <rect x="0" y="990" width="1920" height="90" fill="#0d0819"/>
+ </svg>
+ <div style="position:absolute;left:300px;top:430px;animation:walk 6s 150.5s both, out .6s 157s forwards"><div style="animation:bob .5s 0s infinite"><svg viewBox="0 0 300 560" width="300" height="560" >
+ <ellipse cx="150" cy="545" rx="95" ry="12" fill="#00000066"/>
+ <rect x="112" y="400" width="32" height="140" rx="14" fill="#2b1d4a"/><rect x="156" y="400" width="32" height="140" rx="14" fill="#2b1d4a"/>
+ <path d="M90 200 Q150 175 210 200 L225 420 L75 420 Z" fill="#6b3fd6"/>
+ <path d="M150 200 L135 300 L150 330 L165 300 Z" fill="#efeaff"/>
+ <rect x="138" y="160" width="24" height="40" fill="#d9a07a"/>
+ <circle cx="150" cy="120" r="58" fill="#d9a07a"/>
+ <path d="M92 125 Q90 50 150 52 Q215 50 212 130 Q205 90 150 88 Q105 90 98 160 Z" fill="#1c1030"/>
+ <circle cx="130" cy="125" r="5" fill="#1c1030"/><circle cx="170" cy="125" r="5" fill="#1c1030"/>
+ <path class="mouth" d="M136 150 Q150 160 164 150" stroke="#1c1030" stroke-width="4" fill="none" stroke-linecap="round"/>
+</svg></div>
+  <div style="position:absolute;left:210px;top:270px;width:90px;height:110px;background:#efeaff;border-radius:6px;transform:rotate(8deg);box-shadow:0 0 30px #c69bff"><div style="margin:14px;height:6px;background:#6b3fd6"></div><div style="margin:0 14px 8px;height:6px;background:#c9a8ff"></div><div style="margin:0 14px;height:6px;background:#c9a8ff"></div></div></div>
+ <div class="k" style="position:absolute;left:180px;top:320px;animation:up 1s 158s both;max-width:880px">
+  <h2 style="text-align:left">Maya walks in with<br><span class="grad">one certified number.</span></h2>
+  <div class="sub" style="text-align:left">Two minutes to spare.</div>
+ </div>
+</div>
+
+<!-- G close 168-180 -->
+<div class="scene" style="animation:fade .8s 168s both">
+ <div class="row" style="gap:24px">
+  <span class="tag purple k" style="animation:up .5s 168.5s both;font-size:28px">Traceable</span>
+  <span class="tag purple k" style="animation:up .5s 169s both;font-size:28px">Consistent</span>
+  <span class="tag purple k" style="animation:up .5s 169.5s both;font-size:28px">Human-reviewed</span>
+  <span class="tag purple k" style="animation:up .5s 170s both;font-size:28px">Actionable</span>
+ </div>
+ <h2 class="k" style="animation:up 1s 171s both;margin-top:70px">From fragmented data to confident decisions.</h2>
+ <h1 class="k grad" style="animation:pop 1s 173.5s both;margin-top:30px;font-size:130px">Cloudstruck</h1>
+</div>
+
+<script>
+const fmt=(v,f,dec)=>{let n=dec?v.toFixed(dec):Math.round(v).toString();if(f.includes('#,'))n=Math.round(v).toLocaleString('en-US');return f.replace('#,','#').replace('#',n)};
+const K=[[0,478],[14,479],[27,481],[69,481],[70,495],[111,495],[112,520],[149,520],[150,538],[158,538]];
+window.render=t=>{
+ document.getAnimations().forEach(a=>{a.pause();a.currentTime=t*1000});
+ document.querySelectorAll('[data-count]').forEach(e=>{const s=+e.dataset.from,d=+e.dataset.dur,p=Math.min(1,Math.max(0,(t-s)/d)),q=1-Math.pow(1-p,3);e.textContent=fmt(q*+e.dataset.count,e.dataset.fmt,+e.dataset.dec||(e.dataset.fmt.includes('B')?1:0))});
+ document.querySelectorAll('.type').forEach(e=>{e.full??=e.textContent;const n=Math.max(0,Math.floor((t-+e.dataset.start)*+e.dataset.cps));e.textContent=e.full.slice(0,n)+(n<e.full.length&&t>+e.dataset.start?'▍':'')});
+ let m=K[K.length-1][1];for(let i=0;i<K.length-1;i++)if(t>=K[i][0]&&t<K[i+1][0]){m=Math.floor(K[i][1]+(K[i+1][1]-K[i][1])*(t-K[i][0])/(K[i+1][0]-K[i][0]));break}
+ const left=540-m;document.getElementById('ct').textContent=Math.floor(m/60)+':'+String(m%60).padStart(2,'0');
+ document.getElementById('cl').textContent='Board at 9:00 · '+left+' min left';
+ document.getElementById('clock').style.visibility=t>167?'hidden':'visible';
+};
+render(0);
+</script></body></html>
