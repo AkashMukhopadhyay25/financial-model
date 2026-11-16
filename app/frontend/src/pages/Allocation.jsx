@@ -68,7 +68,6 @@ export default function Allocation({ embedded = false, pending = null }) {
         <div className="ask-head">
           <span>
             <b>{info.data?.title || "Capital Allocation Agent"}</b>
-            {info.data?.model && <span className="muted"> · model {info.data.model}</span>}
           </span>
           <Info text="Code ranks industries and regions on four credit metrics from the certified portfolio (A23) and applies the decision rule; the curated, dated research (A24) sits beside it, never blended in. The agent explains the result, cites every source as [S#] and checks the four-client recommendation. The app verifies every figure in its answer and that it never prioritises a concentration-flagged region." />
         </div>

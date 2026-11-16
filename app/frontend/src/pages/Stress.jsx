@@ -72,7 +72,6 @@ export default function Stress({ embedded = false, pending = null }) {
         <div className="ask-head">
           <span>
             <b>{info.data?.title || "Reserve & Stress-Test Agent"}</b>
-            {info.data?.model && <span className="muted"> · model {info.data.model}</span>}
           </span>
           <Info text="Genie answers 'what happened?'. This agent answers 'what if?': it turns your question into one or more scenarios, runs them with governed SQL on certified_investment_portfolio, and explains the result. It never computes a number itself; the app checks that every figure in its answer comes from a tool result." />
         </div>
