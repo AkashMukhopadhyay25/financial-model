@@ -1,0 +1,107 @@
+# A24: curated external research for the Capital Allocation Agent (WS3 optional extension "External research").
+# Loaded into ref_market_outlook by 01_data/00_reference. The agent reads ONLY these rows (no live web), so every
+# claim it makes about markets is cited and dated. Add a row when a new report is published; never edit a finding
+# without updating published_date and url.
+# stance: prioritise | neutral | caution (for NEW commitments in IFC's emerging-market portfolio).
+# Findings are paraphrased from the publisher's summary or press release (retrieved 2026-11-16); verify the full
+# report before quoting a figure to the Board.
+retrieved_date: 2026-11-16
+sources:
+  - source_id: S1
+    publisher: International Monetary Fund
+    title: "World Economic Outlook, October 2026: Resilience Under Strain, Urgent Choices"
+    published_date: 2026-10-13
+    url: https://www.imf.org/en/publications/weo/issues/2026/10/13/world-economic-outlook-october-2026
+    industry: ALL
+    region: ALL
+    stance: neutral
+    finding: >-
+      Emerging market and developing economy growth is projected to slow to 3.7% in 2026 from 4.5% in 2025, as
+      economies exposed to higher oil and gas costs slow, before recovering to 4.4% in 2027. Emerging and developing
+      Asia is projected at 5.1% and sub-Saharan Africa at 4.5% in 2026. Main risks: oil prices, rising public debt,
+      uneven AI adoption.
+  - source_id: S2
+    publisher: World Bank
+    title: "Global Economic Prospects, June 2026 (press release)"
+    published_date: 2026-06-11
+    url: https://www.worldbank.org/en/news/press-release/2026/06/11/global-economic-prospects-june-2026-press-release
+    industry: ALL
+    region: Middle East
+    stance: caution
+    finding: >-
+      Global growth is cut to 2.5% in 2026 (2.9% in 2025), the weakest since the pandemic, as the Middle East conflict
+      raises energy prices, inflation and borrowing costs. Growth for the Middle East, North Africa, Afghanistan and
+      Pakistan region is cut to 1.6% in 2026 (rebound to 5% expected in 2027). Downside scenario: global growth 1.3%.
+  - source_id: S3
+    publisher: International Energy Agency
+    title: "World Energy Investment 2025"
+    published_date: 2025-06-05
+    url: https://www.iea.org/reports/world-energy-investment-2025
+    industry: Energy
+    region: ALL
+    stance: prioritise
+    finding: >-
+      Global energy investment reaches about USD 3.3 trillion in 2025, of which about USD 2.2 trillion goes to clean
+      energy. Emerging and developing economies outside China remain under-financed: Africa receives about 2% of
+      global clean-energy investment. High cost of capital is the main barrier, and the IEA calls for international
+      public finance to crowd in private capital: the role IFC plays.
+  - source_id: S4
+    publisher: GSMA
+    title: "The Mobile Economy 2025 / The Mobile Economy Africa 2025"
+    published_date: 2025-03-03
+    url: https://www.gsmaintelligence.com/research/the-mobile-economy-2025
+    industry: Telecom
+    region: ALL
+    stance: prioritise
+    finding: >-
+      About 4.7 billion people use mobile internet, but a large usage gap remains in low- and middle-income countries,
+      where device affordability is the main barrier. In Africa, mobile technologies and services generated about
+      USD 240 billion of economic value in 2025, expected to reach USD 290 billion by 2030.
+  - source_id: S5
+    publisher: World Trade Organization
+    title: "Global Trade Outlook and Statistics, update October 2026"
+    published_date: 2026-10-08
+    url: https://www.wto.org/english/news_e/news26_e/stat_08oct26_510_e.htm
+    industry: Manufacturing
+    region: ALL
+    stance: neutral
+    finding: >-
+      World merchandise trade volume growth for 2026 is raised to 3.9% (from 1.9% in March 2026) and 4.1% for 2027,
+      but the lift is concentrated in AI-related goods, which accounted for 47% of trade growth in the first half of
+      2026, led by Asia (exports +9.9%). Under a high-energy-price scenario linked to the Middle East conflict, trade
+      growth could slow to 1.4%. Supersedes the October 2025 outlook (2026 cut to 0.5% on tariffs).
+  - source_id: S6
+    publisher: World Bank
+    title: "Commodity Markets Outlook, October 2025"
+    published_date: 2025-10-29
+    url: https://www.worldbank.org/en/research/commodity-markets
+    industry: Agribusiness
+    region: ALL
+    stance: neutral
+    finding: >-
+      The food price index is estimated to fall about 6% in 2025 and to stay broadly stable in 2026 on ample supplies;
+      edible oils are firming while a spike in fertilizer prices squeezes farm margins, especially for
+      fertilizer-intensive crops.
+  - source_id: S7
+    publisher: Food and Agriculture Organization of the United Nations
+    title: "Food Outlook: Biannual Report on Global Food Markets, June 2026"
+    published_date: 2026-06-18
+    url: https://www.fao.org/giews/reports/food-outlook/en/
+    industry: Agribusiness
+    region: ALL
+    stance: neutral
+    finding: >-
+      Food commodity markets remain mostly favourable, with cereal supplies historically elevated though easing from
+      the 2025 record. Energy and fertilizer costs, conflict and weather (a possible El Nino) are growing risks.
+  - source_id: S8
+    publisher: World Bank / International Monetary Fund
+    title: "Borrowing costs and debt (GEP June 2026; WEO October 2026)"
+    published_date: 2026-10-13
+    url: https://www.imf.org/en/publications/weo/issues/2026/10/13/world-economic-outlook-october-2026
+    industry: Finance
+    region: ALL
+    stance: caution
+    finding: >-
+      Higher borrowing costs (World Bank, June 2026) and rising public debt (IMF, October 2026) weigh on emerging-market
+      lenders' asset quality and funding; financial-intermediary exposure should favour lenders with strong capital
+      and diversified books.

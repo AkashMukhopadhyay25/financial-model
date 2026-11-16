@@ -25,6 +25,17 @@ This repo combines **two codebases** that are being merged. **Rule: everything o
 - Model: Databricks-hosted open-weight `databricks-qwen3-next-80b-a3b-instruct` (`serving.agents.stress_test_model`;
   app resource `stress-agent-model`, Can query). Only open-weight models are served in this workspace.
 - The model never computes figures; every number in its answer must trace to a tool result, or the answer is Amber.
+- **Capital Allocation Agent (2026-11-16), built after the stress test:**
+  - Code: `app/backend/allocation.py`, `allocation_agent.py`; page **Capital allocation** (`Allocation.jsx`).
+  - A23 is the segment ranking (config `business.capital_allocation`). A24 is the curated research in
+    `config/market_outlook.yml`, loaded into `ref_market_outlook` by `00_reference`. On 2026-11-16, A23, A24 and the
+    table were inserted directly with the same code, without a full rerun.
+  - The decision rule (`allocation_summary`) is code, and its context is prefetched before the model runs.
+  - A deterministic consistency check blocks prioritising a concentrated region.
+  - Result: prioritise Energy (South Asia, East Asia & Pacific), caution on Finance, limit Sub-Saharan Africa (27.8% > 25%).
+    All four WS3 clients are in Sub-Saharan Africa.
+  - The WTO October 2026 update (2026 trade growth 3.9%) supersedes the October 2025 one (0.5%); always check that a
+    source is the latest.
 - Ritvik's older CFO Decision Advisor (`cfo_copilot/02_agent`) is deployed as endpoint
   `agents_workspace-cfo_copilot-cfo_decision_advisor` on his `cfo_copilot` schema; it is not used by the app.
 

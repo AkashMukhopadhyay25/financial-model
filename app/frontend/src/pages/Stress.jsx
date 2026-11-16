@@ -8,7 +8,7 @@ import { DataTable, Drawer, ErrorBox, Info, SqlBlock, Tag, Toast, useApi } from 
 
 // Reserve & Stress-Test Agent: the team's own agent alongside Genie. The model picks the scenario and explains it;
 // deterministic SQL on the certified tables computes every figure, and the app checks every figure in the answer.
-const LEVEL = {
+export const LEVEL = {
   VALIDATED: { label: "Green · Validated", color: "green" },
   REVIEW_RECOMMENDED: { label: "Amber · Review recommended", color: "amber" },
   HUMAN_REVIEW_REQUIRED: { label: "Red · Human review required", color: "red" },
@@ -241,7 +241,7 @@ function Kpi({ label, value, foot, tone }) {
   );
 }
 
-function Steps({ r, onClose }) {
+export function Steps({ r, onClose }) {
   return (
     <Drawer title="How the agent worked" onClose={onClose}>
       <p className="small muted" style={{ marginTop: 0 }}>
@@ -266,10 +266,10 @@ function Steps({ r, onClose }) {
   );
 }
 
-function PastRuns({ onClose, onOpen }) {
-  const { data, error, loading } = useApi("/api/agents/stress-test/runs");
+export function PastRuns({ onClose, onOpen, agent = "stress-test", label = "stress-test" }) {
+  const { data, error, loading } = useApi(`/api/agents/${agent}/runs`);
   return (
-    <Drawer title="Past stress-test runs" onClose={onClose}>
+    <Drawer title={`Past ${label} runs`} onClose={onClose}>
       {error && <ErrorBox error={error} />}
       {loading && <div className="small muted">Loading…</div>}
       {data && !data.length && <div className="small muted">No runs yet.</div>}

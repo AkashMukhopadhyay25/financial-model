@@ -14,6 +14,14 @@ env:
   # The app's service principal needs "Can query" on this endpoint (app resource "stress-agent-model").
   - name: IFC_STRESS_AGENT_MODEL
     value: "databricks-qwen3-next-80b-a3b-instruct"
+  # Capital Allocation Agent: same endpoint (serving.agents.capital_allocation_model); A23 thresholds as in
+  # business.capital_allocation of the config.
+  - name: IFC_ALLOCATION_AGENT_MODEL
+    value: "databricks-qwen3-next-80b-a3b-instruct"
+  - name: IFC_ALLOC_MIN_ACTIVE
+    value: "10"
+  - name: IFC_ALLOC_MAX_SHARE
+    value: "0.25"
   # Add these two as app resources (Configure page), with exactly these resource keys:
   - name: IFC_WAREHOUSE_ID
     valueFrom: "sql-warehouse"

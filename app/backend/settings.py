@@ -34,6 +34,9 @@ class Settings:
     data_mode: str  # "databricks" | "local"
     ecl_loss_rate: float
     stress_agent_model: str
+    allocation_agent_model: str
+    alloc_min_active_projects: int
+    alloc_max_segment_share: float
 
     def table(self, name: str) -> str:
         """Fully qualified name on Databricks; bare name in the local DuckDB preview."""
@@ -55,4 +58,8 @@ def get_settings() -> Settings:
         ecl_loss_rate=float(os.getenv("IFC_ECL_LOSS_RATE") or biz.get("ecl_loss_rate") or 0.6),
         stress_agent_model=os.getenv("IFC_STRESS_AGENT_MODEL") or (srv.get("agents") or {}).get("stress_test_model")
         or "databricks-qwen3-next-80b-a3b-instruct",
+        allocation_agent_model=os.getenv("IFC_ALLOCATION_AGENT_MODEL")
+        or (srv.get("agents") or {}).get("capital_allocation_model") or "databricks-qwen3-next-80b-a3b-instruct",
+        alloc_min_active_projects=int(os.getenv("IFC_ALLOC_MIN_ACTIVE") or (biz.get("capital_allocation") or {}).get("min_active_projects") or 10),
+        alloc_max_segment_share=float(os.getenv("IFC_ALLOC_MAX_SHARE") or (biz.get("capital_allocation") or {}).get("max_segment_share") or 0.25),
     )

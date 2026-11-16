@@ -48,6 +48,11 @@ class AgentSpec:
     instructions: str
     tools: list
     max_steps: int = 6
+    # Optional deterministic consistency checks: (answer, successful tool results) -> list of problems (Amber if any).
+    checks: Callable[[str, list], list] = None
+    # Context the agent always needs, fetched deterministically before the model runs: [(tool_name, arguments)].
+    # Shown to the model as tool calls it already made, so it cannot skip them.
+    prefetch: list = field(default_factory=list)
 
 
 def _client():
@@ -71,7 +76,7 @@ def _text(content) -> str:
 
 
 # ---------------------------------------------------------------- number tracing
-NUM = re.compile(r"(?<![\w.])-?\$?\d[\d,]*(?:\.\d+)?\s*(?:%|[MB]\b)?")
+NUM = re.compile(r"(?<![\w.])-?\$?\d[\d,]*(?:\.\d+)?\s*(?:%|trillion\b|billion\b|million\b|bn\b|[MBT]\b)?")
 
 
 def _numbers_in(obj, out: set):
@@ -95,12 +100,11 @@ def _numbers_in(obj, out: set):
 def _parse(token: str):
     t = token.strip().replace("$", "").replace(",", "")
     scale = 1.0
-    if t.endswith("%"):
-        t, scale = t[:-1].strip(), 0.01
-    elif t.endswith("B"):
-        t, scale = t[:-1].strip(), 1000.0
-    elif t.endswith("M"):
-        t = t[:-1].strip()
+    for suffix, k in (("trillion", 1e6), ("billion", 1e3), ("million", 1.0), ("bn", 1e3), ("%", 0.01), ("T", 1e6),
+                      ("B", 1e3), ("M", 1.0)):
+        if t.endswith(suffix):
+            t, scale = t[: -len(suffix)].strip(), k
+            break
     try:
         return float(t) * scale
     except ValueError:
@@ -127,15 +131,16 @@ def untraced_figures(answer: str, tool_results: list) -> list:
         v = _parse(tok)
         if v is None:
             continue
-        raw = tok.replace("$", "").replace(",", "").rstrip("%MB ").strip()
-        if not tok.startswith("$") and not tok.endswith(("%", "M", "B")) and "." not in raw and abs(v) <= 31:
+        raw = re.sub(r"\s*(%|trillion|billion|million|bn|[MBT])$", "", tok.replace("$", "").replace(",", "")).strip()
+        unit_word = re.search(r"(%|trillion|billion|million|bn|[MBT])$", tok)
+        if not tok.startswith("$") and not unit_word and "." not in raw and abs(v) <= 31:
             continue  # small counts, list numbers, ratings, days: not monetary claims
         if 1990 <= v <= 2100 and "." not in raw and not tok.startswith("$"):
             continue  # years
         decimals = len(raw.split(".")[1]) if "." in raw else 0
         # tolerance: the model may round or truncate a tool figure to the precision it wrote
         # (e.g. 10,109.45 -> $10,109M or $10.1B); anything further off is not that figure
-        unit = 1000.0 if tok.endswith("B") else (0.01 if tok.endswith("%") else 1.0)
+        unit = _parse("1" + (unit_word.group(1) if unit_word else "")) or 1.0
         tol = unit * (10 ** -decimals) - 1e-9
         if not any(abs(v - k) <= tol for k in known):
             bad.append(tok)
@@ -153,7 +158,35 @@ def run(spec: AgentSpec, question: str, history: list = None, user: str = "") ->
     convo.append({"role": "user", "content": question})
 
     trace, results, answer, error = [], [], "", None
+
+    def call(name, args, call_id):
+        tool = tools.get(name)
+        if tool is None:
+            result = {"error": f"unknown tool {name}"}
+        else:
+            try:
+                result = tool.fn(**args)
+            except TypeError as e:
+                result = {"error": f"bad arguments: {e}"}
+            except Exception as e:  # SQL or connection failure: report, never guess
+                log.exception("tool %s failed", name)
+                result = {"error": f"{type(e).__name__}: {e}"}
+        results.append({"tool": name, "arguments": args, "result": result})
+        trace.append({"tool": name, "arguments": args, "error": result.get("error"), "sql": result.get("sql"),
+                      "rows": _row_count(result), "prefetched": call_id.startswith("prefetch")})
+        convo.append({"role": "tool", "tool_call_id": call_id,
+                      "content": json.dumps({k: v for k, v in result.items() if not k.startswith("sql")},
+                                            default=str)[:12000]})
+
     try:
+        if spec.prefetch:
+            ids = [f"prefetch_{i}" for i in range(len(spec.prefetch))]
+            convo.append({"role": "assistant", "content": "",
+                          "tool_calls": [{"id": cid, "type": "function",
+                                          "function": {"name": n, "arguments": json.dumps(a)}}
+                                         for cid, (n, a) in zip(ids, spec.prefetch)]})
+            for cid, (n, a) in zip(ids, spec.prefetch):
+                call(n, a, cid)
         llm = _client()
         for _ in range(spec.max_steps):
             resp = llm.chat.completions.create(model=spec.model, messages=convo, tools=[t.spec() for t in spec.tools],
@@ -171,23 +204,7 @@ def run(spec: AgentSpec, question: str, history: list = None, user: str = "") ->
                     args = json.loads(tc.function.arguments or "{}")
                 except json.JSONDecodeError:
                     args = {}
-                tool = tools.get(tc.function.name)
-                if tool is None:
-                    result = {"error": f"unknown tool {tc.function.name}"}
-                else:
-                    try:
-                        result = tool.fn(**args)
-                    except TypeError as e:
-                        result = {"error": f"bad arguments: {e}"}
-                    except Exception as e:  # SQL or connection failure: report, never guess
-                        log.exception("tool %s failed", tool.name)
-                        result = {"error": f"{type(e).__name__}: {e}"}
-                results.append({"tool": tc.function.name, "arguments": args, "result": result})
-                trace.append({"tool": tc.function.name, "arguments": args, "error": result.get("error"),
-                              "sql": result.get("sql"), "rows": _row_count(result)})
-                convo.append({"role": "tool", "tool_call_id": tc.id,
-                              "content": json.dumps({k: v for k, v in result.items() if not k.startswith("sql")},
-                                                    default=str)[:12000]})
+                call(tc.function.name, args, tc.id)
         else:
             answer = answer or ""
         if not answer:
@@ -196,7 +213,7 @@ def run(spec: AgentSpec, question: str, history: list = None, user: str = "") ->
         log.exception("agent %s failed", spec.name)
         error = f"{type(e).__name__}: {e}"
 
-    trust = assess(answer, results, error)
+    trust = assess(answer, results, error, spec.checks)
     out = {"agent": spec.name, "title": spec.title, "model": spec.model, "question": question,
            "answer": answer or "", "error": error, "trace": trace,
            "results": [r for r in results if not r["result"].get("error")],
@@ -212,7 +229,7 @@ def _row_count(result: dict):
     return 1 if result.get("summary") else 0
 
 
-def assess(answer: str, results: list, error) -> dict:
+def assess(answer: str, results: list, error, checks=None) -> dict:
     ok = [r for r in results if not r["result"].get("error")]
     reasons = []
     if error or not answer:
@@ -233,7 +250,14 @@ def assess(answer: str, results: list, error) -> dict:
     dq = sum(int((r["result"].get("summary") or {}).get("shocked_projects_with_dq_issues") or 0) for r in ok)
     if dq:
         reasons.append(f"{dq} shocked project(s) have open data-quality issues ({high} high severity); included, not excluded.")
-    level = "REVIEW_RECOMMENDED" if (bad or high) else "VALIDATED"
+    problems = []
+    if checks:
+        try:
+            problems = checks(answer, ok) or []
+        except Exception as e:  # a failing check must not hide the answer
+            problems = [f"consistency check could not run ({type(e).__name__})"]
+        reasons += [f"Consistency check: {p}" for p in problems]
+    level = "REVIEW_RECOMMENDED" if (bad or high or problems) else "VALIDATED"
     return {"level": level, "color": "amber" if level == "REVIEW_RECOMMENDED" else "green",
             "reasons": reasons, "untraced_figures": bad}
 

@@ -138,3 +138,43 @@ The team's own agent alongside Genie (WS3). Genie answers "what happened?"; this
   (60% × $16,849.08M Watchlist disbursed). In "rated 5–6 default", Bricor Finance and Wenhargal Renewables, the two
   WS3 reduce / review picks, are the top drivers.
 
+## Capital Allocation Agent (page "Capital allocation")
+
+The second of our own agents, on the same core (`agent_core.py`). It answers: where should IFC put new commitments,
+where should it be careful, and does that change the four-client recommendation? It covers the WS3 optional extension
+"External research".
+
+- **Two views, kept separate:**
+  - **Our track record (A23):** `allocation.rank_segments` ranks industries, regions and industry × region on four
+    credit metrics from `certified_investment_portfolio`:
+    - distressed share of exposure;
+    - ECL / exposure;
+    - share of closed disbursed exited at a loss;
+    - exposure-weighted risk rating.
+
+    Rank 1 is best and the overall rank is the average of the four. A region above 25% of current exposure is flagged
+    as concentrated.
+  - **The market (A24):** `ref_market_outlook`, built from `config/market_outlook.yml`. It holds eight curated sources
+    (IMF, World Bank, IEA, GSMA, WTO, FAO), each with publisher, title, date, URL and stance. There is no live web
+    access: every market claim is cited [S#] and dated.
+- **The decision rule is code, not the model:** `allocation_summary`.
+  - Prioritise the best-ranked industry and be cautious on the last.
+  - Grow in the best-ranked regions that are not concentrated; limit new exposure in concentrated or last-ranked regions.
+  - The model explains this result and checks the four-client recommendation, using each client's industry and region
+    ranks and flags, which code attaches.
+- **Context fetched before the model runs:** the summary, both rankings, the outlook and the four clients. The model
+  cannot skip them.
+- **Consistency check (deterministic):** the answer turns Amber if it prioritises a concentrated region or skips the
+  four-client check. The figure check also reads "USD 240 billion" style figures.
+- **Result on the first delivery (2026-11-16):**
+  - prioritise **Energy** (1st of 5; the IEA agrees, [S3]), growing in South Asia and East Asia & Pacific;
+  - caution on **Finance** (5th of 5; the World Bank and IMF agree, [S8]);
+  - limit new exposure in **Sub-Saharan Africa**, which is concentrated (27.8% > 25%) and ranks 6th of 6.
+
+  All four WS3 clients are in Sub-Saharan Africa. The two CONTINUE picks hold on the condition that the region's share
+  does not increase; the two REDUCE_OR_REVIEW picks are reinforced.
+- **API:** `GET /api/agents/capital-allocation`, `POST /api/agents/capital-allocation/ask`,
+  `GET /api/agents/capital-allocation/runs`.
+- **Pipeline:** `01_data/00_reference` builds A23, A24 and `ref_market_outlook`. On 2026-11-16 they were loaded directly
+  with the same code. To add research, edit `config/market_outlook.yml` and rerun `00_reference`.
+

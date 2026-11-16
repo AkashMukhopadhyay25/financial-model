@@ -84,6 +84,7 @@ serving:
   # gpt-oss-120b close; llama-3.3-70b slower and added a filter nobody asked for.
   agents:
     stress_test_model: databricks-qwen3-next-80b-a3b-instruct
+    capital_allocation_model: databricks-qwen3-next-80b-a3b-instruct
 
 # --- Business parameters (also recorded in ref_assumptions) ---------------------------------------
 business:
@@ -100,6 +101,13 @@ business:
     risk_rating: 0.4
     distress: 0.4
     closed_loss: 0.2
+  capital_allocation:                     # A23: where IFC should prioritise or be cautious with new commitments
+    min_active_projects: 10               # segments (industry, region, industry x region) smaller than this are not ranked
+    max_segment_share: 0.25               # concentration: a segment above this share of current exposure is flagged
+    # Ranked on four credit metrics from our certified data (rank 1 = best, overall = average rank):
+    # distressed share of exposure (Past Due + Watchlist), ECL / exposure (A11), share of closed disbursed exited at a loss,
+    # exposure-weighted internal risk rating. External outlooks (A24, config/market_outlook.yml) are shown beside the
+    # ranking, never blended into it, so the data view and the market view stay separable.
   early_warning:                          # A22: emerging-risk signals per client (clients with Active projects)
     min_watchlist_projects: 2             # "Multiple Watchlist projects"
     min_active_rating_5_6: 1              # "Internal risk ratings 5-6": Active projects rated 5 or 6

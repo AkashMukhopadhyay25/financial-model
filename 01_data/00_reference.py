@@ -7,7 +7,8 @@
 # MAGIC
 # MAGIC | Table | What it holds | How it is built |
 # MAGIC |---|---|---|
-# MAGIC | `ref_assumptions` | Business definitions A01–A22 applied to every answer | Rebuilt each run. Thresholds come from `config/pipeline_config.yml`; counts quoted in the text come from the validated tables, so the wording never drifts from the data. |
+# MAGIC | `ref_assumptions` | Business definitions A01–A24 applied to every answer | Rebuilt each run. Thresholds come from `config/pipeline_config.yml`; counts quoted in the text come from the validated tables, so the wording never drifts from the data. |
+# MAGIC | `ref_market_outlook` | Curated, cited, dated external research for the Capital Allocation Agent (A24) | Rebuilt each run from `config/market_outlook.yml`. |
 # MAGIC | `ref_region_mapping` | Region labels restated to the data-dictionary value (A06) | Rebuilt each run **from the projects contract's `standardize` block**, the one source of truth Stage 3 also uses. |
 # MAGIC | `ref_product_vocabulary` | Financing instruments named in descriptions → Product Line (Q26) | Rebuilt each run. |
 # MAGIC | `ref_text_feature_overrides` | Reviewer decisions on flagged text attributes (human in the loop) | **Created only if missing. Never replaced or emptied**: it holds human decisions. |
@@ -67,9 +68,10 @@ def read_facts() -> dict:
 
 # COMMAND ----------
 
-# MAGIC %md ## Assumptions A01–A22
+# MAGIC %md ## Assumptions A01–A24
 # MAGIC A01–A17 are the teammate's definitions, updated where the merged pipeline changed them (A03, A06, A07, A08,
-# MAGIC A11, A15, A17). A18–A22 are new: review overdue, Board date passed, quarantine vs flag, data contracts, early-warning signals.
+# MAGIC A11, A15, A17). A18–A24 are new: review overdue, Board date passed, quarantine vs flag, data contracts, early-warning signals,
+# MAGIC capital-allocation ranking, curated external research.
 
 # COMMAND ----------
 
@@ -82,6 +84,7 @@ def build_assumptions(cfg: dict, f: dict) -> list:
     q28 = biz["q28_allocation_threshold_musd"]
     ecl = biz["ecl_loss_rate"]
     rod = thr["review_overdue_days"]
+    ca = biz["capital_allocation"]
     ew = biz["early_warning"]
     exemptions = thr.get("review_exemptions") or []
     rep = fmt_date(f["reporting_date"])
@@ -225,6 +228,22 @@ def build_assumptions(cfg: dict, f: dict) -> list:
          "Signals point an analyst to where to look; they are not a prediction of default and never trigger an automatic "
          "investment decision.",
          "business.early_warning"),
+        ("A23", "Capital allocation ranking",
+         f"Industries, regions and industry x region segments with {ca['min_active_projects']}+ Active projects are ranked on "
+         "four credit metrics from the certified data (1 = best): distressed share of current exposure (Past Due + Watchlist, "
+         "A09), expected credit loss / current exposure (A11), share of closed disbursed exited at a loss, and exposure-weighted "
+         "internal risk rating. Overall rank = average of the four ranks. A segment holding more than "
+         f"{ca['max_segment_share']:.0%} of current exposure is flagged as a concentration.",
+         "Equal-weight ranks are transparent and do not depend on arbitrary weights; the Capital Allocation Agent explains the "
+         "ranking but never computes it. Advice to the Credit Risk Committee, not an automatic allocation.",
+         "business.capital_allocation"),
+        ("A24", "External market research",
+         "Market outlooks used by the Capital Allocation Agent come only from ref_market_outlook: curated reports (IMF, World "
+         "Bank, IEA, GSMA, WTO, FAO), each with publisher, title, publication date, URL and a stance (prioritise / neutral / "
+         "caution) for new commitments. They are shown beside the A23 ranking and never blended into it.",
+         "A curated, versioned source list keeps every market claim cited and dated, and reviewable before the Board sees it; "
+         "the agent does not browse the web.",
+         "config/market_outlook.yml"),
     ]
 
 
@@ -232,7 +251,7 @@ def build_assumptions(cfg: dict, f: dict) -> list:
 
 FACTS = read_facts()
 ASSUMPTIONS = build_assumptions(CFG, FACTS)
-assert [a[0] for a in ASSUMPTIONS] == [f"A{i:02d}" for i in range(1, 23)], "Assumption IDs must be A01..A22 in order"
+assert [a[0] for a in ASSUMPTIONS] == [f"A{i:02d}" for i in range(1, 25)], "Assumption IDs must be A01..A24 in order"
 
 from pyspark.sql.types import StringType, StructField, StructType  # noqa: E402
 
@@ -241,9 +260,34 @@ _schema = StructType([StructField(c, StringType()) for c in
 spark.createDataFrame(ASSUMPTIONS, _schema).write.mode("overwrite").option("overwriteSchema", "true") \
     .saveAsTable(T("ref_assumptions"))
 spark.sql(f"COMMENT ON TABLE {T('ref_assumptions')} IS "
-          "'Business definitions and assumptions (A01-A22) applied consistently across every answer, Genie and the agent. "
+          "'Business definitions and assumptions (A01-A24) applied consistently across every answer, Genie and the agent. "
           "Thresholds come from pipeline_config.yml; counts are computed from the validated tables.'")
 print(f"ref_assumptions: {len(ASSUMPTIONS)} rows")
+
+# COMMAND ----------
+
+# MAGIC %md ## External market research (A24), from `config/market_outlook.yml`
+
+# COMMAND ----------
+
+import os  # noqa: E402
+
+import yaml  # noqa: E402
+from ifc_common import read_text  # noqa: E402
+
+_mo = yaml.safe_load(read_text(os.path.join(os.path.dirname(CFG["_config_path"]), "market_outlook.yml")))
+MO_COLS = ["source_id", "publisher", "title", "published_date", "url", "industry", "region", "stance", "finding"]
+MO_ROWS = [tuple(str(s[c]) for c in MO_COLS) + (str(_mo["retrieved_date"]),) for s in _mo["sources"]]
+assert all(r[7] in ("prioritise", "neutral", "caution") for r in MO_ROWS), "stance must be prioritise, neutral or caution"
+_schema = StructType([StructField(c, StringType()) for c in MO_COLS + ["retrieved_date"]])
+(spark.createDataFrame(MO_ROWS, _schema)
+ .selectExpr(*[c for c in MO_COLS if c != "published_date"], "CAST(published_date AS DATE) AS published_date",
+             "CAST(retrieved_date AS DATE) AS retrieved_date")
+ .write.mode("overwrite").option("overwriteSchema", "true").saveAsTable(T("ref_market_outlook")))
+spark.sql(f"COMMENT ON TABLE {T('ref_market_outlook')} IS "
+          "'Curated external research for new-commitment decisions (A24): publisher, title, date, URL, stance, finding. "
+          "Source: config/market_outlook.yml. Used by the Capital Allocation Agent; never blended into the A23 ranking.'")
+print(f"ref_market_outlook: {len(MO_ROWS)} sources")
 
 # COMMAND ----------
 

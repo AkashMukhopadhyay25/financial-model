@@ -16,7 +16,7 @@ from fastapi.responses import FileResponse, JSONResponse
 from fastapi.staticfiles import StaticFiles
 from pydantic import BaseModel, Field
 
-from . import agent_core, genie, monthly, queries, stress_agent
+from . import agent_core, allocation_agent, genie, monthly, queries, stress_agent
 from .settings import get_settings
 
 log = logging.getLogger("ifc_app")
@@ -237,6 +237,23 @@ def stress_agent_ask(body: AgentAskBody, request: Request):
 @app.get("/api/agents/stress-test/runs")
 def stress_agent_runs(limit: int = 20):
     return agent_core.recent_runs("stress_test", min(limit, 100))
+
+
+@app.get("/api/agents/capital-allocation")
+def allocation_agent_info():
+    s = allocation_agent.spec()
+    return {"name": s.name, "title": s.title, "model": s.model, "presets": allocation_agent.PRESETS,
+            "tools": [{"name": t.name, "description": t.description} for t in s.tools]}
+
+
+@app.post("/api/agents/capital-allocation/ask")
+def allocation_agent_ask(body: AgentAskBody, request: Request):
+    return allocation_agent.ask(body.question.strip(), body.history, _user(request))
+
+
+@app.get("/api/agents/capital-allocation/runs")
+def allocation_agent_runs(limit: int = 20):
+    return agent_core.recent_runs("capital_allocation", min(limit, 100))
 
 
 @app.get("/api/agents/runs/{run_id}")

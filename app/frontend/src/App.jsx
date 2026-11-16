@@ -7,6 +7,7 @@ import Overview from "./pages/Overview.jsx";
 import Portfolio from "./pages/Portfolio.jsx";
 import Risk from "./pages/Risk.jsx";
 import Stress from "./pages/Stress.jsx";
+import Allocation from "./pages/Allocation.jsx";
 import Clients from "./pages/Clients.jsx";
 import EarlyWarning from "./pages/EarlyWarning.jsx";
 import Briefing from "./pages/Briefing.jsx";
@@ -20,6 +21,7 @@ export const PAGES = [
   { id: "clients", label: "Client intelligence", el: Clients },
   { id: "early-warning", label: "Early warning", el: EarlyWarning },
   { id: "monthly", label: "Monthly review", el: Monthly },
+  { id: "allocation", label: "Capital allocation", el: Allocation },
   { id: "briefing", label: "Board briefing", el: Briefing },
 ];
 
