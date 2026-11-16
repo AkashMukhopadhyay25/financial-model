@@ -99,9 +99,28 @@ export default function Clients({ params }) {
                    onOpen={(id) => { setSelected(id); nav("clients", { step: "profile", client: id }); }}
                    onCompare={() => nav("clients", { step: "compare", compare: compareIds.join(",") })} />
       )}
-      {step === "profile" && (selected ? <Profile id={selected} full /> : <div className="card empty">Pick a client in the directory first.</div>)}
+      {step === "profile" && (selected ? <Profile id={selected} full /> : <PickClient onPick={(id) => { setSelected(id); nav("clients", { step: "profile", client: id }); }} onDirectory={() => go("directory")} />)}
       {step === "compare" && <Compare ids={compareIds} setIds={setCompareIds} />}
     </>
+  );
+}
+
+// No client chosen yet: offer the four Board-recommendation clients instead of a dead end.
+function PickClient({ onPick, onDirectory }) {
+  const { data } = useApi("/api/clients/recommendations");
+  return (
+    <div className="card">
+      <h3>Choose a client</h3>
+      <div className="card-sub" style={{ marginBottom: 12 }}>Start with one of the four Board-recommendation clients, or search the directory.</div>
+      <div className="chips">
+        {(data?.recommendations || []).map((r) => (
+          <button key={r.client_id} className="chip plain" onClick={() => onPick(r.client_id)}>
+            {r.client_name} · {r.recommendation === "CONTINUE" ? "continue" : "reduce / review"}
+          </button>
+        ))}
+        <button className="btn small" onClick={onDirectory}>Open the client directory</button>
+      </div>
+    </div>
   );
 }
 

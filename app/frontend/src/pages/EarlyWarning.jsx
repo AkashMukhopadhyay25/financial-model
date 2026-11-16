@@ -43,7 +43,7 @@ export default function EarlyWarning() {
   (data?.alerts || []).forEach((a) => (counts[a.priority] += 1));
   return (
     <>
-      <div className="eyebrow amber">Proposed agent</div>
+      <div className="eyebrow amber">WS3 · Early warning</div>
       <div className="page-head">
         <div>
           <h1 className="title">Early warning centre</h1>
@@ -157,7 +157,7 @@ export default function EarlyWarning() {
           <div className="mt">
             <AskBar
               variant="hero"
-              prompt="Ask the agent"
+              prompt="Ask Genie about these signals"
               placeholder="Which clients show the strongest combination of risk indicators?"
               busy={genie.busy}
               onAsk={genie.ask}

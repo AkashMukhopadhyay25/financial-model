@@ -70,7 +70,7 @@ export default function Monthly({ params }) {
   const clients = (data?.clients || []).filter((c) => dirs.includes(c.direction));
   return (
     <>
-      <div className="eyebrow blue">Monthly review</div>
+      <div className="eyebrow blue">Monthly review · demo months July–October 2026 (synthetic deliveries; other pages are as of 30 June 2026)</div>
       {head}
       {!data.ready && (
         <div className="card">

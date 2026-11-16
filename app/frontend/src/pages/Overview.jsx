@@ -7,7 +7,7 @@ import { DataTable, DqTag, ErrorBox, EvidenceDrawer, Info, Loading, OkIcon, Spli
 const STORIES = [
   { page: "portfolio", eyebrow: "WS1 · Portfolio analytics", color: "blue", q: "What does IFC's portfolio look like?", d: "Explore metrics and answer recurring questions in plain language." },
   { page: "risk", eyebrow: "WS2 · Integrated risk & exposure", color: "red", q: "Where is IFC exposed, and what are the potential losses?", d: "Join project and monitoring records to answer the two Board questions." },
-  { page: "clients", eyebrow: "WS3 · Client intelligence", color: "green", q: "Which client relationships should IFC prioritize or reconsider?", d: "Support client recommendations and quantify affected exposure." },
+  { page: "clients", eyebrow: "WS3 · Client intelligence + our agents", color: "green", q: "Which clients should IFC back, what if credit worsens, and where should new money go?", d: "Client recommendations, the stress-test agent and the capital allocation agent." },
   { page: "early-warning", eyebrow: "Early warning intelligence", color: "amber", q: "What could become a problem before it becomes Past Due?", d: "Flag emerging risk signals for human investigation." },
 ];
 
