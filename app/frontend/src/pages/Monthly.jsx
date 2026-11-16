@@ -1,6 +1,6 @@
 import React, { useState } from "react";
 import { useApp } from "../App.jsx";
-import { invalidate, post } from "../api.js";
+import { flagReview, invalidate, post } from "../api.js";
 import { int, musd } from "../format.js";
 import { Drawer, ErrorBox, EvidenceDrawer, Info, Loading, Modal, Tag, useApi, YearColumns } from "../ui.jsx";
 
@@ -38,6 +38,7 @@ export default function Monthly({ params }) {
   const [filter, setFilter] = useState("attention");
   const [shown, setShown] = useState(8);
   const [client, setClient] = useState(null);
+  const openClient = (name) => setClient((data?.clients || []).find((c) => c.client_name === name) || { client_name: name });
   const [evidence, setEvidence] = useState(null);
   const [upload, setUpload] = useState(false);
 
@@ -111,11 +112,10 @@ export default function Monthly({ params }) {
               )}
             </div>
             <div style={{ display: "grid", gap: 14, marginTop: 52 }}>
-              <Takeaways title="Recommended next steps" color="blue" items={data.next_steps} numbered />
-              <Takeaways title="What needs attention" color="red" items={data.went_wrong} />
-              <Takeaways title="What went well" color="green" items={data.went_right} />
+              {data.balance && <MonthBalance b={data.balance} prev={data.previous_name} onFilter={(f) => { setFilter(f); setShown(8); }} />}
+              {data.actions && <ActionList actions={data.actions} month={data.month_name} openClient={openClient} />}
               <div className="small muted">
-                These summaries follow fixed rules applied to the certified figures, so the same data always gives the same wording.
+                Every count and amount comes from the certified month-on-month changes (project_month_changes); the same data always gives the same view.
               </div>
             </div>
           </div>
@@ -151,6 +151,102 @@ function KpiCard({ k, prev }) {
       <Tag color={color} title={`${fmtKpi(k.previous_value, k.unit)} in ${prev}`}>
         {diff === 0 ? `No change from ${prev}` : `${arrow} ${diffTxt} from ${prev}`}
       </Tag>
+    </div>
+  );
+}
+
+// ---------------------------------------------------------------- the month in balance: worse vs better, side by side
+function MonthBalance({ b, prev, onFilter }) {
+  const g = b.growth;
+  const verdict = { improving: ["green", "Credit quality improved"], deteriorating: ["red", "Credit quality deteriorated"], mixed: ["amber", "A mixed month"] }[b.verdict];
+  return (
+    <div className="card">
+      <div className="eyebrow" style={{ marginTop: 0 }}>Balance of the month</div>
+      <div className="balance-verdict">
+        <Tag color={verdict[0]}>{verdict[1]}</Tag>
+        <span className="small muted">{int(b.credit_better)} recoveries and upgrades vs {int(b.credit_worse)} slips and downgrades since {prev}</span>
+      </div>
+      <div className="balance-head small muted"><span>Worse</span><span /><span>Better</span></div>
+      {b.pairs.map((p) => {
+        const max = Math.max(1, p.worse.n, p.better.n);
+        return (
+          <div key={p.id} className="balance-row">
+            <div className="balance-label">{p.label}</div>
+            <div className="balance-bars">
+              <button className="bside worse" disabled={!p.worse_filter} onClick={() => p.worse_filter && onFilter(p.worse_filter)}
+                      title={p.worse_filter ? "Show these clients" : undefined}>
+                <span className="bnum">{int(p.worse.n)} <small>{p.worse_label}</small>{p.worse.musd > 0 && <em>{musd(p.worse.musd)}</em>}</span>
+                <i style={{ width: `${(100 * p.worse.n) / max}%` }} />
+              </button>
+              <button className="bside better" disabled={!p.better_filter} onClick={() => p.better_filter && onFilter(p.better_filter)}
+                      title={p.better_filter ? "Show these clients" : undefined}>
+                <i style={{ width: `${(100 * p.better.n) / max}%` }} />
+                <span className="bnum">{int(p.better.n)} <small>{p.better_label}</small>{p.better.musd > 0 && <em>{musd(p.better.musd)}</em>}</span>
+              </button>
+            </div>
+          </div>
+        );
+      })}
+      <div className="balance-growth">
+        <span className="small muted">New business</span>
+        <button className="link" onClick={() => onFilter("growth")}>
+          <b>{int(g.BOARD_APPROVED.n)}</b> Board approvals ({musd(g.BOARD_APPROVED.musd)}) · <b>{int(g.SIGNED.n)}</b> signings · <b>{int(g.FIRST_DISBURSEMENT.n)}</b> first disbursements · <b>{int(g.NEW_PROJECT.n)}</b> new projects
+        </button>
+      </div>
+    </div>
+  );
+}
+
+// ---------------------------------------------------------------- the month's actions: owner, money at stake, the actual names, one click to act
+const PRIORITY = { high: ["red", "High"], medium: ["amber", "Medium"], routine: ["blue", "Routine"] };
+
+function ActionList({ actions, month, openClient }) {
+  const { nav } = useApp();
+  const [sent, setSent] = useState({});
+  const send = async (a) => {
+    if (sent[a.id]) return;
+    setSent((s) => ({ ...s, [a.id]: "sending" }));
+    for (const it of a.items) {
+      await flagReview({ entity_type: "client", entity_id: it.client_id || it.name, entity_name: it.name, action: "flag_for_review",
+                         note: `${month} · ${a.title}: ${it.detail} (${musd(it.musd)}). Owner: ${a.owner}.`, source_page: "monthly-review" });
+    }
+    setSent((s) => ({ ...s, [a.id]: "sent" }));
+  };
+  return (
+    <div className="card">
+      <div className="eyebrow blue" style={{ marginTop: 0 }}>Actions for {month}</div>
+      {actions.map((a, i) => (
+        <div key={a.id} className="action">
+          <div className="action-top">
+            <span className="action-n">{i + 1}</span>
+            <div style={{ flex: 1, minWidth: 0 }}>
+              <div className="action-title">{a.title}</div>
+              <div className="small muted">{a.why}</div>
+            </div>
+            <Tag color={PRIORITY[a.priority][0]}>{PRIORITY[a.priority][1]}</Tag>
+          </div>
+          {a.items.length > 0 && (
+            <div className="action-items">
+              {a.items.slice(0, 3).map((it, j) => (
+                <button key={j} className="action-item" onClick={() => openClient(it.name)} title={it.detail}>
+                  <span className="ai-name">{it.name}</span><span className="ai-amt">{musd(it.musd)}</span>
+                  <span className="ai-detail">{it.detail}</span>
+                </button>
+              ))}
+              {a.items.length > 3 && <div className="small muted">+{a.items.length - 3} more (all {a.items.length} are sent for review)</div>}
+            </div>
+          )}
+          <div className="action-foot">
+            <span className="small muted">Owner: <b>{a.owner}</b></span>
+            {a.cta === "send" && (
+              <button className="btn small" disabled={!!sent[a.id]} onClick={() => send(a)}>
+                {sent[a.id] === "sent" ? "In the review queue ✓" : sent[a.id] ? "Sending…" : `Send ${a.items.length === 1 ? "it" : `all ${a.items.length}`} for review`}
+              </button>
+            )}
+            {a.cta === "early_warning" && <button className="btn small" onClick={() => nav("early-warning")}>Open Early warning</button>}
+          </div>
+        </div>
+      ))}
     </div>
   );
 }

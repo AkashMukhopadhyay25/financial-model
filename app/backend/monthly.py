@@ -256,6 +256,7 @@ FROM {M(HIST)} WHERE date_format(reporting_month, 'yyyy-MM') = :m GROUP BY clien
             "counts": {d: sum(1 for c in out if c["direction"] == d) for d in rank},
             "kpis": [kpis[k] for k in HEADLINE_KPIS if k in kpis], "clients": out,
             **_narrative(kpis, events, out, prev),
+            "balance": _balance(events), "actions": _actions(kpis, events, out),
             "evidence": {"measures": kpi_sql.replace(":m", f"'{month}'"), "project_changes": events_sql.replace(":m", f"'{month}'")}}
 
 
@@ -323,6 +324,76 @@ def _narrative(kpis: dict, events: list, clients: list, prev: str) -> dict:
     if not steps:
         steps.append("No action needed beyond routine monitoring.")
     return {"went_right": right[:4], "went_wrong": wrong[:4], "next_steps": steps[:4]}
+
+
+def _balance(events: list) -> dict:
+    """The month's movements as worse-vs-better pairs (counts and amounts), computed from project_month_changes."""
+    def side(types, pred=lambda e: True):
+        rows = [e for e in events if e["change_type"] in types and pred(e)]
+        return {"n": len(rows), "musd": round(_amt(rows), 2)}
+    pairs = [
+        {"id": "repayment", "label": "Repayment status", "worse_label": "slipped", "better_label": "recovered",
+         "worse": side({"PERFORMANCE_WORSENED"}), "better": side({"PERFORMANCE_IMPROVED"}),
+         "worse_filter": "attention", "better_filter": "improved"},
+        {"id": "rating", "label": "Internal risk rating", "worse_label": "downgraded", "better_label": "upgraded",
+         "worse": side({"RISK_DOWNGRADE"}), "better": side({"RISK_UPGRADE"}),
+         "worse_filter": "attention", "better_filter": "improved"},
+        {"id": "reviews", "label": "Monitoring reviews", "worse_label": "newly overdue", "better_label": "completed",
+         "worse": side({"REVIEW_OVERDUE"}), "better": side({"REVIEW_OVERDUE_CLEARED"})},
+        {"id": "data", "label": "Data-quality issues", "worse_label": "new", "better_label": "resolved",
+         "worse": side({"DATA_ISSUE_NEW"}), "better": side({"DATA_ISSUE_RESOLVED"})},
+    ]
+    growth = {t: side({t}) for t in ("BOARD_APPROVED", "SIGNED", "FIRST_DISBURSEMENT", "NEW_PROJECT")}
+    credit_bad = pairs[0]["worse"]["n"] + pairs[1]["worse"]["n"]
+    credit_good = pairs[0]["better"]["n"] + pairs[1]["better"]["n"]
+    verdict = ("improving" if credit_good > 1.5 * credit_bad else "deteriorating" if credit_bad > 1.5 * credit_good
+               else "mixed")
+    return {"pairs": pairs, "growth": growth, "verdict": verdict, "credit_better": credit_good, "credit_worse": credit_bad}
+
+
+def _actions(kpis: dict, events: list, clients: list) -> list:
+    """The month's follow-ups as structured actions: owner, amount at stake and the actual clients or projects."""
+    by_client = {c["client_name"]: c for c in clients}
+    worse = [e for e in events if e["change_type"] == "PERFORMANCE_WORSENED"]
+    to_pd = [e for e in worse if e["to_value"] == "Past Due"]
+    to_wl = [e for e in worse if e["to_value"] == "Watchlist"]
+    downs = [e for e in events if e["change_type"] == "RISK_DOWNGRADE"]
+    overdue_new = [e for e in events if e["change_type"] == "REVIEW_OVERDUE"]
+    acts = []
+    if to_pd:
+        names = sorted({e["client_name"] for e in to_pd}, key=lambda n: -_amt([e for e in to_pd if e["client_name"] == n]))
+        acts.append({"id": "refer_past_due", "priority": "high", "owner": "Credit Risk Committee",
+                     "title": f"Refer {_plural(len(names), 'client')} with a project newly in Past Due",
+                     "why": f"{_money(_amt(to_pd))} disbursed now in default (60% expected loss, A11)",
+                     "items": [{"kind": "client", "name": n, "client_id": (by_client.get(n) or {}).get("client_id"),
+                                "musd": round(_amt([e for e in to_pd if e["client_name"] == n]), 2),
+                                "detail": ", ".join(sorted({e["project_name"] for e in to_pd if e["client_name"] == n}))}
+                               for n in names],
+                     "cta": "send"})
+    if to_wl:
+        acts.append({"id": "watchlist_plans", "priority": "medium", "owner": "Portfolio monitoring team",
+                     "title": f"Agree recovery plans for {_plural(len(to_wl), 'project')} newly on the Watchlist",
+                     "why": f"{_money(_amt(to_wl))} disbursed; act before they fall into Past Due",
+                     "items": [{"kind": "client", "name": e["client_name"], "client_id": (by_client.get(e["client_name"]) or {}).get("client_id"),
+                                "musd": round(float(e.get("amount_musd") or 0), 2), "detail": e["project_name"]}
+                               for e in sorted(to_wl, key=lambda e: -float(e.get("amount_musd") or 0))],
+                     "cta": "send"})
+    if downs:
+        acts.append({"id": "rating_downgrades", "priority": "medium", "owner": "Investment department",
+                     "title": f"Confirm the {_plural(len(downs), 'risk-rating downgrade')}",
+                     "why": f"{_money(_amt(downs))} disbursed on projects whose rating worsened",
+                     "items": [{"kind": "client", "name": e["client_name"], "client_id": (by_client.get(e["client_name"]) or {}).get("client_id"),
+                                "musd": round(float(e.get("amount_musd") or 0), 2),
+                                "detail": f"{e['project_name']}: {e['from_value']} → {e['to_value']}"}
+                               for e in sorted(downs, key=lambda e: -float(e.get("amount_musd") or 0))],
+                     "cta": "send"})
+    total_overdue = (kpis.get("M01") or {}).get("value")
+    if total_overdue:
+        acts.append({"id": "overdue_reviews", "priority": "routine", "owner": "Portfolio monitoring team",
+                     "title": f"Clear {int(total_overdue):,} overdue monitoring reviews, highest risk ratings first",
+                     "why": f"{len(overdue_new)} became overdue this month",
+                     "items": [], "cta": "early_warning"})
+    return acts
 
 
 def client_month(client_name: str, month: str) -> dict:
