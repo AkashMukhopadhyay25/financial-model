@@ -145,7 +145,7 @@ if __name__ == "__main__":
     print("Stress-test agent"); rows = run_stress()
     print("Capital allocation agent"); rows += run_allocation()
     save(rows, eid)
-    out = Path(__file__).resolve().parents[2] / "02_agent" / "agent_evaluation_report.md"
+    out = Path(__file__).resolve().parents[3] / "02_agent" / "agent_evaluation_report.md"  # 03_demo/app/backend -> repo
     out.parent.mkdir(exist_ok=True)
     out.write_text(report(rows, eid) + "\n")
     print(f"{sum(r['passed'] for r in rows)} of {len(rows)} passed in {time.time() - t0:.0f}s; report: {out}")
