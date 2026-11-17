@@ -7,7 +7,7 @@ deploys, operates and maintains it without further support.
 
 ## Start here
 
-### Open the app (about 3 minutes)
+### Open the app
 
 1. Sign in to the Databricks workspace: **https://dbc-ba139e62-9140.cloud.databricks.com**
 2. Left sidebar → **Compute** → **Apps** tab → **ifc-cfo-intelligence**.
