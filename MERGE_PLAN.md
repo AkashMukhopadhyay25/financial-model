@@ -20,7 +20,7 @@ Databricks before the next starts.**
 |---|---|
 | Location | Catalog `ifc_challenge`, schema `portfolio` (one schema). Layers are **name prefixes**. |
 | Layer names | `raw_*` → `validated_*` → `enriched_*` → `certified_*`. Never bronze/silver/gold, in code, comments or docs. (The final layer was first called `defined_*`; renamed to `certified_*` by the user on 2026-11-05. The main table is `certified_investment_portfolio`.) |
-| Scope (2026-11-13) | The user asked for a FastAPI + React Databricks App (`app/`) built from their mockups, **all pages live**. Phase 9 is therefore done as `app/` (not the Streamlit `03_demo/04_app.py`), and WS2/WS3 + client scorecard + early warning (A22, `01_data/07_client_views`) are built now. The LLM agent stays postponed; the app uses the Genie space plus the deterministic trust check (phase 8.3, `app/backend/trust.py`). |
+| Scope (2026-11-13) | The user asked for a FastAPI + React Databricks App (`03_demo/app/`) built from their mockups, **all pages live**. Phase 9 is therefore done as `03_demo/app/` (not the Streamlit `03_demo/04_app.py`), and WS2/WS3 + client scorecard + early warning (A22, `01_data/07_client_views`) are built now. The LLM agent stays postponed; the app uses the Genie space plus the deterministic trust check (phase 8.3, `03_demo/app/backend/trust.py`). |
 | Scope (2026-11-05) | **WS1 first, end to end:** phases 5 (portfolio table only), 6, 7 (WS1 only) and a slim 8 (Genie space + paraphrase evaluation + flag counts per answer, no agent). WS2, WS3, the client scorecard, the agent, the app and packaging are **postponed**, not dropped; decide after WS1 works. |
 | Column names | **Ours** from the contracts. His `loan_musd, equity_musd, guarantee_musd, risk_mgmt_musd` become `amt_loan_musd, amt_equity_musd, amt_guarantee_musd, amt_risk_mgmt_musd` **everywhere**, including SQL strings, UC functions, the app, Genie instructions, column comments, README and answers. All other source column names already match. |
 | Allocation flags | Tolerance **$0.01M** (config `amount_reconciliation_tolerance_musd`). Under-allocated = warning (72), over-allocated = high (78). |
@@ -68,8 +68,8 @@ His row-level flags map to ours:
 ```
 ifc-cfo-copilot/
   CLAUDE.md  MERGE_PLAN.md  README.md  databricks.yml  app.yaml  requirements.txt
-  config/pipeline_config.yml          # single source of settings (see phase 1)
-  contracts/projects_contract.yml  contracts/monitoring_contract.yml
+  00_setup/config/pipeline_config.yml          # single source of settings (see phase 1)
+  00_setup/contracts/projects_contract.yml  00_setup/contracts/monitoring_contract.yml
   00_setup/00_config.py               # creates schema + volume + folders; loads YAML; exposes T(), answer(), persist_answers()
   01_data/
     00_reference.py                   # ref_* tables (from his notebook §2) + ref_region_mapping GENERATED from the contract
@@ -82,8 +82,8 @@ ifc-cfo-copilot/
   02_agent/ 02_agent_capabilities.py  03_build_agent.py  cfo_agent.py  04_evaluate_genie.py (new)
   03_demo/04_app.py
   04_answers/ws1/ws1_answers.py  ws2/ws2_board_questions.py  ws3/ws3_client_recommendations.py
-  assets/architecture_diagram_agentic_solution.mmd
-  tests/ sqlite_dialect.py  README.md        test_files/  (broken demo files)
+  assets/architecture_diagram_agentic_solution.svg
+  01_data/tests/ sqlite_dialect.py  README.md        01_data/test_files/  (broken demo files)
   reference/teammate_original/       # untouched
 ```
 
@@ -91,13 +91,13 @@ ifc-cfo-copilot/
 
 ## Phase 1: Configuration and setup
 
-1. **One config file.** Extend `config/pipeline_config.yml`:
+1. **One config file.** Extend `00_setup/config/pipeline_config.yml`:
    - `environment`: `catalog: ifc_challenge`, `schema: portfolio`, `volume: landing`; `landing_root` derived as `/Volumes/{catalog}/{schema}/{volume}`.
    - `ai`: `llm_endpoint`, `run_llm_extraction`, `llm_extraction_limit`, `llm_batch_size`, `llm_parallelism` (from his `00_config`).
    - `serving`: `sql_warehouse_id`, `genie_space_id`, `uc_model_name`. Leave them **empty** with a comment. His IDs belong to his personal workspace and won't work in the team workspace.
    - `business`: `ecl_loss_rate: 0.60`, `q28_allocation_threshold_musd: 1.0`, the client-band thresholds from his A15 (`band_reduce_past_due`, `band_reduce_distress_share`, `band_reduce_rating`, `band_continue_max_rating`, `band_continue_max_closed_loss`, `band_continue_min_active`), health-score weights (0.4/0.4/0.2).
    - Keep `thresholds`, `validation`, `schema_gate`, `landing_zone`, `reporting` as they are.
-2. **Config location.** With Asset Bundles, `config/` and `contracts/` deploy as workspace files next to the notebooks (versioned in git), so read them from the repo, not the volume. Each notebook resolves `CONFIG_PATH` as: env var `IFC_PIPELINE_CONFIG` → notebook widget → `<repo root>/config/pipeline_config.yml`, found relative to the notebook's working directory. **Verify** that the working directory is the notebook's folder on the workspace's runtime; if not, use `dbutils.notebook.entry_point...notebookPath()` to build the path. The volume holds data files only.
+2. **Config location.** With Asset Bundles, `00_setup/config/` and `00_setup/contracts/` deploy as workspace files next to the notebooks (versioned in git), so read them from the repo, not the volume. Each notebook resolves `CONFIG_PATH` as: env var `IFC_PIPELINE_CONFIG` → notebook widget → `<repo root>/config/pipeline_config.yml`, found relative to the notebook's working directory. **Verify** that the working directory is the notebook's folder on the workspace's runtime; if not, use `dbutils.notebook.entry_point...notebookPath()` to build the path. The volume holds data files only.
 3. **Our notebooks:** replace `full_table_name(cfg, "raw.projects")` style with `T("raw_projects")` = `{catalog}.{schema}.{name}`. Contract `targets` become bare names (`raw_projects`, `validated_projects`, …); `lookup.table: validated_projects`. Replace `ops_schema` with table names `ops_schema_gate_log`, `ops_raw_load_log`, `ops_dq_run_summary`. Bump both contracts to **v1.2.0** with a changelog line.
 4. **`00_setup/00_config.py`:** keep his structure (`T()`, `answer()`, `persist_answers()`, `DECLARE OR REPLACE VARIABLE ecl_loss_rate`), but load values from the YAML instead of hard-coding them. Create the schema, the volume `landing` and its four folders. Keep his `try/except` on `CREATE CATALOG`.
 5. **Extend `answer()`** with an optional `sensitivity_sql` and `sensitivity_label` (e.g. "Excluding Dropped"). Store both, plus the sensitivity result preview, in `answers_register` (new columns `sensitivity_label`, `sensitivity_sql`, `sensitivity_preview_json`). Also add `assumption_ids` (comma list, e.g. `A02,A03`).
@@ -111,7 +111,7 @@ ifc-cfo-copilot/
    - **Validated output:** also emit `region_as_reported` (= the original value; today only `region__original` exists internally).
    - **Validated output:** emit `is_climate_related` boolean on monitoring (his column), derived from `climate_flag`.
 2. **Do not** coalesce null product amounts to 0 (he did). They are `required` in the contract, so a blank is quarantined.
-3. Run `tests/sqlite_dialect.py` against Stage 3 after the edits: the counts must still equal the `expected_initial` values.
+3. Run `01_data/tests/sqlite_dialect.py` against Stage 3 after the edits: the counts must still equal the `expected_initial` values.
 
 **Accept:** gate passes both files; `raw_*` = 5,000 / 3,768; `validated_*` = 5,000 / 3,768, 0 quarantined; `ops_dq_run_summary` shows every flag `same` as profiling.
 
@@ -163,7 +163,7 @@ Port his CHECKS framework into `ops_dq_checks`, made **data-driven**:
 - **K01–K06, S01–S05, V01–V05:** keep as portfolio-level assertions on the merged tables. Many duplicate contract rules; keep them anyway as an independent second check. Blocking ones stop the job.
 - **D01–D06, T01–T03:** info, referencing the new flag columns.
 
-**Accept:** all blocking checks pass on the real files; feeding `test_files/` triggers the expected stops at Stage 1/2/3, not here.
+**Accept:** all blocking checks pass on the real files; feeding `01_data/test_files/` triggers the expected stops at Stage 1/2/3, not here.
 
 ## Phase 7: Answers (WS1–WS3)
 
@@ -233,7 +233,7 @@ Port his CHECKS framework into `ops_dq_checks`, made **data-driven**:
    - Job **`ifc_data_pipeline`**: tasks `00_config` → `00_reference` → `01_schema_gate` → `02_load_raw` → `03_validate` → `04_enrich` → `05_certify` → `06_dq_checks`, serverless, email on failure (user's address as a variable).
    - Job **`ifc_answers`**: `ws1` → `ws2` → `ws3`.
    - The app resource (`03_demo/04_app.py`).
-   - Exclude `reference/` and `tests/` from sync.
+   - Exclude `reference/` and `01_data/tests/` from sync.
 2. **Behavior on no new files:** if Stage 1 finds nothing in `incoming/` and Stage 2 finds nothing in `accepted/`, stages 3–6 still rebuild from `raw_*_current`. That is fine and idempotent.
 3. **README:** merge his README with ours:
    - layer names;
@@ -252,7 +252,7 @@ Port his CHECKS framework into `ops_dq_checks`, made **data-driven**:
 **Accept:**
 - `databricks bundle validate` passes;
 - `databricks bundle deploy` + `databricks bundle run ifc_data_pipeline` succeeds end to end;
-- a re-run with `test_files/` dropped into `incoming/` holds them and leaves the certified tables unchanged.
+- a re-run with `01_data/test_files/` dropped into `incoming/` holds them and leaves the certified tables unchanged.
 
 ---
 

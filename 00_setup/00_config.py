@@ -6,7 +6,7 @@
 # MAGIC either starts with `%run ../00_setup/00_config` (or `../../00_setup/00_config` from `04_answers/wsN`) or
 # MAGIC imports `00_setup/ifc_common.py`.
 # MAGIC
-# MAGIC All values come from **`config/pipeline_config.yml`**. Nothing here or anywhere else hard-codes a catalog,
+# MAGIC All values come from **`00_setup/config/pipeline_config.yml`**. Nothing here or anywhere else hard-codes a catalog,
 # MAGIC schema, threshold, endpoint or ID. To change a setting, edit the YAML and re-run.
 # MAGIC
 # MAGIC | Python name | From config | Purpose |
@@ -19,7 +19,7 @@
 # MAGIC | `T("name")` | — | Fully-qualified name `{catalog}.{schema}.name` |
 # MAGIC
 # MAGIC The config file is found in this order: environment variable `IFC_PIPELINE_CONFIG` → the `config_path`
-# MAGIC widget at the top of the notebook → `config/pipeline_config.yml` in the same repo folder as this notebook.
+# MAGIC widget at the top of the notebook → `00_setup/config/pipeline_config.yml` in the same repo folder as this notebook.
 # MAGIC
 # MAGIC PyYAML ships with Databricks runtimes. If you see `No module named 'yaml'`, run `%pip install pyyaml` first.
 
@@ -32,7 +32,7 @@ from pathlib import Path
 
 
 def _repo_root():
-    """Folder holding config/ and 00_setup/. Tries this file, the working directory, then the notebook path."""
+    """Folder holding 00_setup/ (which holds config/ and contracts/). Tries this file, the working directory, then the notebook path."""
     starts = []
     if "__file__" in globals():
         starts.append(Path(__file__).resolve().parent)
@@ -61,7 +61,7 @@ def _mirror_repo():
     ws_root = ws_root.rsplit("/", 2)[0]          # notebooks sit one folder below the repo root
     local = Path("/tmp/ifc_repo_mirror")
     w = WorkspaceClient()
-    for sub in ["00_setup", "config", "contracts", "data"]:
+    for sub in ["00_setup", "data"]:  # config/ and contracts/ live inside 00_setup/
         for obj in w.workspace.list(f"{ws_root}/{sub}", recursive=True):
             if obj.object_type != ObjectType.FILE or obj.path.lower().endswith((".pdf", ".xlsx")):
                 continue
@@ -120,7 +120,7 @@ CFG = load_config(CONFIG_PATH)
 
 # COMMAND ----------
 
-# ---- Values from config/pipeline_config.yml -------------------------------------------------------------
+# ---- Values from 00_setup/config/pipeline_config.yml -------------------------------------------------------------
 _env, _ai, _srv, _biz = CFG["environment"], CFG["ai"], CFG["serving"], CFG["business"]
 
 CATALOG = _env["catalog"]

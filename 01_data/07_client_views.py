@@ -10,7 +10,7 @@
 # MAGIC | `certified_early_warning` | Clients with Active projects that show at least one emerging-risk signal, with the signals, priority and suggested action (A22) | the app's Early warning page |
 # MAGIC
 # MAGIC No opaque "AI score": every component is a ratio an analyst can recompute, and every threshold is a policy parameter
-# MAGIC in `config/pipeline_config.yml` (`business.client_bands`, `business.health_score_weights`, `business.early_warning`).
+# MAGIC in `00_setup/config/pipeline_config.yml` (`business.client_bands`, `business.health_score_weights`, `business.early_warning`).
 # MAGIC The SQL lives in `00_setup/portfolio_sql.py`, so the app's local preview uses exactly the same definitions.
 # MAGIC
 # MAGIC Run after `05_certify` (and `00_reference`, which records A15 and A22 in `ref_assumptions`).
@@ -107,7 +107,7 @@ print("Comments and tags written")
 
 # MAGIC %md ## Human-review log for the app
 # MAGIC The app's "Flag for review" and "Mark reviewed" buttons append here (who, when, what, note). Created once, never
-# MAGIC replaced. Grant the app's service principal `MODIFY` on this table (see `app/README.md`).
+# MAGIC replaced. Grant the app's service principal `MODIFY` on this table (see `03_demo/app/README.md`).
 
 # COMMAND ----------
 

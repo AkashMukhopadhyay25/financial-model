@@ -1,0 +1,222 @@
+<!doctype html><html><head><meta charset="utf-8"><style>
+/* Clip: the consultant builds the pipeline, then the architecture diagram draws itself box by box (48 s).
+   Same layout as assets/architecture_diagram_agentic_solution.svg, in the video's colours. */
+*{box-sizing:border-box;margin:0;padding:0}
+html,body{width:1920px;height:1080px;overflow:hidden;background:#07040f;font-family:Inter,sans-serif;color:#efeaff}
+#bg{position:absolute;inset:0;background:radial-gradient(1200px 700px at 20% 10%,#2a1150 0%,transparent 60%),radial-gradient(1000px 700px at 90% 90%,#1b0d3d 0%,transparent 60%),#07040f}
+#grid{position:absolute;inset:0;background-image:linear-gradient(#ffffff08 1px,transparent 1px),linear-gradient(90deg,#ffffff08 1px,transparent 1px);background-size:60px 60px;animation:pan 48s linear both}
+@keyframes pan{to{background-position:0 160px}}
+.scene{position:absolute;inset:0;opacity:0}
+.k{opacity:0;animation-fill-mode:both;animation-timing-function:cubic-bezier(.2,.7,.2,1)}
+@keyframes up{from{opacity:0;transform:translateY(40px)}to{opacity:1;transform:none}}
+@keyframes fade{from{opacity:0}to{opacity:1}}
+@keyframes out{to{opacity:0}}
+@keyframes pop{0%{opacity:0;transform:scale(.8)}100%{opacity:1;transform:scale(1)}}
+@keyframes draw{from{opacity:1;stroke-dashoffset:1}to{opacity:1;stroke-dashoffset:0}}
+@keyframes growx{from{opacity:1;transform:scaleX(0)}to{opacity:1;transform:scaleX(1)}}
+@keyframes flow{from{stroke-dashoffset:24}to{stroke-dashoffset:0}}
+@keyframes bob{0%,100%{transform:translateY(0)}50%{transform:translateY(-6px)}}
+@keyframes type{0%,100%{transform:translateY(0)}50%{transform:translateY(5px)}}
+@keyframes blink{0%,49%{opacity:1}50%,100%{opacity:0}}
+@keyframes zoomIn{from{left:742px;top:262px;width:1036px;height:556px;border-radius:12px;opacity:1}to{left:0;top:0;width:1920px;height:1080px;border-radius:0;opacity:1}}
+@keyframes pulse{0%,100%{filter:drop-shadow(0 0 0 #7d4dff00)}50%{filter:drop-shadow(0 0 22px #a77bffcc)}}
+h2{font-size:56px;font-weight:650;letter-spacing:-1px}
+.eyebrow{font-size:22px;letter-spacing:6px;text-transform:uppercase;color:#a77bff;margin-bottom:16px}
+.grad{background:linear-gradient(90deg,#c69bff,#7d4dff 50%,#4fb3ff);-webkit-background-clip:text;color:transparent}
+.monitor{position:absolute;left:720px;top:240px;width:1080px;height:600px;border-radius:24px;background:#0d0a16;border:3px solid #3a2a60;padding:22px;box-shadow:0 0 90px #7d4dff33}
+.code{width:100%;height:100%;border-radius:12px;background:#0f0a1d;padding:28px 34px;font-family:'DejaVu Sans Mono',monospace;font-size:24px;line-height:1.7;color:#c9c1e6;overflow:hidden}
+.code .c{color:#6d5f93}.code .y{color:#c69bff}.code .ok{color:#5fe39a}.code .w{color:#ffc24d}
+.ln{white-space:pre}
+#zoom{position:absolute;background:#0f0a1d;opacity:0;z-index:20}
+svg text{font-family:Inter,sans-serif}
+</style></head><body><div id="bg"></div><div id="grid"></div>
+
+<!-- C: the consultant at work (0-11.4) -->
+<div class="scene" style="animation:fade .6s 0s both, out .4s 11s forwards">
+ <div style="position:absolute;left:110px;top:90px">
+  <div class="eyebrow k" style="animation:fade .8s .3s both">Behind the answers</div>
+  <h2 class="k" style="animation:up .8s .6s both;max-width:600px">The team builds one governed pipeline</h2>
+  <div class="k" style="animation:fade .8s 1.6s both;font-size:26px;color:#b9acd9;margin-top:18px;max-width:560px">Data contracts, checks and certified tables on Databricks, before any agent answers a question.</div>
+ </div>
+ <!-- consultant: seated at the desk, typing -->
+ <div class="k" style="position:absolute;left:150px;top:500px;animation:fade .8s .4s both">
+  <svg width="520" height="520" viewBox="0 0 520 520">
+   <rect x="0" y="380" width="520" height="22" rx="8" fill="#2a1757"/>
+   <rect x="40" y="402" width="16" height="118" fill="#1d1236"/><rect x="464" y="402" width="16" height="118" fill="#1d1236"/>
+   <g style="animation:bob 3.2s 0s infinite">
+    <path d="M150 250 Q230 222 310 250 L330 380 L130 380 Z" fill="#1f9e8f"/>
+    <path d="M230 250 L218 320 L230 345 L242 320 Z" fill="#efeaff"/>
+    <rect x="218" y="200" width="24" height="52" fill="#c68a63"/>
+    <circle cx="230" cy="160" r="56" fill="#c68a63"/>
+    <path d="M174 150 Q176 96 230 96 Q288 96 288 150 Q280 120 230 118 Q186 120 174 150 Z" fill="#3a2414"/>
+    <circle cx="210" cy="165" r="15" fill="none" stroke="#1c1030" stroke-width="4"/><circle cx="252" cy="165" r="15" fill="none" stroke="#1c1030" stroke-width="4"/><path d="M225 165 h12" stroke="#1c1030" stroke-width="4"/>
+    <circle cx="210" cy="165" r="4" fill="#1c1030"/><circle cx="252" cy="165" r="4" fill="#1c1030"/>
+    <path d="M216 190 Q230 198 244 190" stroke="#1c1030" stroke-width="4" fill="none" stroke-linecap="round"/>
+   </g>
+   <g style="animation:type .25s 0s infinite"><path d="M160 300 Q190 350 260 372" stroke="#1f9e8f" stroke-width="30" fill="none" stroke-linecap="round"/><circle cx="268" cy="372" r="15" fill="#c68a63"/></g>
+   <g style="animation:type .25s .12s infinite"><path d="M300 300 Q330 350 360 372" stroke="#1f9e8f" stroke-width="30" fill="none" stroke-linecap="round"/><circle cx="366" cy="372" r="15" fill="#c68a63"/></g>
+   <rect x="240" y="364" width="190" height="16" rx="4" fill="#3a2a60"/>
+   <rect x="420" y="318" width="44" height="62" rx="8" fill="#efeaff"/><path d="M464 332 h10 a10 10 0 0 1 0 22 h-10" stroke="#efeaff" stroke-width="6" fill="none"/>
+  </svg>
+  <div class="k" style="animation:fade .5s 1s both;position:absolute;left:130px;top:-34px;font-size:26px;color:#7ee0d2">Cloudstruck consultant</div>
+ </div>
+ <div class="monitor k" style="animation:up .8s .2s both">
+  <div class="code">
+   <div class="ln k" style="animation:fade .2s 1.2s both"><span class="c"># 00_setup/contracts/projects_contract.yml</span></div>
+   <div class="ln k" style="animation:fade .2s 1.8s both"><span class="y">amt_loan_musd</span>: { type: decimal, min: 0, owner: Finance }</div>
+   <div class="ln k" style="animation:fade .2s 2.4s both"><span class="y">region</span>:        { standardize: 9 values → 7 }</div>
+   <div class="ln k" style="animation:fade .2s 3.2s both"> </div>
+   <div class="ln k" style="animation:fade .2s 3.6s both"><span class="c">&gt;</span> run 01_data/01_load_and_prepare</div>
+   <div class="ln k" style="animation:fade .2s 4.4s both">  01_schema_gate   <span class="ok">✓ headers match the contract</span></div>
+   <div class="ln k" style="animation:fade .2s 5.2s both">  03_validate      <span class="ok">✓ 0 quarantined</span> · <span class="w">22 flags with owners</span></div>
+   <div class="ln k" style="animation:fade .2s 6.0s both">  04_enrich        <span class="ok">✓ 4,969 descriptions read by the LLM</span></div>
+   <div class="ln k" style="animation:fade .2s 6.8s both">  05_certify       <span class="ok">✓ 5,000 projects certified</span></div>
+   <div class="ln k" style="animation:fade .2s 7.6s both">  06_dq_checks     <span class="ok">✓ 72 / 72 checks pass</span></div>
+   <div class="ln k" style="animation:fade .2s 8.4s both"><span class="c">&gt;</span> <span style="animation:blink 1s 0s infinite">▍</span></div>
+  </div>
+ </div>
+</div>
+<div id="zoom" style="animation:zoomIn 1.1s 9.6s forwards cubic-bezier(.6,0,.3,1), out .6s 11.3s forwards"></div>
+
+<!-- D: the architecture, box by box (11.3-48) -->
+<div class="scene" style="animation:fade .5s 11.3s both">
+ <div class="k" style="position:absolute;left:60px;top:28px;animation:fade .6s 11.6s both"><div class="eyebrow" style="margin:0;font-size:20px">How Cloudstruck works</div></div>
+ <div class="k" style="position:absolute;right:60px;top:24px;font-size:24px;color:#c9a8ff;animation:fade .8s 40.5s both">Data in. Decisions out. <b style="color:#fff">Every figure traceable.</b></div>
+ <svg id="d" width="1750" height="1000" viewBox="0 95 1600 915" style="position:absolute;left:85px;top:72px"></svg>
+</div>
+
+<script>
+// ---------- the diagram, built once; every element carries its own start time ----------
+const NS = 'http://www.w3.org/2000/svg', svg = document.getElementById('d');
+function el(tag, attrs, parent = svg) { const e = document.createElementNS(NS, tag); for (const k in attrs) e.setAttribute(k, attrs[k]); parent.appendChild(e); return e; }
+function group(t, anim = 'pop', dur = .5, origin) {
+  const g = el('g', { class: 'k' });
+  g.style.animation = `${anim} ${dur}s ${t}s both`;
+  if (origin) { g.style.transformOrigin = origin; g.style.transformBox = 'fill-box'; }
+  return g;
+}
+function text(g, x, y, lines, size = 14, weight = 400, fill = '#efeaff', anchor = 'middle') {
+  (Array.isArray(lines) ? lines : [lines]).forEach((ln, i) => {
+    const e = el('text', { x, y: y + i * size * 1.35, 'font-size': size, 'font-weight': weight, fill, 'text-anchor': anchor }, g);
+    e.textContent = ln;
+  });
+}
+function rect(g, x, y, w, h, fill, stroke, sw = 1.5, r = 14, dash) {
+  const a = { x, y, width: w, height: h, rx: r, fill, stroke, 'stroke-width': sw }; if (dash) a['stroke-dasharray'] = dash; return el('rect', a, g);
+}
+// an arrow that draws itself, then its head pops; flowing=true keeps a moving dash on it afterwards
+function arrow(d, t, color = '#a77bff', head, dur = .45, sw = 2.6, dashed = false, flowing = false) {
+  const p = el('path', { d, fill: 'none', stroke: color, 'stroke-width': sw, 'stroke-linecap': 'round', pathLength: 1, class: 'k' });
+  if (dashed) { p.setAttribute('stroke-dasharray', '0.02 0.016'); p.style.animation = `fade ${dur}s ${t}s both`; }
+  else { p.setAttribute('stroke-dasharray', '1'); p.style.animation = `draw ${dur}s ${t}s both`; }
+  if (flowing) {
+    const f = el('path', { d, fill: 'none', stroke: '#e6dcff', 'stroke-width': sw, 'stroke-dasharray': '3 21', 'stroke-linecap': 'round', class: 'k' });
+    f.style.animation = `fade .4s ${t + 6}s both, flow .8s linear ${t + 6}s infinite`;
+  }
+  if (head) {
+    const [x, y, ang] = head, g = group(t + dur * .85, 'fade', .15);
+    el('path', { d: 'M-9 -6 L3 0 L-9 6 Z', fill: color, transform: `translate(${x} ${y}) rotate(${ang})` }, g);
+  }
+  return p;
+}
+function badge(g, cx, cy, n) { el('circle', { cx, cy, r: 15, fill: '#7d4dff' }, g); text(g, cx, cy + 5, String(n), 14, 700, '#fff'); }
+
+// tier 1: data pipeline
+let g = group(11.8, 'fade', .6);
+badge(g, 55, 117, 1); text(g, 80, 122, 'Data pipeline', 19, 700, '#efeaff', 'start');
+text(g, 225, 122, 'runs every month · nothing reaches the agents until it is certified', 14, 400, '#9d90c0', 'start');
+rect(g, 30, 140, 1540, 268, '#120a24', '#3a2a60', 1.5, 18);
+
+const stages = [
+  ['Incoming data', ['Monthly files land in a', 'Unity Catalog volume:', 'structured tables +', 'free-text descriptions']],
+  ['Schema gate', ['Every column checked', 'against its data contract', 'before anything loads']],
+  ['Raw', ['Each delivery kept', 'exactly as received,', 'full history']],
+  ['Validate', ['Types and business rules;', 'unusable rows quarantined,', 'issues flagged with an owner']],
+  ['Enrich with AI', ['An LLM turns free-text', 'descriptions into fields', '(capacity, product, renewable)']],
+  ['Certify', ['One governed row per project,', '72 reconciliation checks:', 'nothing lost or double counted']],
+];
+const bw = 222, bh = 128, gap = 33, x0 = 55, y0 = 162, cx = [];
+stages.forEach(([title, body], i) => {
+  const x = x0 + i * (bw + gap), t = 12.6 + i * 1.0, last = i === stages.length - 1;
+  if (i) arrow(`M${x - gap + 4} ${y0 + bh / 2} L${x - 8} ${y0 + bh / 2}`, t - .45, '#a77bff', [x - 5, y0 + bh / 2, 0], .4, 2.6, false, true);
+  const b = group(t, 'pop', .45, 'center');
+  rect(b, x, y0, bw, bh, last ? '#6b3fd6' : '#1d1236', last ? '#c69bff' : '#7d4dff', last ? 2.5 : 1.6);
+  text(b, x + bw / 2, y0 + 32, title, 16, 700, '#fff');
+  text(b, x + bw / 2, y0 + 58, body, 13, 400, last ? '#e8deff' : '#a99cc9');
+  if (last) b.style.animation += `, pulse 1.6s ${t + .6}s 2`;
+  cx.push(x + bw / 2);
+});
+// alerts when something needs a person
+const alerts = [
+  [1, '#3f0e18', '#ff6b81', '#ff9aab', ['Structure problem: file held,', 'job stops, data owner emailed'], 19.6],
+  [3, '#3d2b07', '#ffc24d', '#ffd98a', ['Issues queued for the', 'owning team to fix'], 20.8],
+  [4, '#3d2b07', '#ffc24d', '#ffd98a', ['Uncertain readings sent', 'to a human reviewer'], 21.8],
+];
+const ay = 322;
+alerts.forEach(([i, fill, stroke, ink, lines, t]) => {
+  arrow(`M${cx[i]} ${y0 + bh + 4} L${cx[i]} ${ay - 8}`, t, stroke, [cx[i], ay - 5, 90], .35, 2);
+  const b = group(t + .35, 'pop', .4, 'center');
+  rect(b, cx[i] - 111, ay, 222, 64, fill, stroke, 1.6, 12);
+  text(b, cx[i], ay + 26, lines, 13, 600, ink);
+});
+g = group(22.8, 'fade', .6);
+text(g, cx[0], ay + 26, ['Alerts go to the', 'team that owns the fix'], 13, 600, '#9d90c0');
+
+// Unity Catalog
+const gy = 426;
+g = group(24.2, 'growx', .8, 'center');
+rect(g, 30, gy, 1540, 50, '#1d1236', '#4b2f86', 1.5, 12);
+const uc = el('text', { x: 800, y: gy + 31, 'font-size': 15, fill: '#efeaff', 'text-anchor': 'middle' }, g);
+uc.innerHTML = '<tspan font-weight="700">Unity Catalog</tspan><tspan dx="10" fill="#c9c1e6">certified tables · 24 documented assumptions · lineage · access grants · every answer and agent run audited</tspan>';
+arrow(`M${cx[5]} ${y0 + bh + 2} L${cx[5]} ${gy - 6}`, 23.8, '#a77bff', [cx[5], gy - 4, 90], .4);
+
+// tier 2: three agents
+g = group(25.6, 'fade', .6);
+badge(g, 55, 525, 2); text(g, 80, 530, 'Agentic intelligence', 19, 700, '#efeaff', 'start');
+const agents = [
+  ['Genie', '“What happened?”', ['Plain-language questions', 'turned into SQL on the', 'certified tables']],
+  ['Stress-test agent', '“What if credit worsens?”', ['Runs downside scenarios', 'on reserves and expected', 'credit loss']],
+  ['Capital allocation agent', '“Where should new money go?”', ['Ranks sectors and regions', 'with portfolio data and', 'cited market research']],
+];
+const aw = 380, ah = 150, ay2 = 552, ax = [110, 610, 1110];
+agents.forEach(([t1, q, body], i) => {
+  const x = ax[i], t = 26.2 + i * 1.0, mx = x + aw / 2;
+  arrow(`M${mx} ${gy + 54} L${mx} ${ay2 - 8}`, t - .4, '#8f7fc0', [mx, ay2 - 5, 90], .35, 2.2);
+  const b = group(t, 'pop', .45, 'center');
+  rect(b, x, ay2, aw, ah, '#150c2a', '#a77bff', 2, 16);
+  text(b, mx, ay2 + 34, t1, 18, 700, '#fff');
+  text(b, mx, ay2 + 60, q, 15, 600, '#c69bff');
+  text(b, mx, ay2 + 88, body, 13, 400, '#a99cc9');
+});
+g = group(29.4, 'fade', .7);
+text(g, 800, ay2 + ah + 26, 'Guardrails on all three: figures come only from governed SQL, never from the model · trust check Green / Amber / Red · open-weight model on Databricks', 13, 400, '#9d90c0');
+
+// tier 3: the three answers pour into one decision brief
+const dy = 790, dw = 700, dh = 104, dx = 800 - dw / 2;
+ax.forEach((x, i) => {
+  const sx = x + aw / 2, tx = 800 + (sx - 800) * .45;
+  arrow(`M${sx} ${ay2 + ah + 40} C${sx} ${dy - 40}, ${tx} ${dy - 50}, ${tx} ${dy - 10}`, 30.6 + i * .25, '#a77bff', [tx, dy - 6, 90], .9, 3, false, true);
+});
+const defs = el('defs', {}); const lg = el('linearGradient', { id: 'dg', x1: 0, y1: 0, x2: 1, y2: 1 }, defs);
+el('stop', { offset: 0, 'stop-color': '#7d4dff' }, lg); el('stop', { offset: 1, 'stop-color': '#4fb3ff' }, lg);
+g = group(31.9, 'pop', .6, 'center');
+badge(g, dx - 30, dy + 30, 3);
+rect(g, dx, dy, dw, dh, 'url(#dg)', '#c69bff', 2, 18);
+text(g, 800, dy + 40, 'Decision brief for the CFO Office and Board', 20, 700, '#fff');
+text(g, 800, dy + 68, ['What happened + the downside + where to allocate, in one view:', 'which clients to back, which to review'], 14, 400, '#eef0ff');
+g.style.animation += ', pulse 1.8s 32.6s 3';
+
+// people and the human-review loop
+const py = 940;
+arrow(`M${dx + 170} ${dy + dh + 4} L${dx + 170} ${py - 8}`, 34, '#8f7fc0', [dx + 170, py - 5, 90], .35, 2.2);
+arrow(`M${dx + dw - 170} ${dy + dh + 4} L${dx + dw - 170} ${py - 8}`, 34.4, '#8f7fc0', [dx + dw - 170, py - 5, 90], .35, 2.2);
+g = group(34.4, 'pop', .4, 'center'); rect(g, dx + 30, py, 280, 46, '#150c2a', '#4b2f86', 1.5, 12); text(g, dx + 170, py + 29, 'CFO Office · Board', 15, 600);
+g = group(34.8, 'pop', .4, 'center'); rect(g, dx + dw - 330, py, 320, 46, '#150c2a', '#4b2f86', 1.5, 12); text(g, dx + dw - 170, py + 29, 'Credit Risk Committee · human review', 15, 600);
+arrow(`M${dx + dw - 10} ${py + 23} L1540 ${py + 23} L1540 ${gy + 58}`, 36, '#8f7fc0', [1540, gy + 56, -90], .9, 1.8, true);
+g = group(36.8, 'fade', .5); text(g, 1530, 870, ['decision', 'recorded'], 12, 600, '#9d90c0', 'end');
+
+// ---------- frame-exact playback ----------
+window.DURATION = 48;
+window.render = t => { document.getAnimations().forEach(a => { a.pause(); a.currentTime = t * 1000; }); };
+render(0);
+</script></body></html>

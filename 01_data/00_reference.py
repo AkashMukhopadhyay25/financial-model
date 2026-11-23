@@ -7,8 +7,8 @@
 # MAGIC
 # MAGIC | Table | What it holds | How it is built |
 # MAGIC |---|---|---|
-# MAGIC | `ref_assumptions` | Business definitions A01–A24 applied to every answer | Rebuilt each run. Thresholds come from `config/pipeline_config.yml`; counts quoted in the text come from the validated tables, so the wording never drifts from the data. |
-# MAGIC | `ref_market_outlook` | Curated, cited, dated external research for the Capital Allocation Agent (A24) | Rebuilt each run from `config/market_outlook.yml`. |
+# MAGIC | `ref_assumptions` | Business definitions A01–A24 applied to every answer | Rebuilt each run. Thresholds come from `00_setup/config/pipeline_config.yml`; counts quoted in the text come from the validated tables, so the wording never drifts from the data. |
+# MAGIC | `ref_market_outlook` | Curated, cited, dated external research for the Capital Allocation Agent (A24) | Rebuilt each run from `00_setup/config/market_outlook.yml`. |
 # MAGIC | `ref_region_mapping` | Region labels restated to the data-dictionary value (A06) | Rebuilt each run **from the projects contract's `standardize` block**, the one source of truth Stage 3 also uses. |
 # MAGIC | `ref_product_vocabulary` | Financing instruments named in descriptions → Product Line (Q26) | Rebuilt each run. |
 # MAGIC | `ref_text_feature_overrides` | Reviewer decisions on flagged text attributes (human in the loop) | **Created only if missing. Never replaced or emptied**: it holds human decisions. |
@@ -119,7 +119,7 @@ def build_assumptions(cfg: dict, f: dict) -> list:
          f"Region labels that are not in the data dictionary are restated: {region_map_txt}. In the current data: {restated}. "
          "The label as received is kept in region_as_reported and the row carries flag_region_standardized (info).",
          "Otherwise regional totals split the same countries across two names. The mapping is defined once, in the projects "
-         "data contract, and ref_region_mapping is generated from it.", "contracts/projects_contract.yml: region.standardize"),
+         "data contract, and ref_region_mapping is generated from it.", "00_setup/contracts/projects_contract.yml: region.standardize"),
         ("A07", "Lifecycle intervals",
          "Approval-to-signing-to-investment intervals use only records whose dates are in lifecycle order. "
          f"{f['n_signed_before_approval']} projects signed before approval are excluded from averages; they carry "
@@ -208,7 +208,7 @@ def build_assumptions(cfg: dict, f: dict) -> list:
          "quarantine rate signals a systemic problem (e.g. a wrong date format), not a few bad rows.",
          f"validation.max_quarantine_share = {val['max_quarantine_share']}"),
         ("A21", "Data contracts and the schema gate",
-         "Every source file is checked against its data contract (contracts/*.yml) before any value is read. An added, "
+         "Every source file is checked against its data contract (00_setup/contracts/*.yml) before any value is read. An added, "
          "removed, renamed or duplicated column, an empty or header-only file, or an unrecognized file name is a hard stop: "
          "the file moves to held/, nothing downstream changes, and the job fails so the owner is alerted. To release a held "
          "file, correct it and drop it back into incoming/, or, if the change is intended, update the contract, bump its "
@@ -243,7 +243,7 @@ def build_assumptions(cfg: dict, f: dict) -> list:
          "caution) for new commitments. They are shown beside the A23 ranking and never blended into it.",
          "A curated, versioned source list keeps every market claim cited and dated, and reviewable before the Board sees it; "
          "the agent does not browse the web.",
-         "config/market_outlook.yml"),
+         "00_setup/config/market_outlook.yml"),
     ]
 
 
@@ -266,7 +266,7 @@ print(f"ref_assumptions: {len(ASSUMPTIONS)} rows")
 
 # COMMAND ----------
 
-# MAGIC %md ## External market research (A24), from `config/market_outlook.yml`
+# MAGIC %md ## External market research (A24), from `00_setup/config/market_outlook.yml`
 
 # COMMAND ----------
 
@@ -286,7 +286,7 @@ _schema = StructType([StructField(c, StringType()) for c in MO_COLS + ["retrieve
  .write.mode("overwrite").option("overwriteSchema", "true").saveAsTable(T("ref_market_outlook")))
 spark.sql(f"COMMENT ON TABLE {T('ref_market_outlook')} IS "
           "'Curated external research for new-commitment decisions (A24): publisher, title, date, URL, stance, finding. "
-          "Source: config/market_outlook.yml. Used by the Capital Allocation Agent; never blended into the A23 ranking.'")
+          "Source: 00_setup/config/market_outlook.yml. Used by the Capital Allocation Agent; never blended into the A23 ranking.'")
 print(f"ref_market_outlook: {len(MO_ROWS)} sources")
 
 # COMMAND ----------

@@ -4,12 +4,12 @@ Context for anyone (human or Claude) continuing this project. Read this first, t
 
 ## Current state (2026-11-04)
 This repo combines **two codebases** that are being merged. **Rule: everything outside `reference/` is the real code; `reference/teammate_original/` is the teammate's solution, read-only.**
-- **Real code today (ours):** contract-driven pipeline (schema gate → Raw → Validated): `00_setup/`, `01_data/01–03`, `contracts/`, `config/`, `tests/`, `test_files/`. Stages 1–2 ran on Databricks under the old catalog `ifc_cfo`; Stage 3 was tested locally and may not yet have run on Databricks.
+- **Real code today (ours):** contract-driven pipeline (schema gate → Raw → Validated): `00_setup/`, `01_data/01–03`, `00_setup/contracts/`, `00_setup/config/`, `01_data/tests/`, `01_data/test_files/`. Stages 1–2 ran on Databricks under the old catalog `ifc_cfo`; Stage 3 was tested locally and may not yet have run on Databricks.
 - **Teammate's (reference only):** end-to-end solution (WS1–WS3 answers, text enrichment, final tables, UC-function tools, CFO Decision Advisor agent, Streamlit app, evaluation, docs). During each merge phase, copy the relevant file from `reference/teammate_original/` into its real path (see the table in `README.md`), then update it. Never edit `reference/`.
 
 **Phase 1 passed on Databricks (2026-11-04) and is merged to `master`. Phase 2 passed on Databricks (2026-11-04): 5,000 / 3,768 rows, 0 quarantined, all 22 flags `same` as profiling. Merged to `master`. Phase 3 passed on Databricks (2026-11-05): `ref_assumptions` A01–A21, `ref_region_mapping` from the contract, 16 vocabulary rows, overrides untouched. Ritvik's three `ref_*` tables were replaced with the user's approval (no backup). Merged to `master`. Phase 4 passed on Databricks (2026-11-05): 0 LLM calls (all 5,000 cached results carried over from `llm_text_extractions`); rule new-renewable = 277 (T02); 91 text rows need review (89 product, 1 capacity, 1 renewable); identical to the teammate's `gold_project_text_features` on every attribute. Merged to `master`. Phase 5 passed on Databricks (2026-11-05): `certified_investment_portfolio` 5,000 rows / 100 columns, all commented; status 1302/1233/1233/1232; review overdue 324; Board date passed 237; Q28 gap 146; needs_review 1,260 (78 high); identical to the teammate's `gold_portfolio` on every shared column. Merged to `master`. Phase 6 passed on Databricks (2026-11-05): 72 checks in `ops_dq_checks`, all pass (35 blocking: R reconciliation raw = validated + quarantined = certified for rows and every amount column, K keys, S structure, V allowed values; plus F first-delivery, D flag counts, T text). `ops_dq_issues` lists 1,555 open issues by owner. Merged to `master`. Phase 7 passed on Databricks (2026-11-05): 36 WS1 answers in `answers_register` (30 questions + 6 detail lists), each with SQL, assumption IDs, scope and data-quality counts; 8 with an excluding-Dropped sensitivity figure (Q1 $52,375.81M vs $42,661.29M); 14 reconciliation checks W01–W14 pass. Teammate's 35 WS1 rows backed up to `answers_register_ws1_teammate_backup`; 34 identical, Q30 differs by $0.23M only because he rounded per project before summing (ours = true total). Next: slim phase 8 (Genie space + 4-phrasing evaluation).**
 
-**App deployed (2026-11-14) in workspace dbc-ba139e62-9140:** code uploaded to `/Workspace/Users/pruthvi.doshi@rotman.utoronto.ca/financial-model` (00_reference with A22, 07_client_views, ws2, ws3, `app/`); job run 97150445106345 succeeded: A01–A22, bands 22/246/131, early warning 42/61/112, WS2 95 / $15,473.36M / $11,447.52M / $3,311.72M, WS3 picks unchanged. Every app endpoint tested against the warehouse. App `ifc-cfo-intelligence` (https://ifc-cfo-intelligence-7474644524515535.aws.databricksapps.com) runs with resources `sql-warehouse` (a7792da7c24287a3) and `genie-space` (01f1dfb2b45c126bb81182a497d5866f, the phase 8 space, unchanged). Its service principal `ae2e855f-6791-4c7a-b345-003dce357e02` still needs the grants in `app/README.md` (the user runs them). Earlier: **App (2026-11-13):** the user chose a FastAPI + React Databricks App in `app/`, following their UI mockups (6 pages: Overview, Portfolio analytics, Risk & exposure, Client intelligence, Early warning, Board briefing), with **all pages live**. "Genie" in the app = a Genie space via the Conversation API (Genie Code has no app API). New data pieces for it: `00_setup/portfolio_sql.py` (shared scorecard + early-warning SQL, Spark and DuckDB), `01_data/07_client_views.py` (`certified_client_scorecard`, `certified_early_warning`, `ops_review_requests`), assumption **A22** (early-warning signals, thresholds in `business.early_warning`), and WS2/WS3 ported to `04_answers/ws2`, `04_answers/ws3` (back up the teammate's rows first). Local preview (`app/backend/local_preview.py`, DuckDB from `data/`) reproduces WS2 (95 / $15,473.36M / $11,447.52M / $3,311.72M) and the WS3 picks exactly. Early warning on the first delivery: 215 clients flagged (42 HIGH, 61 MEDIUM, 112 REVIEW). Deploy steps: `app/README.md`. The user must run 00_reference → 07_client_views → ws2 → ws3, create the Genie space and deploy the app. Follow `MERGE_PLAN.md` phase by phase; the user tests each phase on Databricks before the next. Source data for local tests is in `data/` (git-ignored).
+**App deployed (2026-11-14) in workspace dbc-ba139e62-9140:** code uploaded to `/Workspace/Users/pruthvi.doshi@rotman.utoronto.ca/financial-model` (00_reference with A22, 07_client_views, ws2, ws3, `03_demo/app/`); job run 97150445106345 succeeded: A01–A22, bands 22/246/131, early warning 42/61/112, WS2 95 / $15,473.36M / $11,447.52M / $3,311.72M, WS3 picks unchanged. Every app endpoint tested against the warehouse. App `ifc-cfo-intelligence` (https://ifc-cfo-intelligence-7474644524515535.aws.databricksapps.com) runs with resources `sql-warehouse` (a7792da7c24287a3) and `genie-space` (01f1dfb2b45c126bb81182a497d5866f, the phase 8 space, unchanged). Its service principal `ae2e855f-6791-4c7a-b345-003dce357e02` still needs the grants in `03_demo/app/README.md` (the user runs them). Earlier: **App (2026-11-13):** the user chose a FastAPI + React Databricks App in `03_demo/app/`, following their UI mockups (6 pages: Overview, Portfolio analytics, Risk & exposure, Client intelligence, Early warning, Board briefing), with **all pages live**. "Genie" in the app = a Genie space via the Conversation API (Genie Code has no app API). New data pieces for it: `00_setup/portfolio_sql.py` (shared scorecard + early-warning SQL, Spark and DuckDB), `01_data/07_client_views.py` (`certified_client_scorecard`, `certified_early_warning`, `ops_review_requests`), assumption **A22** (early-warning signals, thresholds in `business.early_warning`), and WS2/WS3 ported to `04_answers/ws2`, `04_answers/ws3` (back up the teammate's rows first). Local preview (`03_demo/app/backend/local_preview.py`, DuckDB from `data/`) reproduces WS2 (95 / $15,473.36M / $11,447.52M / $3,311.72M) and the WS3 picks exactly. Early warning on the first delivery: 215 clients flagged (42 HIGH, 61 MEDIUM, 112 REVIEW). Deploy steps: `03_demo/app/README.md`. The user must run 00_reference → 07_client_views → ws2 → ws3, create the Genie space and deploy the app. Follow `MERGE_PLAN.md` phase by phase; the user tests each phase on Databricks before the next. Source data for local tests is in `data/` (git-ignored).
 
 **Workspaces (2026-11-13): moved to `dbc-ba139e62-9140`** (user is admin). Catalog **`workspace`**, schema `portfolio` (its metastore has no storage root, so `ifc_challenge` cannot be created without a storage location). Warehouse `a7792da7c24287a3`. Code via a Git folder; data copied from the repo's `data/` into the `landing` volume; cached LLM results exported from the old workspace and loaded as `llm_text_extractions` (carried over by phase 4). `run_llm_extraction: false` for the first run. **Phases 1–7 re-run here (2026-11-13), all pass**: 5,000/3,768, 0 quarantined, 22 flags `same`; A01–A21; full LLM extraction run (no cache could be copied): 4,969 descriptions, 0 errors, 16 min; rule new-renewable 277, final 276; 95 text rows need review (93 product, 1 capacity, 1 renewable; was 91); certified 5,000 × 100, status 1302/1233/1233/1232, overdue 324, Board passed 237, Q28 146, needs_review 1,260 (78 high); 72/72 checks pass (34 blocking, 3 warning, 35 info); 1,559 issues (was 1,555, the 4 extra text reviews); 36 WS1 answers, Q1 $52,375.81M vs $42,661.29M, W01–W14 pass. **Serverless here cannot reliably read workspace files** (random `[Errno 5] Input/output error`, also breaks Git folder pulls), so `ifc_common.read_text` and the notebook bootstrap fall back to the Workspace API, and code is deployed with the workspace import API to `/Workspace/Users/pruthvi.doshi@rotman.utoronto.ca/financial-model` from branch `deploy/new-workspace`. Run `00_reference` after `03_validate` (it reads `validated_projects`). Earlier: the target was the team workspace `dbc-83823297-5832` (catalog `ifc_challenge` already exists there, owned by Ritvik Kohli, who must grant access). The old `ifc_cfo` catalog is in a different workspace, so Stages 1–2 run fresh here. Ritvik's live copy of his code is at `/Workspace/Users/ritvik.kohli@rotman.utoronto.ca/ifc-cfo-copilot`. It is newer than `reference/` in `cfo_agent.py`, `03_build_agent.py` and `04_app.py`; pick those changes up in phases 8–9.
 
@@ -18,17 +18,17 @@ This repo combines **two codebases** that are being merged. **Rule: everything o
   same core, with curated, cited external research in a ref table (no live web).
 - Two specialised agents on one shared core, routed by page (no router model).
 - Code:
-  - `app/backend/agent_core.py`: tool loop, figure tracing, trust level, `ops_agent_runs` audit;
-  - `app/backend/stress.py`: deterministic scenario SQL;
-  - `app/backend/stress_agent.py`: instructions and tools;
+  - `03_demo/app/backend/agent_core.py`: tool loop, figure tracing, trust level, `ops_agent_runs` audit;
+  - `03_demo/app/backend/stress.py`: deterministic scenario SQL;
+  - `03_demo/app/backend/stress_agent.py`: instructions and tools;
   - UI (2026-11-16, user's choice): the agents live on **Client intelligence** only: two ask boxes at the top of the page (`AgentAsk` in `Clients.jsx`), agent steps "Stress-test agent" / "Capital allocation agent" after the 4 client steps (`#/clients?step=stress|allocation`; `Stress.jsx`/`Allocation.jsx` rendered with `embedded`, kept mounted), and a dropdown on the Client intelligence nav item (`NavMenu` in `App.jsx`). No separate agents tab. Risk & exposure links to `step=stress`.
 - Model: Databricks-hosted open-weight `databricks-qwen3-next-80b-a3b-instruct` (`serving.agents.stress_test_model`;
   app resource `stress-agent-model`, Can query). Only open-weight models are served in this workspace.
 - The model never computes figures; every number in its answer must trace to a tool result, or the answer is Amber.
 - **Capital Allocation Agent (2026-11-16), built after the stress test:**
-  - Code: `app/backend/allocation.py`, `allocation_agent.py`; page **Capital allocation** (`Allocation.jsx`).
+  - Code: `03_demo/app/backend/allocation.py`, `allocation_agent.py`; page **Capital allocation** (`Allocation.jsx`).
   - A23 is the segment ranking (config `business.capital_allocation`). A24 is the curated research in
-    `config/market_outlook.yml`, loaded into `ref_market_outlook` by `00_reference`. On 2026-11-16, A23, A24 and the
+    `00_setup/config/market_outlook.yml`, loaded into `ref_market_outlook` by `00_reference`. On 2026-11-16, A23, A24 and the
     table were inserted directly with the same code, without a full rerun.
   - The decision rule (`allocation_summary`) is code, and its context is prefetched before the model runs.
   - A deterministic consistency check blocks prioritising a concentrated region.
@@ -42,7 +42,7 @@ This repo combines **two codebases** that are being merged. **Rule: everything o
 **Product pass (2026-11-16, deadline moved to 2026-11-17):**
 - **ECL labels:** Category A ECL $3.31B is always labelled as such, with portfolio ECL $7.60B beside it (Overview,
   Risk, Board briefing).
-- **Positives** (user: "too negative"): Overview "What is going well" (`/api/strengths`, `app/backend/projects.py`);
+- **Positives** (user: "too negative"): Overview "What is going well" (`/api/strengths`, `03_demo/app/backend/projects.py`);
   context lines on Risk (298 of 393 Category A performing) and Early warning (136 of 351 clients with no signal);
   Clients card "22 strong · 131 to review".
 - **Project depth:** Overview Project spotlight (largest / strong performers / recent / needs attention = the Early
@@ -52,10 +52,10 @@ This repo combines **two codebases** that are being merged. **Rule: everything o
   note, and the human review queue (`/api/review-queue`, Mark reviewed + decision).
 - **Speed:** parallel queries, a 10-minute cache (`queries.cached`, cleared on review writes) and startup warm-up.
   Briefing went from 11.5 s to about 1 s.
-- **Phrasing test:** `app/backend/evaluate.py` → `ops_agent_evaluation` + `02_agent/agent_evaluation_report.md`:
+- **Phrasing test:** `03_demo/app/backend/evaluate.py` → `ops_agent_evaluation` + `02_agent/agent_evaluation_report.md`:
   24 of 24 consistent. Genie sheet `02_agent/genie_phrasing_test.md` for the user to run.
 - **Docs:** README rewritten as the handover document (team: Cloudstruck; Akash Mukhopadhyay, Pruthvi Doshi, Sneha Chandrasekaran, Ritvik Kohli);
-  `assets/architecture_diagram_agentic_solution.{mmd,png}` (rendered with mermaid@10.9.1 via Playwright);
+  `assets/architecture_diagram_agentic_solution.{svg,png}` (PNG rendered from the SVG via Playwright at 2x; 2026-11-16 redesign: pipeline with alerts → Unity Catalog → Genie + both agents → one decision brief);
   `04_answers/ws3/board_recommendation.md`; the `ws3_recommendations.team_rationale` rows were updated with the team's
   reasons (the same text as RATIONALE in the ws3 notebook); `03_demo/README.md` walkthrough + 3-minute script.
 
@@ -66,7 +66,7 @@ This repo combines **two codebases** that are being merged. **Rule: everything o
   from master's monthly-history versions, which expect month folders; don't sync them into the main schema without
   reorganising landing.
 - **Job `cloudstruck_agent_evaluation`** (id 602008111269609): `02_agent/run_agent_evaluation.py`. It mirrors
-  app/backend through the Workspace API. The run on 2026-11-16 passed 24 of 24 and logged an MLflow run.
+  03_demo/app/backend through the Workspace API. The run on 2026-11-16 passed 24 of 24 and logged an MLflow run.
 - **MLflow:** experiment `/Shared/cloudstruck_agents` (id 2714232285130343); the app's service principal has Can edit on
   it. `agent_core` wraps each run in AGENT / CHAT_MODEL / TOOL spans (best effort; `IFC_AGENT_EXPERIMENT` empty = off).
   The app requires `mlflow-tracing`.
@@ -75,15 +75,24 @@ This repo combines **two codebases** that are being merged. **Rule: everything o
 - The app was found STOPPED on 2026-11-16 and was started before deploying.
 
 **Single workspace copy (2026-11-16, user's decision): `/Workspace/Shared/Cloudstruck`.**
-- The app (`app/`), both cloudstruck jobs and all docs run from it; the monthly pipeline is in its `monthly/`
+- The app (`03_demo/app/`), both cloudstruck jobs and all docs run from it; the monthly pipeline is in its `monthly/`
   subfolder. That is a copy of Ritvik's `financial-model-monthly` without `.git`, data or the old prototype;
   `run_monthly_pipeline` (824387683291203) points there, with config_path `…/monthly/config/pipeline_config_monthly_dev.yml`.
-- The app's service principal has Can read on the folder. Deploy the app with source path `/Workspace/Shared/Cloudstruck/app`.
+- The app's service principal has Can read on the folder. Deploy the app with source path `/Workspace/Shared/Cloudstruck/03_demo/app`.
 - **Old copies deleted (2026-11-16, user's decision)**, each backed up first as a zip in the volume
   `/Volumes/workspace/portfolio/code_archive/` (`<owner>__<folder>__2026-11-16.zip`). Deleted:
   `/Users/pruthvi.doshi@…/financial-model` and `financial-model-git`; Ritvik's `financial-model`, `-app`, `-run`,
   `-monthly` and `ifc-cfo-copilot-new`. Kept: the app's service-principal `src` (managed by Databricks), Ritvik's Drafts,
   scratch notebook, log file and the `cfo_decision_advisor` experiment.
+
+**Template layout (2026-11-16, user's decision):** the repo and `/Workspace/Shared/Cloudstruck` follow the challenge's
+handover template (README, `00_setup/`, `01_data/`, `02_agent/`, `03_demo/`, `04_answers/ws1–3`, `assets/`), with every
+other folder inside one of them: `00_setup/config/`, `00_setup/contracts/`, `01_data/tests/`, `01_data/test_files/`,
+`01_data/monthly/` (workspace only), `03_demo/app/` (the Databricks App; deploy with source path
+`/Workspace/Shared/Cloudstruck/03_demo/app`), `assets/docs/`. Template entry notebooks: `01_data/01_load_and_prepare`
+(runs the stage notebooks in order), `02_agent/02_agent_capabilities`, `02_agent/03_build_agent` (both `%run ./agent_setup`,
+which imports `03_demo/app/backend`), `03_demo/04_app.py` (status, link, deploy). Local app: `uvicorn app.backend.main:app
+--app-dir 03_demo`. `databricks.yml` stays at the root.
 
 ## The case
 - Competition: Accenture/BTA "Forward Deployed: Agentic Innovation Challenge". Client: IFC CFO Office. Platform: **Databricks** (Unity Catalog, Genie, Databricks Apps). Submission deadline Sun Nov 15, 11:59 p.m. EST (see `IMPLEMENTATION_STRATEGY.md`).
@@ -123,8 +132,8 @@ What our stages do (already built):
   - `01_data/run_monthly_pipeline` rebuilds only changed months, latest last.
   - `07_snapshot_month` replaces that month's rows in `certified_investment_portfolio_history`.
   - `08_trends` builds `kpi_monthly`, `kpi_month_over_month`, `kpi_latest_scorecard`, `project_month_changes` and `compare_months()`. KPIs live in `trends` in the config.
-  - Dev runs use `config/pipeline_config_monthly_dev.yml` (`extends` the main config; schema `portfolio_monthly_dev`). Demo months come from `test_files/make_demo_months`.
-  - **New workspace (2026-11-14):** the generated demo files are committed in `test_files/demo_months/` (README there: story, correction test, job `run_monthly_pipeline` 824387683291203, schema `workspace.portfolio_monthly_dev`, app access). The app page is **Monthly review** (`app/frontend/src/pages/Monthly.jsx`, `app/backend/monthly.py`); the live app deploys from the Git folder `/Users/ritvik.kohli@rotman.utoronto.ca/financial-model-app`.
+  - Dev runs use `00_setup/config/pipeline_config_monthly_dev.yml` (`extends` the main config; schema `portfolio_monthly_dev`). Demo months come from `01_data/test_files/make_demo_months`.
+  - **New workspace (2026-11-14):** the generated demo files are committed in `01_data/test_files/demo_months/` (README there: story, correction test, job `run_monthly_pipeline` 824387683291203, schema `workspace.portfolio_monthly_dev`, app access). The app page is **Monthly review** (`03_demo/app/frontend/src/pages/Monthly.jsx`, `03_demo/app/backend/monthly.py`); the live app deploys from the Git folder `/Users/ritvik.kohli@rotman.utoronto.ca/financial-model-app`.
 
 ## Key data facts
 - **Project Number is NOT unique** (3,559 distinct / 5,000). Joining on it inflates monitoring 3,768 → 6,477. **Join key = `project_url`.** Count projects by URL.
@@ -177,16 +186,16 @@ What our stages do (already built):
   - 31 blank descriptions must be counted.
 
 ## Working conventions
-- **Git and deploy (2026-11-15, user's rule):** `master` always holds the latest code. Commit changes directly to `master` and push (the user rolls back commits if needed), then deploy the app from `master`: upload `app/` (backend, `frontend/dist`, `app.yaml`) to `/Workspace/Users/pruthvi.doshi@rotman.utoronto.ca/financial-model/app` and redeploy `ifc-cfo-intelligence` (start it first if stopped). The live app is a copy, so deploy after every merge. Rebuild `frontend/dist` (`npm run build`) before committing UI changes. Teammates also push to this repo: fetch and merge first.
+- **Git and deploy (2026-11-15, user's rule):** `master` always holds the latest code. Commit changes directly to `master` and push (the user rolls back commits if needed), then deploy the app from `master`: upload `03_demo/app/` (backend, `frontend/dist`, `app.yaml`) to `/Workspace/Shared/Cloudstruck/03_demo/app` (the single shared copy since 2026-11-16) and redeploy `ifc-cfo-intelligence` (start it first if stopped). The live app is a copy, so deploy after every merge. Rebuild `frontend/dist` (`npm run build`) before committing UI changes. Teammates also push to this repo: fetch and merge first.
 - **Never query Genie directly** (no Conversation API calls from sessions; user's rule, 2026-11-15). Verify figures with plain SQL on the warehouse; the user tests Genie in the app.
 - **"No risk" / "low risk" / "healthy" = green-flag project:** `risk_flag = 'GREEN'` (Performing, Active only; 978 on the first delivery, 360 of them with DQ flags). `risk_flag` is never null. Recorded in the `risk_flag` column comment (05_certify) and in the Genie space instructions with an example (2026-11-15; space backup kept before the change).
 - The user is new to Databricks: give exact click paths, explain plainly, keep changes small and testable.
 - **The user validates each phase on Databricks before the next.** Don't jump ahead.
 - Never drop or overwrite `ref_text_feature_overrides`, `enriched_llm_extractions` (or his `llm_text_extractions`), `answers_register`, `agent_audit_log` or `raw_*` without asking. **No full LLM extraction without explicit approval**; test with 5 rows first.
-- Notebooks work on Databricks and locally. The config is found as: env var `IFC_PIPELINE_CONFIG` → widget `config_path` → `<repo root>/config/pipeline_config.yml`. Config and contracts deploy with the code, not to the volume; the volume holds data files only. Shared helpers live in `00_setup/ifc_common.py` (`T(cfg, name)`); `00_config` exposes `T(name)`. `tests/sqlite_dialect.py` runs Stage 3's generated SQL on SQLite against `data/`.
+- Notebooks work on Databricks and locally. The config is found as: env var `IFC_PIPELINE_CONFIG` → widget `config_path` → `<repo root>/config/pipeline_config.yml`. Config and contracts deploy with the code, not to the volume; the volume holds data files only. Shared helpers live in `00_setup/ifc_common.py` (`T(cfg, name)`); `00_config` exposes `T(name)`. `01_data/tests/sqlite_dialect.py` runs Stage 3's generated SQL on SQLite against `data/`.
 - Keep Python 3.11-compatible (no nested same-quote f-strings).
 - Bump a contract's `version` and changelog on any rule change.
-- Settings live in `config/pipeline_config.yml` only; nothing else hard-codes a catalog, threshold, endpoint or ID.
+- Settings live in `00_setup/config/pipeline_config.yml` only; nothing else hard-codes a catalog, threshold, endpoint or ID.
 - When a decision changes, update this file and `MERGE_PLAN.md` §0.
 
 ## Next step

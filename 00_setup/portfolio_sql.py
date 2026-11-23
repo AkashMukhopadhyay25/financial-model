@@ -8,7 +8,7 @@ A plain Python file (not a notebook) so the same SQL is used by `01_data/07_clie
 app's local preview (DuckDB). Keep the SQL to functions both engines share: count_if, mode, nullif, greatest,
 concat_ws, round, rank() OVER, CAST(... AS STRING).
 
-Every threshold comes from config/pipeline_config.yml (`business.client_bands`, `business.health_score_weights`,
+Every threshold comes from 00_setup/config/pipeline_config.yml (`business.client_bands`, `business.health_score_weights`,
 `business.early_warning`); nothing is hard-coded here.
 """
 

@@ -1,12 +1,12 @@
 """
 Run the agents' paraphrase-consistency evaluation on Databricks (job "cloudstruck_agent_evaluation").
 
-It runs the same code as the app (app/backend), so every agent run is also an MLflow trace in the experiment named in
+It runs the same code as the app (03_demo/app/backend), so every agent run is also an MLflow trace in the experiment named in
 config (serving.agents.mlflow_experiment). The evaluation itself is logged as an MLflow run in that experiment:
 metrics per agent (phrasings passed, consistency, average latency) and the Markdown report as an artifact. Results also
 go to the table ops_agent_evaluation, one row per phrasing.
 
-Run it after any change to an agent's prompt, tools or model. Locally:  PYTHONPATH=. python -m app.backend.evaluate
+Run it after any change to an agent's prompt, tools or model. Locally:  PYTHONPATH=03_demo python -m app.backend.evaluate
 """
 import base64
 import os
@@ -22,16 +22,17 @@ def _repo_root() -> Path:
 
 
 def _mirror(root: Path) -> Path:
-    """Serverless in this workspace cannot always read workspace files (OSError Errno 5). Copy app/backend and the
+    """Serverless in this workspace cannot always read workspace files (OSError Errno 5). Copy 03_demo/app/backend and the
     config to local disk through the Workspace API, the same workaround the pipeline notebooks use."""
     from databricks.sdk import WorkspaceClient
     from databricks.sdk.service.workspace import ExportFormat
 
     w = WorkspaceClient()
     dst = Path("/tmp/cloudstruck")
-    for rel in ["app/__init__.py", "app/backend/__init__.py", "config/pipeline_config.yml", "config/market_outlook.yml"] + [
-            f"app/backend/{o.path.rsplit('/', 1)[-1]}" for o in w.workspace.list(f"{root}/app/backend")
-            if o.path.endswith(".py")]:
+    for rel in ["03_demo/app/__init__.py", "03_demo/app/backend/__init__.py", "00_setup/config/pipeline_config.yml",
+                "00_setup/config/market_outlook.yml"] + [
+            f"03_demo/app/backend/{o.path.rsplit('/', 1)[-1]}" for o in w.workspace.list(f"{root}/03_demo/app/backend")
+            if o.path.endswith((".py", ".json"))]:
         out = dst / rel
         out.parent.mkdir(parents=True, exist_ok=True)
         try:
@@ -46,15 +47,15 @@ def _mirror(root: Path) -> Path:
 def main():
     root = _repo_root()
     try:
-        (root / "app" / "backend" / "agent_core.py").read_text()
+        (root / "03_demo" / "app" / "backend" / "agent_core.py").read_text()
         base = root
     except Exception:
         base = _mirror(root)
-    sys.path.insert(0, str(base))
+    sys.path.insert(0, str(base / "03_demo"))  # the app package lives in 03_demo/app
 
     import yaml
 
-    cfg = yaml.safe_load((base / "config" / "pipeline_config.yml").read_text())
+    cfg = yaml.safe_load((base / "00_setup" / "config" / "pipeline_config.yml").read_text())
     env, srv = cfg.get("environment", {}), cfg.get("serving", {})
     os.environ.setdefault("IFC_DATA_MODE", "databricks")
     os.environ.setdefault("IFC_CATALOG", env.get("catalog", "workspace"))

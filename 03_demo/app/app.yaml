@@ -1,0 +1,37 @@
+# Databricks App: Cloudstruck (IFC CFO Office portfolio intelligence) (FastAPI backend + React frontend, built files in frontend/dist).
+# Create the app with source code path = this app/ folder. Setup steps: 03_demo/app/README.md.
+command: ["uvicorn", "backend.main:app", "--host", "0.0.0.0", "--port", "8000"]
+env:
+  - name: IFC_CATALOG
+    value: "workspace"         # catalog.schema = 00_setup/config/pipeline_config.yml environment
+  - name: IFC_SCHEMA
+    value: "portfolio"
+  - name: IFC_DATA_MODE
+    value: "databricks"
+  - name: IFC_ECL_LOSS_RATE        # same as business.ecl_loss_rate in 00_setup/config/pipeline_config.yml (A11)
+    value: "0.6"
+  # Reserve & Stress-Test Agent: Databricks-hosted open-weight model (serving.agents.stress_test_model in the config).
+  # The app's service principal needs "Can query" on this endpoint (app resource "stress-agent-model").
+  - name: IFC_STRESS_AGENT_MODEL
+    value: "databricks-qwen3-next-80b-a3b-instruct"
+  # Capital Allocation Agent: same endpoint (serving.agents.capital_allocation_model); A23 thresholds as in
+  # business.capital_allocation of the config.
+  - name: IFC_ALLOCATION_AGENT_MODEL
+    value: "databricks-qwen3-next-80b-a3b-instruct"
+  # MLflow experiment for agent traces (serving.agents.mlflow_experiment); the service principal needs Can edit on it.
+  - name: IFC_AGENT_EXPERIMENT
+    value: "/Shared/cloudstruck_agents"
+  - name: IFC_ALLOC_MIN_ACTIVE
+    value: "10"
+  - name: IFC_ALLOC_MAX_SHARE
+    value: "0.25"
+  # Add these two as app resources (Configure page), with exactly these resource keys:
+  - name: IFC_WAREHOUSE_ID
+    valueFrom: "sql-warehouse"
+  - name: IFC_GENIE_SPACE_ID
+    valueFrom: "genie-space"
+  # Monthly history (01_data/run_monthly_pipeline): schema with kpi_monthly etc.; the job the Monthly trends page starts.
+  - name: IFC_MONTHLY_SCHEMA
+    value: "portfolio_monthly_dev"
+  - name: IFC_MONTHLY_JOB_ID
+    value: "824387683291203"

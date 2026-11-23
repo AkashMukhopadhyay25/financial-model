@@ -1,0 +1,117 @@
+<!doctype html><html><head><meta charset="utf-8"><style>
+/* Clip: the Board Chair messages Maya about the monthly report and the early warnings (42 s). Same style as video_cfo. */
+*{box-sizing:border-box;margin:0;padding:0}
+html,body{width:1920px;height:1080px;overflow:hidden;background:#07040f;font-family:Inter,sans-serif;color:#efeaff}
+#bg{position:absolute;inset:0;background:radial-gradient(1200px 700px at 20% 10%,#2a1150 0%,transparent 60%),radial-gradient(1000px 700px at 90% 90%,#1b0d3d 0%,transparent 60%),#07040f}
+#grid{position:absolute;inset:0;background-image:linear-gradient(#ffffff08 1px,transparent 1px),linear-gradient(90deg,#ffffff08 1px,transparent 1px);background-size:60px 60px;animation:pan 42s linear both}
+@keyframes pan{to{background-position:0 140px}}
+.scene{position:absolute;inset:0;opacity:0}
+.k{opacity:0;animation-fill-mode:both;animation-timing-function:cubic-bezier(.2,.7,.2,1)}
+@keyframes up{from{opacity:0;transform:translateY(40px)}to{opacity:1;transform:none}}
+@keyframes fade{from{opacity:0}to{opacity:1}}
+@keyframes out{to{opacity:0}}
+@keyframes grow{from{opacity:1;transform:scaleX(0)}to{opacity:1;transform:scaleX(1)}}
+@keyframes pop{0%{opacity:0;transform:scale(.85)}100%{opacity:1;transform:scale(1)}}
+@keyframes shake{0%,100%{transform:rotate(0)}25%{transform:rotate(-5deg)}75%{transform:rotate(5deg)}}
+@keyframes dots{0%,100%{opacity:.25}50%{opacity:1}}
+@keyframes glow{0%,100%{box-shadow:0 0 0 #ff6b8100}50%{box-shadow:0 0 40px #ff6b8166}}
+h2{font-size:56px;font-weight:650;letter-spacing:-1px}
+.eyebrow{font-size:22px;letter-spacing:6px;text-transform:uppercase;color:#a77bff;margin-bottom:18px}
+.grad{background:linear-gradient(90deg,#c69bff,#7d4dff 50%,#4fb3ff);-webkit-background-clip:text;color:transparent}
+.card{background:linear-gradient(160deg,#1d1236ee,#120a24ee);border:1px solid #4b2f86;border-radius:22px;padding:26px 30px;box-shadow:0 0 60px #7d4dff22}
+.tag{display:inline-block;padding:6px 14px;border-radius:999px;font-size:19px;font-weight:600}
+.green{background:#0f3a26;color:#5fe39a}.amber{background:#3d2b07;color:#ffc24d}.red{background:#3f0e18;color:#ff6b81}.purple{background:#2a1757;color:#c9a8ff}
+.lbl{font-size:21px;color:#9d90c0}
+.phone{position:absolute;left:90px;top:150px;width:470px;height:840px;border-radius:56px;background:#0d0a16;border:3px solid #3a2a60;padding:40px 24px;display:flex;flex-direction:column;gap:14px;box-shadow:0 0 80px #7d4dff33}
+.phead{display:flex;align-items:center;gap:14px;padding:0 6px 16px;border-bottom:1px solid #2a2340;margin-bottom:6px}
+.av{width:52px;height:52px;border-radius:50%;background:#2a1757;display:flex;align-items:center;justify-content:center;font-weight:700;font-size:20px;color:#c9a8ff}
+.bub{max-width:360px;padding:15px 19px;border-radius:22px;font-size:21px;line-height:1.38}
+.in{background:#2a2340;align-self:flex-start;border-bottom-left-radius:6px}
+.me{background:#6b3fd6;align-self:flex-end;border-bottom-right-radius:6px}
+.typing{align-self:flex-end;background:#6b3fd6;border-radius:22px;padding:14px 20px;display:flex;gap:7px}
+.typing i{width:10px;height:10px;border-radius:50%;background:#fff;animation:dots 1s infinite}
+.typing i:nth-child(2){animation-delay:.2s}.typing i:nth-child(3){animation-delay:.4s}
+.screen{position:absolute;left:640px;top:150px;width:1210px;border-radius:22px;background:#0f0a1d;border:2px solid #3a2a60;padding:30px 40px;box-shadow:0 0 90px #7d4dff22}
+.bar3{display:flex;gap:10px;margin-bottom:20px;align-items:center}.bar3 i{width:13px;height:13px;border-radius:50%;background:#3a2a60}
+.bar3 span{margin-left:16px;font-size:19px;color:#9d90c0}
+.kpis{display:grid;grid-template-columns:repeat(4,1fr);gap:18px}
+.kv{font-size:52px;font-weight:700;letter-spacing:-1px;margin:8px 0 10px}
+.delta{font-size:20px;font-weight:650;padding:6px 12px;border-radius:999px;display:inline-block}
+.dg{background:#0f3a26;color:#5fe39a}.da{background:#3d2b07;color:#ffc24d}
+.client{display:flex;align-items:center;gap:20px;padding:16px 22px;border:1px solid #3a2a60;border-radius:16px;background:#150c2a}
+.client .nm{font-size:25px;font-weight:650}
+.chip{font-size:16px;padding:5px 11px;border-radius:999px;background:#2a1757;color:#c9a8ff;margin-right:6px;display:inline-block;margin-top:6px}
+#clock{position:absolute;top:34px;right:60px;text-align:right;z-index:9}
+#clock .t{font-size:44px;font-weight:700}
+#clock .l{font-size:19px;color:#b9acd9}
+</style></head><body><div id="bg"></div><div id="grid"></div>
+<div id="clock" class="k" style="animation:fade .6s .3s both"><div class="t">Monday 8:12</div><div class="l">October monthly pack · just landed</div></div>
+
+<!-- the phone stays on screen for the whole clip -->
+<div class="phone k" style="animation:up .7s .4s both, shake .14s 1.3s 4">
+ <div class="phead"><div class="av">BC</div><div><div style="font-size:23px;font-weight:650">Board Chair</div><div class="lbl" style="font-size:17px">to Maya · CFO</div></div></div>
+ <div class="bub in k" style="animation:pop .45s 1.4s both">The October monthly pack just landed. What changed since September?</div>
+ <div class="typing k" style="animation:fade .3s 4.2s both, out .2s 9.6s forwards"><i></i><i></i><i></i></div>
+ <div class="bub me k" style="animation:pop .45s 9.8s both;margin-top:-46px">A better month: Watchlist <b>down 47</b>, expected credit loss <b>down $684M</b>. One to watch: undisbursed commitments <b>up $4.9B</b>.</div>
+ <div class="bub in k" style="animation:pop .45s 17s both">Good. Any clients about to get into trouble?</div>
+ <div class="typing k" style="animation:fade .3s 19.6s both, out .2s 29.4s forwards"><i></i><i></i><i></i></div>
+ <div class="bub me k" style="animation:pop .45s 29.6s both;margin-top:-46px"><b>42</b> high-priority clients. Lucor Communications ($6.05B) has four warning signals, so it's escalated to Credit Risk.</div>
+ <div class="bub in k" style="animation:pop .45s 34.6s both">Put Lucor on Thursday's agenda. 👍</div>
+</div>
+
+<!-- screen 1: Monthly review -->
+<div class="scene" style="animation:fade .6s 4.6s both, out .6s 17.4s forwards">
+ <div class="screen">
+  <div class="bar3"><i></i><i></i><i></i><span>Cloudstruck · Monthly review</span></div>
+  <div class="eyebrow k" style="animation:fade .6s 5s both">October 2026 vs September 2026</div>
+  <h2 class="k" style="animation:up .7s 5.3s both;margin-bottom:26px">What changed this month</h2>
+  <div class="kpis">
+   <div class="card k" style="animation:up .6s 6.2s both"><div class="lbl">Watchlist projects</div><div class="kv" data-count="134" data-from="6.4" data-dur="1.2" data-fmt="#">0</div><span class="delta dg k" style="animation:pop .4s 7.4s both">↓ 47 from Sep</span></div>
+   <div class="card k" style="animation:up .6s 6.8s both"><div class="lbl">Past Due projects</div><div class="kv" data-count="104" data-from="7" data-dur="1.2" data-fmt="#">0</div><span class="delta dg k" style="animation:pop .4s 8s both">↓ 6 from Sep</span></div>
+   <div class="card k" style="animation:up .6s 7.4s both"><div class="lbl">Expected credit loss</div><div class="kv" data-count="7.72" data-from="7.6" data-dur="1.2" data-fmt="$#B" data-dec="2">$0</div><span class="delta dg k" style="animation:pop .4s 8.6s both">↓ $684M</span></div>
+   <div class="card k" style="animation:up .6s 8s both"><div class="lbl">Reviews overdue</div><div class="kv" data-count="188" data-from="8.2" data-dur="1.2" data-fmt="#">0</div><span class="delta dg k" style="animation:pop .4s 9.2s both">↓ 77 from Sep</span></div>
+  </div>
+  <div class="card k" style="animation:up .6s 10.6s both;margin-top:20px;display:flex;align-items:center;gap:24px;border-color:#6b4a12">
+   <span class="tag amber">Watch</span>
+   <div style="font-size:25px;flex:1">Undisbursed commitments <b>$102.3B</b>, up <b>$4.9B</b>: more money signed than drawn, so watch the drawdowns.</div>
+  </div>
+  <div class="k" style="animation:fade .6s 12.4s both;margin-top:22px;display:flex;gap:16px;font-size:21px;color:#b9acd9">
+   <span class="tag green">Active projects 1,270 · +27</span><span class="tag green">Board-approved +$14.2B</span><span class="tag purple">Same certified data every month</span>
+  </div>
+ </div>
+</div>
+
+<!-- screen 2: Early warning -->
+<div class="scene" style="animation:fade .6s 18s both, out .6s 41.4s forwards">
+ <div class="screen">
+  <div class="bar3"><i></i><i></i><i></i><span>Cloudstruck · Early warning</span></div>
+  <div class="eyebrow k" style="animation:fade .6s 18.4s both">Clients showing warning signals before they default</div>
+  <div class="k" style="animation:up .7s 18.8s both;display:flex;align-items:baseline;gap:20px"><span style="font-size:84px;font-weight:700" data-count="215" data-from="19" data-dur="1.3" data-fmt="#">0</span><span style="font-size:30px;color:#b9acd9">clients flagged by the early-warning signals</span></div>
+  <div style="margin-top:18px;display:flex;height:46px;border-radius:10px;overflow:hidden">
+   <div class="k" style="animation:grow 1s 20.4s both;transform-origin:left;width:19.5%;background:#ff6b81"></div>
+   <div class="k" style="animation:grow .8s 21.2s both;transform-origin:left;width:28.4%;background:#ffc24d"></div>
+   <div class="k" style="animation:grow .8s 21.8s both;transform-origin:left;width:52.1%;background:#7d4dff"></div>
+  </div>
+  <div class="k" style="animation:fade .5s 22.4s both;display:flex;gap:34px;margin-top:12px;font-size:22px">
+   <span><b style="color:#ff6b81">42</b> High · escalate</span><span><b style="color:#ffc24d">61</b> Medium · updated review</span><span><b style="color:#c9a8ff">112</b> Review · investigate</span>
+  </div>
+  <div style="display:flex;flex-direction:column;gap:12px;margin-top:22px">
+   <div class="client k" style="animation:up .5s 23.6s both, glow 1.6s 30s 2"><span class="tag red">High</span><div style="flex:1"><div class="nm">Lucor Communications Holdings</div><div><span class="chip">Multiple Watchlist</span><span class="chip">Risk rating 5–6</span><span class="chip">Review overdue</span><span class="chip">Past Due</span></div></div><div style="text-align:right"><div style="font-size:26px;font-weight:700">$6,050M</div><div class="lbl" style="font-size:17px">→ Credit Risk Committee</div></div></div>
+   <div class="client k" style="animation:up .5s 24.4s both"><span class="tag red">High</span><div style="flex:1"><div class="nm">Mijul Farms PLC</div><div><span class="chip">Multiple Watchlist</span><span class="chip">Risk rating 5–6</span><span class="chip">Review overdue</span><span class="chip">Past Due</span></div></div><div style="text-align:right"><div style="font-size:26px;font-weight:700">$5,641M</div><div class="lbl" style="font-size:17px">→ Credit Risk Committee</div></div></div>
+   <div class="client k" style="animation:up .5s 25.2s both"><span class="tag red">High</span><div style="flex:1"><div class="nm">Wenhargal Renewables Corp</div><div><span class="chip">Multiple Watchlist</span><span class="chip">Risk rating 5–6</span><span class="chip">Review overdue</span><span class="chip">Past Due</span></div></div><div style="text-align:right"><div style="font-size:26px;font-weight:700">$3,966M</div><div class="lbl" style="font-size:17px">→ Credit Risk Committee</div></div></div>
+  </div>
+  <div class="k" style="animation:fade .6s 27s both;margin-top:20px;display:flex;gap:16px;align-items:center;font-size:22px">
+   <span class="tag green">136 of 351 clients: no warning signal</span><span style="color:#b9acd9">Every alert has an owner. No automatic investment decision.</span>
+  </div>
+ </div>
+</div>
+
+<script>
+const fmt=(v,f,dec)=>{let n=dec?v.toFixed(dec):Math.round(v).toString();if(f.includes('#,'))n=Math.round(v).toLocaleString('en-US');return f.replace('#,','#').replace('#',n)};
+window.DURATION=42;
+window.render=t=>{
+ document.getAnimations().forEach(a=>{a.pause();a.currentTime=t*1000});
+ document.querySelectorAll('[data-count]').forEach(e=>{const s=+e.dataset.from,d=+e.dataset.dur,p=Math.min(1,Math.max(0,(t-s)/d)),q=1-Math.pow(1-p,3);e.textContent=fmt(q*+e.dataset.count,e.dataset.fmt,+e.dataset.dec||0)});
+};
+render(0);
+</script></body></html>
