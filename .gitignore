@@ -7,3 +7,5 @@ __pycache__/
 03_demo/app/.preview/
 03_demo/app/frontend/node_modules/
 uvicorn.log
+# leftover local build files from before the app moved to 03_demo/app
+/app/
