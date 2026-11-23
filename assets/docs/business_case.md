@@ -44,7 +44,22 @@ With busier assumptions (three analysts per pack, 20 questions a month, USD 800 
 - **Data quality improves at the source.** 1,260 flagged projects are routed to four owners with plain-language
   messages, instead of being fixed again in each spreadsheet.
 
-### Running cost (to measure in the pilot, not guess)
+### Running cost (estimate at list prices; measure in the pilot)
+
+| Item | Basis | Approx. per month (USD) |
+|---|---|---|
+| SQL warehouse (Genie, app pages, agent queries) | Serverless 2X-Small, 4 DBU/hour × ~$0.70 ≈ $2.80/hour, only while running (stops after 10 idle minutes); 4–8 hours per working day | 250–500 |
+| Databricks App | Medium, 0.5 DBU/hour, always on, ~$0.75–0.95 per DBU | ~300 |
+| Agent model (open-weight, pay per token) | ~500 agent questions a month | < 20 |
+| Genie | No separate fee; runs on the SQL warehouse | included |
+| Monthly pipeline run | Serverless job, ~15 minutes plus reruns | 10–30 |
+| Storage | A few GB of tables | < 5 |
+| **Total** | | **≈ 600–900 a month ≈ 7,000–11,000 a year** |
+
+This is the extra usage only; IFC's Databricks platform itself is assumed to exist. Per-DBU prices vary by cloud,
+region and contract. Against the conservative saving of about USD 100,000 a year, the return is roughly **10×**.
+
+### Measuring the actual cost
 
 The cost drivers are the serverless SQL warehouse (queries are cached for 10 minutes, so page views are cheap), the
 Databricks App (one small instance) and Foundation Model API tokens (about 5–15 seconds of model time per agent
