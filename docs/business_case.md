@@ -5,28 +5,30 @@ The calculation is simple on purpose: a reader can redo it in a minute.
 
 ## 1. Value case
 
-### Assumptions
+### Assumptions (conservative on purpose)
 
 | # | Assumption | Value | Basis |
 |---|---|---|---|
-| V1 | Effort to prepare one Board risk pack today | 3 analysts × 15 working days = **45 analyst-days** | Brief: "close to three weeks to prepare" |
+| V1 | Effort to prepare one Board risk pack today | 2 analysts × 15 working days = **30 analyst-days** | Brief: "close to three weeks to prepare"; we assume only two analysts |
 | V2 | Board risk packs per year | **4** (quarterly) | Typical Board risk cycle |
-| V3 | Monthly management packs per year | **8** (the other months), at **10 analyst-days** each | Smaller monthly version of the same work |
-| V4 | Ad hoc portfolio questions per year | **240** (about 20 a month), at **1 analyst-day** each | Recurring questions like the 30 in WS1 |
-| V5 | Effort with Cloudstruck | Board pack **3 days**; monthly pack **1.5 days**; ad hoc question **0.1 day** | Figures are certified and pre-assembled; analysts review, add judgment and present |
-| V6 | Fully loaded cost of an analyst-day | **USD 800** | Placeholder; replace with IFC's rate |
+| V3 | Monthly management packs per year | **8** (the other months), at **5 analyst-days** each | A much smaller monthly version |
+| V4 | Ad hoc portfolio questions per year | **120** (about 10 a month), at **half a day** each | Recurring questions like the 30 in WS1 |
+| V5 | Effort with Cloudstruck | Board pack **5 days**; monthly pack **2 days**; ad hoc question **0.1 day** | Figures are certified and pre-assembled; analysts still check, add judgment and present |
+| V6 | Fully loaded cost of an analyst-day | **USD 600** | Placeholder, deliberately low; replace with IFC's rate |
 
 ### Result
 
 | Work | Today (analyst-days a year) | With Cloudstruck | Saved |
 |---|---|---|---|
-| Board risk packs (V1, V2) | 4 × 45 = 180 | 4 × 3 = 12 | **168** |
-| Monthly packs (V3) | 8 × 10 = 80 | 8 × 1.5 = 12 | **68** |
-| Ad hoc questions (V4) | 240 × 1 = 240 | 240 × 0.1 = 24 | **216** |
-| **Total** | **500** | **48** | **452 analyst-days ≈ 2 analysts' full year** |
+| Board risk packs (V1, V2) | 4 × 30 = 120 | 4 × 5 = 20 | **100** |
+| Monthly packs (V3) | 8 × 5 = 40 | 8 × 2 = 16 | **24** |
+| Ad hoc questions (V4) | 120 × 0.5 = 60 | 120 × 0.1 = 12 | **48** |
+| **Total** | **220** | **48** | **172 analyst-days ≈ 0.75 of an analyst's year** |
 
-At V6 that is about **USD 360,000 a year** of analyst time, redeployed from rebuilding numbers to analysis.
-A conservative case (half the savings) is about USD 180,000; the case still holds if analyst-day costs are lower.
+At V6 that is about **USD 100,000 a year** of analyst time, redeployed from rebuilding numbers to analysis.
+Every input is set low: the case holds even if only the Board packs (100 days, about USD 60,000) are counted.
+With busier assumptions (three analysts per pack, 20 questions a month, USD 800 a day) the saving is about
+450 analyst-days, or USD 360,000; we treat that as upside, not the claim.
 
 ### Value that is harder to price, but matters more
 

@@ -139,8 +139,9 @@ departments recently showed the Board **different figures for the same measure**
 | Reconciliation | 0 unexplained differences | 72 of 72 data checks; 14 of 14 WS1 checks |
 | Coverage | WS1–WS3 | 30 of 30 questions, 2 of 2 Board questions, four-client recommendation, both optional extensions |
 
-**Value, with stated assumptions:** about **450 analyst-days a year** freed from building Board and monthly packs and
-from answering recurring questions. That is about two analysts, or **USD 360,000 a year** at an assumed USD 800 per day.
+**Value, with conservative stated assumptions:** about **170 analyst-days a year** freed from building Board and monthly
+packs and from answering recurring questions, or about **USD 100,000 a year** at an assumed USD 600 per day
+(`docs/business_case.md`; busier assumptions give up to USD 360,000).
 Directors' follow-up questions are answered in the meeting, and one definition per measure ends conflicting figures.
 
 ## 2. Architecture
